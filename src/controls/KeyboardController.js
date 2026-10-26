@@ -1,0 +1,143 @@
+/**
+ * KeyboardController.js
+ *
+ * Smooth analog-ramped keyboard fallback and assist controller.
+ * Supports Arrow keys + WASD, Escape (pause/resume), R (restart), H (toggle HUD gauge).
+ */
+
+export class KeyboardController {
+  constructor(callbacks = {}) {
+    this.callbacks = callbacks;
+    this.keys = {
+      left: false,
+      right: false,
+      up: false,
+      down: false,
+    };
+    this.steerValue = 0;
+
+    this._onKeyDown = this._onKeyDown.bind(this);
+    this._onKeyUp = this._onKeyUp.bind(this);
+    this._onBlur = this._onBlur.bind(this);
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('keydown', this._onKeyDown);
+      window.addEventListener('keyup', this._onKeyUp);
+      window.addEventListener('blur', this._onBlur);
+    }
+  }
+
+  _onKeyDown(event) {
+    // Ignore shortcuts if focus is inside an input/select control
+    const tag = event.target?.tagName;
+    if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') {
+      if (event.code === 'Escape') {
+        event.target.blur();
+      }
+      return;
+    }
+
+    switch (event.code) {
+      case 'ArrowLeft':
+      case 'KeyA':
+        this.keys.left = true;
+        event.preventDefault();
+        break;
+      case 'ArrowRight':
+      case 'KeyD':
+        this.keys.right = true;
+        event.preventDefault();
+        break;
+      case 'ArrowUp':
+      case 'KeyW':
+        this.keys.up = true;
+        event.preventDefault();
+        break;
+      case 'ArrowDown':
+      case 'KeyS':
+        this.keys.down = true;
+        event.preventDefault();
+        break;
+      case 'Escape':
+        event.preventDefault();
+        this.callbacks.onEscape?.();
+        break;
+      case 'KeyR':
+        event.preventDefault();
+        this.callbacks.onRestart?.();
+        break;
+      case 'KeyH':
+        event.preventDefault();
+        this.callbacks.onToggleHud?.();
+        break;
+      default:
+        break;
+    }
+  }
+
+  _onKeyUp(event) {
+    switch (event.code) {
+      case 'ArrowLeft':
+      case 'KeyA':
+        this.keys.left = false;
+        break;
+      case 'ArrowRight':
+      case 'KeyD':
+        this.keys.right = false;
+        break;
+      case 'ArrowUp':
+      case 'KeyW':
+        this.keys.up = false;
+        break;
+      case 'ArrowDown':
+      case 'KeyS':
+        this.keys.down = false;
+        break;
+      default:
+        break;
+    }
+  }
+
+  _onBlur() {
+    this.reset();
+  }
+
+  reset() {
+    this.keys.left = false;
+    this.keys.right = false;
+    this.keys.up = false;
+    this.keys.down = false;
+    this.steerValue = 0;
+  }
+
+  /**
+   * Advances smooth analog keyboard steering value in [-1..+1].
+   */
+  update(dt = 0.016, sensitivity = 1.0) {
+    const safeDt = Math.min(0.1, Math.max(0.001, dt));
+    const rawDir = (this.keys.right ? 1 : 0) - (this.keys.left ? 1 : 0);
+    const target = rawDir;
+    const rate = rawDir !== 0 ? 9.5 * Math.max(0.6, sensitivity) : 11.5;
+    const alpha = 1 - Math.exp(-rate * safeDt);
+    this.steerValue += (target - this.steerValue) * alpha;
+    if (Math.abs(this.steerValue) < 0.005 && target === 0) {
+      this.steerValue = 0;
+    }
+
+    return {
+      steer: Math.max(-1, Math.min(1, this.steerValue)),
+      wheelAngleDeg: this.steerValue * 42,
+      accelerate: this.keys.up,
+      brake: this.keys.down,
+      hasSteerInput: rawDir !== 0,
+    };
+  }
+
+  dispose() {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('keydown', this._onKeyDown);
+      window.removeEventListener('keyup', this._onKeyUp);
+      window.removeEventListener('blur', this._onBlur);
+    }
+  }
+}
