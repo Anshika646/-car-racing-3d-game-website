@@ -142,17 +142,16 @@ git push -u origin main
 ```
 
 ### 2. Deploy to Vercel or Netlify (Zero Config, Automatic HTTPS)
-- **Vercel:** Import your GitHub repository at [vercel.com/new](https://vercel.com/new). Framework preset: **Vite**, Build Command: `npm run build`, Output Directory: `dist`.
-- **Netlify:** Import your GitHub repository, set Build Command to `npm run build` and Publish Directory to `dist`.
+- **Netlify:** Import your GitHub repository — `netlify.toml` automatically sets Node 22, Build Command `npm run build`, Publish Directory `dist`, and `Permissions-Policy: camera=(self)`.
+- **Vercel:** Import your GitHub repository at [vercel.com/new](https://vercel.com/new) — `vercel.json` automatically configures `npm run build` and `dist`.
 
-### 3. Deploy to GitHub Pages
-1. If deploying to `https://<your-username>.github.io/<your-repo-name>/`, set `base: './'` in `vite.config.ts` (note: in `src/controls/HandTracker.js`, MediaPipe automatically falls back to the jsDelivr CDN WASM bundle if `/wasm` is hosted under a subpath).
-2. Build and deploy using `gh-pages` or GitHub Actions:
-   ```powershell
-   npm run build
-   npx gh-pages -d dist
-   ```
-3. Open your HTTPS GitHub Pages URL and grant webcam permission when starting Camera Mode.
+### 3. Deploy to GitHub Pages (Automatic via GitHub Actions)
+1. Push your code to the `main` branch on GitHub.
+2. The included workflow (`.github/workflows/deploy.yml`) automatically installs dependencies, copies MediaPipe WASM assets, builds `dist/`, and publishes the built bundle to the `gh-pages` branch (with `.nojekyll`).
+3. In your GitHub repository, go to **Settings -> Pages -> Build and deployment**:
+   - **Source:** `Deploy from a branch`
+   - **Branch:** `gh-pages` / `/ (root)` -> Click **Save** *(do not select `main`, as `main` contains unbuilt Vite source files)*.
+4. Open your HTTPS GitHub Pages URL and grant webcam permission when starting Camera Mode.
 
 ---
 

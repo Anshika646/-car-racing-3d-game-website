@@ -4,6 +4,7 @@ dist/
 standalone/
 .singlefile-tmp/
 public/wasm/
+public/assets/aistudio/
 public/motion-drive-3d-single.html
 public/motion-drive-3d-netlify-drop.zip
 public/motion-drive-3d-deploy-v2.zip
