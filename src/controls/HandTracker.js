@@ -8,8 +8,8 @@
 
 import { computeWheelGeometry } from './SteeringCalibration.js';
 
-const LOCAL_WASM_PATH = './wasm';
-const CDN_WASM_PATH = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1/wasm';
+const PRIMARY_WASM_CDN = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1/wasm';
+const FALLBACK_WASM_CDN = 'https://unpkg.com/@mediapipe/tasks-vision@1.1.1/wasm';
 const HAND_MODEL_URL =
   'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
 
@@ -22,22 +22,6 @@ const HAND_CONNECTIONS = [
   [13, 17], [17, 18], [18, 19], [19, 20], // Pinky
   [0, 17],                              // Palm base
 ];
-
-async function hasLocalWasmAssets() {
-  if (typeof window !== 'undefined' && window.__MOTION_DRIVE_SINGLE_FILE__) {
-    return false;
-  }
-  if (typeof fetch !== 'function') return false;
-  try {
-    const res = await fetch(`${LOCAL_WASM_PATH}/vision_wasm_internal.js`, { method: 'HEAD' });
-    if (!res.ok) return false;
-    const contentType = (res.headers.get('content-type') || '').toLowerCase();
-    // Guard against SPA fallback returning index.html with 200 OK
-    return !contentType.includes('text/html');
-  } catch {
-    return false;
-  }
-}
 
 export class HandTracker {
   constructor(options = {}) {
@@ -53,8 +37,8 @@ export class HandTracker {
   }
 
   /**
-   * Loads MediaPipe HandLandmarker. Uses local ./wasm when present, or falls back
-   * to version-matched 1.1.1 WASM on jsDelivr CDN for lightweight ZIP / single-HTML deploys.
+   * Loads MediaPipe HandLandmarker using version-matched WASM binaries on jsDelivr CDN
+   * (with unpkg fallback) so static deployments stay lightweight and fast.
    */
   async initialize() {
     if (this.isReady && this.handLandmarker) return true;
@@ -72,14 +56,11 @@ export class HandTracker {
         throw new Error('MediaPipe Tasks Vision module did not export HandLandmarker.');
       }
 
-      const preferLocal = await hasLocalWasmAssets();
-      const primaryWasmPath = preferLocal ? LOCAL_WASM_PATH : CDN_WASM_PATH;
-
       let visionFileset = null;
       try {
-        visionFileset = await FilesetResolver.forVisionTasks(primaryWasmPath);
+        visionFileset = await FilesetResolver.forVisionTasks(PRIMARY_WASM_CDN);
       } catch {
-        visionFileset = await FilesetResolver.forVisionTasks(CDN_WASM_PATH);
+        visionFileset = await FilesetResolver.forVisionTasks(FALLBACK_WASM_CDN);
       }
 
       try {

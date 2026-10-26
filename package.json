@@ -4,14 +4,10 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "predev": "node scripts/copy-wasm.mjs",
     "dev": "vite --port=3000 --host=0.0.0.0",
-    "prebuild": "node scripts/copy-wasm.mjs",
     "build": "vite build",
-    "build:single": "node scripts/build-single-html.mjs",
-    "preview": "vite preview",
     "test": "vitest run",
-    "clean": "rm -rf dist server.js",
+    "clean": "rm -rf dist",
     "lint": "tsc --noEmit"
   },
   "dependencies": {
