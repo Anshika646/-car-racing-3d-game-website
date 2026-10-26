@@ -8,10 +8,8 @@
 
 import { computeWheelGeometry } from './SteeringCalibration.js';
 
-const LOCAL_WASM_PATH = '/wasm';
-const CDN_MEDIAPIPE_ESM =
-  'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/vision_bundle.mjs';
-const CDN_WASM_PATH = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm';
+const LOCAL_WASM_PATH = './wasm';
+const CDN_WASM_PATH = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1/wasm';
 const HAND_MODEL_URL =
   'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task';
 
@@ -43,7 +41,8 @@ async function hasLocalWasmAssets() {
 
 export class HandTracker {
   constructor(options = {}) {
-    this.customVisionLoader = options.visionModuleLoader || null;
+    this.visionModuleLoader =
+      options.visionModuleLoader || (() => import('@mediapipe/tasks-vision'));
     this.handLandmarker = null;
     this.isReady = false;
     this.isLoading = false;
@@ -54,8 +53,8 @@ export class HandTracker {
   }
 
   /**
-   * Loads MediaPipe HandLandmarker. Uses local /wasm when present, or loads
-   * version-matched MediaPipe ESM + WASM from jsDelivr CDN in single-HTML deployments.
+   * Loads MediaPipe HandLandmarker. Uses local ./wasm when present, or falls back
+   * to version-matched 1.1.1 WASM on jsDelivr CDN for lightweight ZIP / single-HTML deploys.
    */
   async initialize() {
     if (this.isReady && this.handLandmarker) return true;
@@ -65,20 +64,7 @@ export class HandTracker {
     this.loadError = null;
 
     try {
-      let visionModule = null;
-      let wasmBasePath = CDN_WASM_PATH;
-
-      if (this.customVisionLoader) {
-        visionModule = await this.customVisionLoader();
-        wasmBasePath = LOCAL_WASM_PATH;
-      } else if (await hasLocalWasmAssets()) {
-        visionModule = await import('@mediapipe/tasks-vision');
-        wasmBasePath = LOCAL_WASM_PATH;
-      } else {
-        visionModule = await import(/* @vite-ignore */ CDN_MEDIAPIPE_ESM);
-        wasmBasePath = CDN_WASM_PATH;
-      }
-
+      const visionModule = await this.visionModuleLoader();
       const FilesetResolver = visionModule.FilesetResolver;
       const HandLandmarker = visionModule.HandLandmarker;
 
@@ -86,9 +72,12 @@ export class HandTracker {
         throw new Error('MediaPipe Tasks Vision module did not export HandLandmarker.');
       }
 
+      const preferLocal = await hasLocalWasmAssets();
+      const primaryWasmPath = preferLocal ? LOCAL_WASM_PATH : CDN_WASM_PATH;
+
       let visionFileset = null;
       try {
-        visionFileset = await FilesetResolver.forVisionTasks(wasmBasePath);
+        visionFileset = await FilesetResolver.forVisionTasks(primaryWasmPath);
       } catch {
         visionFileset = await FilesetResolver.forVisionTasks(CDN_WASM_PATH);
       }

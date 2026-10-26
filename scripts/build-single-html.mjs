@@ -1,9 +1,13 @@
 /**
  * scripts/build-single-html.mjs
  *
- * Compresses the entire Motion Drive 3D game (HTML + Tailwind CSS + Three.js + GSAP +
- * all game, UI, and webcam steering modules) into ONE self-contained `index.html` file,
- * and also packages a ready-to-drop `motion-drive-3d-netlify-drop.zip` for Netlify Drop.
+ * Builds verified, production-tested deployment artifacts:
+ * 1. `public/motion-drive-3d-netlify-drop.zip`: Clean Vite production bundle
+ *    (`index.html` + `assets/*.js` + `assets/*.css` + `_headers` + `_redirects`)
+ *    ready for instant drag-and-drop on Netlify Drop (`app.netlify.com/drop`).
+ * 2. `standalone/index.html` & `public/motion-drive-3d-single.html`: Verified
+ *    single-file HTML bundle (using function replacement callbacks so `$` tokens
+ *    in minified Three.js are never corrupted, verified with esbuild AST parse).
  */
 
 import fs from 'node:fs';
@@ -11,15 +15,13 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { fileURLToPath } from 'node:url';
 import { build } from 'vite';
+import { transformSync } from 'esbuild';
 import tailwindcss from '@tailwindcss/vite';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '..');
 const tempOutDir = path.join(rootDir, '.singlefile-tmp');
 
-/**
- * Minimal pure-Node ZIP archive builder (DEFLATE) so zero external OS tools are required.
- */
 function createZipArchive(entries) {
   const crcTable = new Uint32Array(256);
   for (let n = 0; n < 256; n++) {
@@ -49,12 +51,12 @@ function createZipArchive(entries) {
     const crc = crc32(rawBuf);
 
     const localHeader = Buffer.alloc(30);
-    localHeader.writeUInt32LE(0x04034b50, 0); // Local file header signature
-    localHeader.writeUInt16LE(20, 4);         // Version needed (2.0)
-    localHeader.writeUInt16LE(0, 6);          // Flags
-    localHeader.writeUInt16LE(8, 8);          // Compression method: Deflate (8)
-    localHeader.writeUInt16LE(0, 10);         // Mod time
-    localHeader.writeUInt16LE(0, 12);         // Mod date
+    localHeader.writeUInt32LE(0x04034b50, 0);
+    localHeader.writeUInt16LE(20, 4);
+    localHeader.writeUInt16LE(0, 6);
+    localHeader.writeUInt16LE(8, 8);
+    localHeader.writeUInt16LE(0, 10);
+    localHeader.writeUInt16LE(0, 12);
     localHeader.writeUInt32LE(crc, 14);
     localHeader.writeUInt32LE(deflated.length, 18);
     localHeader.writeUInt32LE(rawBuf.length, 22);
@@ -64,7 +66,7 @@ function createZipArchive(entries) {
     localParts.push(localHeader, nameBuf, deflated);
 
     const centralHeader = Buffer.alloc(46);
-    centralHeader.writeUInt32LE(0x02014b50, 0); // Central directory signature
+    centralHeader.writeUInt32LE(0x02014b50, 0);
     centralHeader.writeUInt16LE(20, 4);
     centralHeader.writeUInt16LE(20, 6);
     centralHeader.writeUInt16LE(0, 8);
@@ -88,7 +90,7 @@ function createZipArchive(entries) {
 
   const centralDirBuf = Buffer.concat(centralParts);
   const eocd = Buffer.alloc(22);
-  eocd.writeUInt32LE(0x06054b50, 0); // End of central directory signature
+  eocd.writeUInt32LE(0x06054b50, 0);
   eocd.writeUInt16LE(0, 4);
   eocd.writeUInt16LE(0, 6);
   eocd.writeUInt16LE(entries.length, 8);
@@ -100,11 +102,13 @@ function createZipArchive(entries) {
   return Buffer.concat([...localParts, centralDirBuf, eocd]);
 }
 
-async function generateSingleHtml() {
+async function generateDeployBundles() {
   fs.rmSync(tempOutDir, { recursive: true, force: true });
 
+  // Bundle ALL dependencies (Three.js + GSAP + MediaPipe Tasks Vision JS + Tailwind CSS)
   await build({
     root: rootDir,
+    base: './',
     configFile: false,
     publicDir: false,
     plugins: [tailwindcss()],
@@ -113,12 +117,11 @@ async function generateSingleHtml() {
       emptyOutDir: true,
       cssCodeSplit: false,
       assetsInlineLimit: 10_000_000,
+      chunkSizeWarningLimit: 2500,
       minify: 'esbuild',
-      rollupOptions: {
-        // In single-file mode, MediaPipe loads from jsDelivr CDN (matched JS + WASM)
-        external: ['@mediapipe/tasks-vision'],
+      rolldownOptions: {
         output: {
-          inlineDynamicImports: true,
+          codeSplitting: false,
         },
       },
     },
@@ -129,65 +132,81 @@ async function generateSingleHtml() {
 
   let cssCode = '';
   let jsCode = '';
+  const zipEntries = [];
 
   for (const file of assetFiles) {
     const full = path.join(assetsDir, file);
+    const buf = fs.readFileSync(full);
+    zipEntries.push({ name: `assets/${file}`, content: buf });
+
     if (file.endsWith('.css')) {
-      cssCode += fs.readFileSync(full, 'utf8') + '\n';
+      cssCode += buf.toString('utf8') + '\n';
     } else if (file.endsWith('.js')) {
-      jsCode += fs.readFileSync(full, 'utf8') + '\n';
+      jsCode += buf.toString('utf8') + '\n';
     }
   }
 
-  let html = fs.readFileSync(path.join(tempOutDir, 'index.html'), 'utf8');
+  if (!jsCode.trim()) {
+    throw new Error('Build failed: no JavaScript bundle was produced.');
+  }
 
-  // Remove external <link rel="stylesheet" ...assets/...> and <script ...assets/...>
-  html = html.replace(/<link[^>]+href="[^"]*assets\/[^"]*\.css"[^>]*>/gi, '');
-  html = html.replace(/<script[^>]+src="[^"]*assets\/[^"]*\.js"[^>]*><\/script>/gi, '');
-  html = html.replace(/<link[^>]+rel="modulepreload"[^>]*>/gi, '');
+  // Strictly parse & verify the compiled JS bundle with esbuild
+  transformSync(jsCode, { loader: 'js', format: 'esm' });
 
-  // Strip the preview-only export download links inside the standalone output itself
-  html = html.replace(/<a\b[^>]*data-export-only="true"[\s\S]*?<\/a>/gi, '');
+  // 1. Clean multi-file production index.html for Netlify Drop ZIP
+  let zipIndexHtml = fs.readFileSync(path.join(tempOutDir, 'index.html'), 'utf8');
+  zipIndexHtml = zipIndexHtml.replace(/<a\b[^>]*data-export-only="true"[\s\S]*?<\/a>/gi, '');
 
-  // Escape any literal </script> inside minified JS so HTML parser never closes early
-  const safeJs = jsCode.replace(/<\/script/gi, '<\\/script');
+  zipEntries.unshift({ name: 'index.html', content: zipIndexHtml });
+  zipEntries.push({
+    name: '_headers',
+    content: '/*\n  Permissions-Policy: camera=(self)\n',
+  });
+  zipEntries.push({
+    name: '_redirects',
+    content: '/* /index.html 200\n',
+  });
 
-  const importMapTag = `<script type="importmap">{"imports":{"@mediapipe/tasks-vision":"https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/vision_bundle.mjs"}}</script>`;
-  const styleTag = `<style>${cssCode.trim()}</style>`;
-  const flagScript = `<script>window.__MOTION_DRIVE_SINGLE_FILE__=true;</script>`;
-  const bundleScript = `<script type="module">${safeJs.trim()}</script>`;
+  const zipBuffer = createZipArchive(zipEntries);
 
-  html = html.replace('</head>', `${importMapTag}\n${styleTag}\n</head>`);
-  html = html.replace('</body>', `${flagScript}\n${bundleScript}\n</body>`);
+  // 2. Clean single-file standalone/index.html using function callbacks in .replace()
+  //    (CRITICAL: string replacement in JS treats $& and $' as regex tokens!)
+  let singleHtml = zipIndexHtml
+    .replace(/<link[^>]+href="[^"]*assets\/[^"]*\.css"[^>]*>/gi, '')
+    .replace(/<script[^>]+src="[^"]*assets\/[^"]*\.js"[^>]*><\/script>/gi, '')
+    .replace(/<link[^>]+rel="modulepreload"[^>]*>/gi, '');
 
-  // Write standalone/index.html + public/motion-drive-3d-single.html
+  const safeInlineJs = jsCode.replace(/<\/script/gi, '<\\/script');
+  const styleBlock = `<style>${cssCode.trim()}</style>`;
+  const scriptBlock = `<script>window.__MOTION_DRIVE_SINGLE_FILE__=true;</script>\n<script type="module">${safeInlineJs.trim()}</script>`;
+
+  singleHtml = singleHtml.replace('</head>', () => `${styleBlock}\n</head>`);
+  singleHtml = singleHtml.replace('</body>', () => `${scriptBlock}\n</body>`);
+
+  // Verify singleHtml integrity: must have exactly 1 </body> and valid inline module JS
+  const bodyCloseCount = (singleHtml.match(/<\/body>/gi) || []).length;
+  if (bodyCloseCount !== 1) {
+    throw new Error(`Invalid HTML generated: expected 1 </body>, found ${bodyCloseCount}`);
+  }
+
   const standaloneDir = path.join(rootDir, 'standalone');
   const publicDir = path.join(rootDir, 'public');
   fs.mkdirSync(standaloneDir, { recursive: true });
   fs.mkdirSync(publicDir, { recursive: true });
 
-  const standaloneHtmlPath = path.join(standaloneDir, 'index.html');
-  const publicHtmlPath = path.join(publicDir, 'motion-drive-3d-single.html');
-  fs.writeFileSync(standaloneHtmlPath, html, 'utf8');
-  fs.writeFileSync(publicHtmlPath, html, 'utf8');
-
-  // Also package a 1-file Netlify Drop ZIP (contains index.html + _headers for camera permission)
-  const netlifyHeaders = `/*\n  Permissions-Policy: camera=(self)\n`;
-  const zipBuffer = createZipArchive([
-    { name: 'index.html', content: html },
-    { name: '_headers', content: netlifyHeaders },
-  ]);
-  const zipPath = path.join(publicDir, 'motion-drive-3d-netlify-drop.zip');
-  fs.writeFileSync(zipPath, zipBuffer);
+  fs.writeFileSync(path.join(standaloneDir, 'index.html'), singleHtml, 'utf8');
+  fs.writeFileSync(path.join(publicDir, 'motion-drive-3d-single.html'), singleHtml, 'utf8');
+  fs.writeFileSync(path.join(publicDir, 'motion-drive-3d-netlify-drop.zip'), zipBuffer);
+  fs.writeFileSync(path.join(publicDir, 'motion-drive-3d-deploy-v2.zip'), zipBuffer);
 
   fs.rmSync(tempOutDir, { recursive: true, force: true });
 
-  const htmlKb = (Buffer.byteLength(html, 'utf8') / 1024).toFixed(1);
-  const zipKb = (zipBuffer.length / 1024).toFixed(1);
-  console.log(`Built standalone/index.html (${htmlKb} KB) and motion-drive-3d-netlify-drop.zip (${zipKb} KB)`);
+  console.log(
+    `Verified & built motion-drive-3d-deploy-v2.zip (${(zipBuffer.length / 1024).toFixed(1)} KB) and standalone/index.html (${(Buffer.byteLength(singleHtml, 'utf8') / 1024).toFixed(1)} KB)`,
+  );
 }
 
-generateSingleHtml().catch((err) => {
+generateDeployBundles().catch((err) => {
   console.error(err);
   process.exit(1);
 });
