@@ -8,10 +8,15 @@ import {
 import { CameraController } from '../src/controls/CameraController.js';
 import { HandTracker } from '../src/controls/HandTracker.js';
 import { KeyboardController } from '../src/controls/KeyboardController.js';
-import { Car, PLAYER_MAX_X } from '../src/game/Car.js';
+import { Car, PLAYER_MAX_X, CAR_PAINT_PRESETS } from '../src/game/Car.js';
 import { CollisionSystem } from '../src/game/CollisionSystem.js';
 import { TrafficManager } from '../src/game/TrafficManager.js';
-import { Game, GAME_STATE, BEST_SCORE_STORAGE_KEY } from '../src/game/Game.js';
+import {
+  Game,
+  GAME_STATE,
+  BEST_SCORE_STORAGE_KEY,
+  CAR_PAINT_STORAGE_KEY,
+} from '../src/game/Game.js';
 
 /**
  * Helper to synthesize a realistic 21-point MediaPipe hand landmark array
@@ -336,6 +341,21 @@ describe('MOTION DRIVE 3D — Automated Verification Suite', () => {
     expect(game.camera.aspect).toBeCloseTo(1920 / 1080, 4);
     expect(updateProjSpy).toHaveBeenCalledTimes(1);
     expect(setSizeSpy).toHaveBeenCalledWith(1920, 1080);
+
+    game.dispose();
+  });
+
+  it('switches car colour & finish presets dynamically and persists selection in localStorage', () => {
+    const game = new Game({ headless: true });
+    expect(CAR_PAINT_PRESETS.length).toBeGreaterThanOrEqual(6);
+
+    game.setCarPaint('rosso_gloss');
+    expect(game.carPaint).toBe('rosso_gloss');
+    expect(game.car.paintPresetId).toBe('rosso_gloss');
+    expect(window.localStorage.getItem(CAR_PAINT_STORAGE_KEY)).toBe('rosso_gloss');
+
+    game.setCarPaint('stealth_matte');
+    expect(game.car.bodyPaintMat.clearcoat).toBeLessThan(0.5);
 
     game.dispose();
   });

@@ -5,7 +5,6 @@
  * Initializes styles, instantiates the 3D racing engine, and registers clean teardown.
  */
 
-import './styles.css';
 import { Game } from './game/Game.js';
 
 let gameInstance = null;

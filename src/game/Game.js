@@ -11,7 +11,7 @@
 
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { Car } from './Car.js';
+import { Car, CAR_PAINT_PRESETS } from './Car.js';
 import { Road } from './Road.js';
 import { TrafficManager } from './TrafficManager.js';
 import { CollisionSystem } from './CollisionSystem.js';
@@ -26,6 +26,7 @@ import { GameOver } from '../ui/GameOver.js';
 
 export const BEST_SCORE_STORAGE_KEY = 'motion_drive_3d_best_score_v1';
 export const QUALITY_STORAGE_KEY = 'motion_drive_3d_quality_v1';
+export const CAR_PAINT_STORAGE_KEY = 'motion_drive_3d_car_paint_v1';
 
 export const GAME_STATE = {
   TITLE: 'TITLE',
@@ -66,6 +67,7 @@ export class Game {
     this.state = GAME_STATE.TITLE;
     this.controlMode = 'keyboard'; // 'camera' | 'keyboard'
     this.quality = this._loadQuality();
+    this.carPaint = this._loadCarPaint();
     this.bestScore = this._loadBestScore();
 
     // Gameplay metrics
@@ -104,13 +106,15 @@ export class Game {
     // Camera rig smoothing state
     this.camPos = new THREE.Vector3(3.4, 2.35, 6.2);
     this.camLook = new THREE.Vector3(0, 0.75, -8);
+    this.camBank = 0;
+    this.smoothedDt = 1 / 60;
 
     if (!this.headless) {
       this._initUI();
       this._initThree();
     } else {
       // Lightweight simulation setup for unit/integration tests without WebGL
-      this.car = new Car({ isSoftwareGl: true });
+      this.car = new Car({ isSoftwareGl: true, paintPresetId: this.carPaint });
       this.road = new Road({ isSoftwareGl: true, quality: 'low' });
       this.traffic = new TrafficManager({ isSoftwareGl: true });
     }
@@ -175,6 +179,33 @@ export class Game {
 
     this.road?.setQuality(quality);
     this.menu?.setQualityState(quality);
+  }
+
+  _loadCarPaint() {
+    if (!this.storage) return CAR_PAINT_PRESETS[0].id;
+    try {
+      const saved = this.storage.getItem(CAR_PAINT_STORAGE_KEY);
+      if (saved && CAR_PAINT_PRESETS.some((p) => p.id === saved)) {
+        return saved;
+      }
+    } catch {
+      // Ignore
+    }
+    return CAR_PAINT_PRESETS[0].id;
+  }
+
+  setCarPaint(presetId) {
+    const valid = CAR_PAINT_PRESETS.find((p) => p.id === presetId) || CAR_PAINT_PRESETS[0];
+    this.carPaint = valid.id;
+    if (this.storage) {
+      try {
+        this.storage.setItem(CAR_PAINT_STORAGE_KEY, valid.id);
+      } catch {
+        // Ignore
+      }
+    }
+    this.car?.setPaintPreset(valid.id);
+    this.menu?.setCarPaintState(valid.id);
   }
 
   _initUI() {
@@ -245,6 +276,10 @@ export class Game {
         this.setQuality(next);
       },
       onSelectQuality: (q) => this.setQuality(q),
+      onSelectCarPaint: (presetId) => {
+        this.audio.unlock();
+        this.setCarPaint(presetId);
+      },
       onToggleMute: () => this.toggleMute(),
       onResumeRace: () => this.resumeRace(),
       onRecalibrateFromPause: () => {
@@ -299,6 +334,7 @@ export class Game {
     this.menu.updateBestScore(this.bestScore);
     this.menu.setMutedState(this.audio.isMuted);
     this.menu.setQualityState(this.quality);
+    this.menu.setCarPaintState(this.carPaint);
     this.menu.syncSettingsControls(this.calibration.settings);
     this.hud.setMutedState(this.audio.isMuted);
   }
@@ -396,7 +432,10 @@ export class Game {
     });
     this.scene.add(this.road.group);
 
-    this.car = new Car({ isSoftwareGl: this.isSoftwareGl });
+    this.car = new Car({
+      isSoftwareGl: this.isSoftwareGl,
+      paintPresetId: this.carPaint,
+    });
     this.scene.add(this.car.root);
     this.car.attachSparksToScene(this.scene);
 
@@ -859,14 +898,14 @@ export class Game {
     }
 
     // Smooth third-person chase camera following lateral car position with subtle lag
-    const followX = this.car.x * 0.68;
+    const followX = this.car.x * 0.66;
     const speedRatio = Math.min(1, Math.max(0, (this.speedMps - 15) / 52));
     const targetZ = 6.75 + speedRatio * 0.55;
     const targetY = 2.68 + speedRatio * 0.14;
 
-    this.camPos.x = THREE.MathUtils.damp(this.camPos.x, followX, 7.5, dt);
-    this.camPos.y = THREE.MathUtils.damp(this.camPos.y, targetY, 6.5, dt);
-    this.camPos.z = THREE.MathUtils.damp(this.camPos.z, targetZ, 6.5, dt);
+    this.camPos.x = THREE.MathUtils.damp(this.camPos.x, followX, 8.5, dt);
+    this.camPos.y = THREE.MathUtils.damp(this.camPos.y, targetY, 7.0, dt);
+    this.camPos.z = THREE.MathUtils.damp(this.camPos.z, targetZ, 7.0, dt);
 
     // Subtle impact camera shake decay
     let shakeX = 0;
@@ -879,17 +918,18 @@ export class Game {
 
     this.camera.position.set(this.camPos.x + shakeX, this.camPos.y + shakeY, this.camPos.z);
 
-    _lookTarget.set(this.car.x * 0.82, 0.85, -14.5);
-    this.camLook.lerp(_lookTarget, 1 - Math.exp(-10 * dt));
+    _lookTarget.set(this.car.x * 0.8, 0.85, -14.5);
+    this.camLook.lerp(_lookTarget, 1 - Math.exp(-11 * dt));
     this.camera.lookAt(this.camLook);
 
-    // Subtle banking roll & speed FOV widening
-    const targetBank = -this.car.steerInput * 0.022;
-    this.camera.rotation.z = THREE.MathUtils.damp(this.camera.rotation.z, targetBank, 8, dt);
+    // Persist banked roll across frames AFTER lookAt() so frame-delta variation never jitters roll
+    const targetBank = -this.car.steerInput * 0.02;
+    this.camBank = THREE.MathUtils.damp(this.camBank, targetBank, 8.5, dt);
+    this.camera.rotation.z = this.camBank;
 
     const targetFov = 58 + speedRatio * 10;
-    if (Math.abs(this.camera.fov - targetFov) > 0.08) {
-      this.camera.fov = THREE.MathUtils.damp(this.camera.fov, targetFov, 5, dt);
+    if (Math.abs(this.camera.fov - targetFov) > 0.05) {
+      this.camera.fov = THREE.MathUtils.damp(this.camera.fov, targetFov, 5.5, dt);
       this.camera.updateProjectionMatrix();
     }
   }
@@ -924,8 +964,11 @@ export class Game {
     if (this.isDisposed) return;
     const tick = () => {
       if (this.isDisposed) return;
-      const dt = this.clock ? this.clock.getDelta() : 0.016;
-      this.stepSimulation(dt);
+      const rawDt = this.clock ? this.clock.getDelta() : 0.016;
+      const clampedDt = Math.min(0.05, Math.max(0.001, rawDt));
+      // Smooth inter-frame delta spikes (e.g. when 30fps webcam inference runs on alternate frames)
+      this.smoothedDt += (clampedDt - this.smoothedDt) * 0.35;
+      this.stepSimulation(this.smoothedDt);
       if (this.renderer && this.scene && this.camera) {
         this.renderer.render(this.scene, this.camera);
       }

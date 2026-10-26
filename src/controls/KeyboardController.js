@@ -111,16 +111,22 @@ export class KeyboardController {
   }
 
   /**
-   * Advances smooth analog keyboard steering value in [-1..+1].
+   * Advances smooth analog keyboard steering value in [-1..+1] with fast counter-steer return.
    */
   update(dt = 0.016, sensitivity = 1.0) {
     const safeDt = Math.min(0.1, Math.max(0.001, dt));
     const rawDir = (this.keys.right ? 1 : 0) - (this.keys.left ? 1 : 0);
     const target = rawDir;
-    const rate = rawDir !== 0 ? 9.5 * Math.max(0.6, sensitivity) : 11.5;
+    const isReversing = rawDir !== 0 && Math.sign(rawDir) !== Math.sign(this.steerValue) && Math.abs(this.steerValue) > 0.05;
+    const rate =
+      rawDir === 0
+        ? 14.5
+        : isReversing
+          ? 16.0 * Math.max(0.7, sensitivity)
+          : 9.8 * Math.max(0.65, sensitivity);
     const alpha = 1 - Math.exp(-rate * safeDt);
     this.steerValue += (target - this.steerValue) * alpha;
-    if (Math.abs(this.steerValue) < 0.005 && target === 0) {
+    if (Math.abs(this.steerValue) < 0.004 && target === 0) {
       this.steerValue = 0;
     }
 

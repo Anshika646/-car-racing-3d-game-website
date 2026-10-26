@@ -19,6 +19,105 @@ export const CAR_HALF_WIDTH = 0.96;
 export const CAR_HALF_LENGTH = 2.15;
 export const PLAYER_MAX_X = ROAD_HALF_WIDTH - CAR_HALF_WIDTH - 0.35; // 5.69m safe inside barriers
 
+export const CAR_PAINT_PRESETS = [
+  {
+    id: 'cyan_metallic',
+    name: 'Cyber Cyan',
+    finishType: 'Liquid Metallic',
+    swatch: '#06b6d4',
+    bodyColor: 0x0d3550,
+    metalness: 0.85,
+    roughness: 0.16,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.06,
+    trimColor: 0x22d3ee,
+    trimEmissive: 0x0891b2,
+    caliperColor: 0xf59e0b,
+    rimColor: 0xdbeafe,
+    exhaustColor: 0x22d3ee,
+  },
+  {
+    id: 'rosso_gloss',
+    name: 'Crimson Rosso',
+    finishType: 'Racing Gloss',
+    swatch: '#ef4444',
+    bodyColor: 0xb91c1c,
+    metalness: 0.52,
+    roughness: 0.13,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.04,
+    trimColor: 0xfbbf24,
+    trimEmissive: 0xd97706,
+    caliperColor: 0xfacc15,
+    rimColor: 0xf1f5f9,
+    exhaustColor: 0xf97316,
+  },
+  {
+    id: 'solar_pearl',
+    name: 'Solar Papaya',
+    finishType: 'Pearlescent',
+    swatch: '#f59e0b',
+    bodyColor: 0xd97706,
+    metalness: 0.72,
+    roughness: 0.18,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.07,
+    trimColor: 0xfef08a,
+    trimEmissive: 0xf59e0b,
+    caliperColor: 0xef4444,
+    rimColor: 0x1e293b,
+    exhaustColor: 0xfbbf24,
+  },
+  {
+    id: 'emerald_satin',
+    name: 'Viper Emerald',
+    finishType: 'Satin Metallic',
+    swatch: '#10b981',
+    bodyColor: 0x047857,
+    metalness: 0.78,
+    roughness: 0.28,
+    clearcoat: 0.65,
+    clearcoatRoughness: 0.2,
+    trimColor: 0x34d399,
+    trimEmissive: 0x059669,
+    caliperColor: 0xfbbf24,
+    rimColor: 0xd1fae5,
+    exhaustColor: 0x34d399,
+  },
+  {
+    id: 'stealth_matte',
+    name: 'Phantom Stealth',
+    finishType: 'Matte Carbon',
+    swatch: '#475569',
+    bodyColor: 0x111827,
+    metalness: 0.34,
+    roughness: 0.54,
+    clearcoat: 0.2,
+    clearcoatRoughness: 0.42,
+    trimColor: 0x38bdf8,
+    trimEmissive: 0x0284c7,
+    caliperColor: 0x22d3ee,
+    rimColor: 0x334155,
+    exhaustColor: 0x38bdf8,
+  },
+  {
+    id: 'pearl_ceramic',
+    name: 'Glacier White',
+    finishType: 'Ceramic Gloss',
+    swatch: '#f8fafc',
+    bodyColor: 0xe2e8f0,
+    metalness: 0.35,
+    roughness: 0.11,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.04,
+    trimColor: 0xf43f5e,
+    trimEmissive: 0xe11d48,
+    caliperColor: 0xf43f5e,
+    rimColor: 0x1e293b,
+    exhaustColor: 0x38bdf8,
+  },
+];
+
 const _sparkDummy = new THREE.Object3D();
 
 function createContactShadowTexture() {
@@ -97,12 +196,43 @@ export class Car {
     this.frontWheelPivots = [];
     this.wheelSpinGroups = [];
     this.sparks = [];
+    this.paintPresetId = options.paintPresetId || CAR_PAINT_PRESETS[0].id;
 
     this._buildMaterials();
     this._buildBody();
     this._buildWheels();
     this._buildGroundEffects();
     this._buildSparkSystem();
+    this.setPaintPreset(this.paintPresetId);
+  }
+
+  setPaintPreset(presetId) {
+    const preset =
+      CAR_PAINT_PRESETS.find((p) => p.id === presetId) || CAR_PAINT_PRESETS[0];
+    this.paintPresetId = preset.id;
+
+    if (this.bodyPaintMat) {
+      this.bodyPaintMat.color.setHex(preset.bodyColor);
+      this.bodyPaintMat.metalness = preset.metalness;
+      this.bodyPaintMat.roughness = preset.roughness;
+      this.bodyPaintMat.clearcoat = preset.clearcoat;
+      this.bodyPaintMat.clearcoatRoughness = preset.clearcoatRoughness;
+      this.bodyPaintMat.needsUpdate = true;
+    }
+    if (this.accentTrimMat) {
+      this.accentTrimMat.color.setHex(preset.trimColor);
+      this.accentTrimMat.emissive.setHex(preset.trimEmissive);
+    }
+    if (this.caliperMat) {
+      this.caliperMat.color.setHex(preset.caliperColor);
+    }
+    if (this.rimMat) {
+      this.rimMat.color.setHex(preset.rimColor);
+    }
+    if (this.exhaustGlowMat) {
+      this.exhaustGlowMat.color.setHex(preset.exhaustColor);
+    }
+    return preset;
   }
 
   _buildMaterials() {
@@ -537,11 +667,21 @@ export class Car {
       return;
     }
 
-    // Responsive lateral velocity scaled smoothly with forward speed
-    const speedFactor = Math.min(1.18, 0.55 + speedMps / 55);
-    const maxLateralSpeed = 14.5 * speedFactor;
-    const targetVx = clampedSteer * maxLateralSpeed;
-    this.lateralVelocity = THREE.MathUtils.damp(this.lateralVelocity, targetVx, 11.5, safeDt);
+    // Smooth, progressive lateral velocity with soft highway-edge cushion
+    const speedFactor = Math.min(1.16, 0.56 + speedMps / 56);
+    const maxLateralSpeed = 14.2 * speedFactor;
+    let targetVx = clampedSteer * maxLateralSpeed;
+
+    // Gently cushion outward speed in the final 0.45m near barriers so it never slams harshly
+    const edgeDistLeft = this.x - -PLAYER_MAX_X;
+    const edgeDistRight = PLAYER_MAX_X - this.x;
+    if (targetVx < 0 && edgeDistLeft < 0.45) {
+      targetVx *= Math.max(0, edgeDistLeft / 0.45);
+    } else if (targetVx > 0 && edgeDistRight < 0.45) {
+      targetVx *= Math.max(0, edgeDistRight / 0.45);
+    }
+
+    this.lateralVelocity = THREE.MathUtils.damp(this.lateralVelocity, targetVx, 13.5, safeDt);
     this.x += this.lateralVelocity * safeDt;
 
     // Enforce strict road boundaries so the car can never leave the highway
@@ -555,23 +695,23 @@ export class Car {
 
     this.root.position.x = this.x;
 
-    // Subtle yaw into turns + chassis body roll & pitch squat/dive
-    const normalizedVx = this.lateralVelocity / 14.5;
-    const targetYaw = -normalizedVx * 0.16;
-    const targetRoll = -normalizedVx * 0.085;
-    const targetPitch = isBraking ? -0.032 : isAccelerating ? 0.018 : 0;
+    // Smooth yaw into turns + chassis body roll & pitch squat/dive
+    const normalizedVx = this.lateralVelocity / 14.2;
+    const targetYaw = -normalizedVx * 0.145;
+    const targetRoll = -normalizedVx * 0.075;
+    const targetPitch = isBraking ? -0.028 : isAccelerating ? 0.015 : 0;
 
-    this.root.rotation.y = THREE.MathUtils.damp(this.root.rotation.y, targetYaw, 10, safeDt);
+    this.root.rotation.y = THREE.MathUtils.damp(this.root.rotation.y, targetYaw, 11.5, safeDt);
     this.chassisGroup.rotation.z = THREE.MathUtils.damp(
       this.chassisGroup.rotation.z,
       targetRoll,
-      9,
+      10.5,
       safeDt,
     );
     this.chassisGroup.rotation.x = THREE.MathUtils.damp(
       this.chassisGroup.rotation.x,
       targetPitch,
-      8,
+      9.0,
       safeDt,
     );
 

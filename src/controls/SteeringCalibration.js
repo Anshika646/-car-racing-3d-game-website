@@ -189,6 +189,9 @@ export class SteeringCalibration {
     // Runtime state
     this.smoothedSteer = 0;
     this.smoothedWheelDeg = 0;
+    this.filteredAngleDeg = 0;
+    this.filteredAngleVel = 0;
+    this.hasAngleSeed = false;
     this.lastRawAngleDeg = 0;
     this.missingHandsTimer = 0;
     this.calibrationHoldTime = 0;
@@ -252,6 +255,9 @@ export class SteeringCalibration {
     this.settings.isCalibrated = true;
     this.smoothedSteer = 0;
     this.smoothedWheelDeg = 0;
+    this.filteredAngleDeg = this.settings.neutralAngleDeg;
+    this.filteredAngleVel = 0;
+    this.hasAngleSeed = false;
     this.saveSettings();
     return this.settings.neutralAngleDeg;
   }
@@ -326,6 +332,7 @@ export class SteeringCalibration {
     // 1. Handle missing hands / tracking loss safely by decaying steering to neutral (0)
     if (!geometry || !geometry.hasBothHands) {
       this.missingHandsTimer += safeDt;
+      this.hasAngleSeed = false;
       const returnAlpha = 1 - Math.exp(-8.5 * safeDt);
       this.smoothedSteer += (0 - this.smoothedSteer) * returnAlpha;
       this.smoothedWheelDeg += (0 - this.smoothedWheelDeg) * returnAlpha;
@@ -350,28 +357,49 @@ export class SteeringCalibration {
     this.missingHandsTimer = 0;
     this.lastRawAngleDeg = geometry.rawAngleDeg;
 
-    // 2. Relative angle from calibrated neutral reference
-    const relativeDeg = geometry.rawAngleDeg - neutralAngleDeg;
+    // 2. Adaptive 1-Euro pre-filter on raw wheel angle:
+    //    Calm cutoff at rest suppresses webcam landmark micro-tremor, while rapid hand
+    //    rotations automatically boost cutoff frequency for instant, lag-free steering.
+    if (!this.hasAngleSeed) {
+      this.filteredAngleDeg = geometry.rawAngleDeg;
+      this.filteredAngleVel = 0;
+      this.hasAngleSeed = true;
+    } else {
+      const rawVel = (geometry.rawAngleDeg - this.filteredAngleDeg) / safeDt;
+      const velAlpha = 1 - Math.exp(-16.0 * safeDt);
+      this.filteredAngleVel += (rawVel - this.filteredAngleVel) * velAlpha;
 
-    // 3. Apply center dead zone so natural micro-tremors don't drift the car
+      const minRate = Math.max(4.5, smoothingRate * 0.65);
+      const adaptiveRate = minRate + Math.min(24.0, Math.abs(this.filteredAngleVel) * 0.14);
+      const angleAlpha = 1 - Math.exp(-adaptiveRate * safeDt);
+      this.filteredAngleDeg += (geometry.rawAngleDeg - this.filteredAngleDeg) * angleAlpha;
+    }
+
+    // 3. Relative angle from calibrated neutral reference
+    const relativeDeg = this.filteredAngleDeg - neutralAngleDeg;
+
+    // 4. Apply smooth center dead zone so natural micro-tremors don't drift the car
     let effectiveDeg = 0;
     const absRel = Math.abs(relativeDeg);
     if (absRel > deadZoneDeg) {
       effectiveDeg = Math.sign(relativeDeg) * (absRel - deadZoneDeg);
     }
 
-    // 4. Normalize against maximum steering lock angle & apply sensitivity
+    // 5. Normalize against maximum steering lock & apply progressive precision curve
     const usableRange = Math.max(10, maxAngleDeg - deadZoneDeg);
-    const rawNormalized = (effectiveDeg / usableRange) * sensitivity;
-    const targetSteer = Math.max(-1, Math.min(1, rawNormalized));
+    const linearNorm = Math.max(-1, Math.min(1, (effectiveDeg / usableRange) * sensitivity));
+    const absLin = Math.abs(linearNorm);
+    // Blend 58% linear + 42% power-1.55 curve for fine center control and crisp full lock
+    const curvedMag = 0.58 * absLin + 0.42 * Math.pow(absLin, 1.55);
+    const targetSteer = Math.sign(linearNorm) * Math.min(1, curvedMag);
     const targetWheelDeg = Math.max(-maxAngleDeg, Math.min(maxAngleDeg, relativeDeg * sensitivity));
 
-    // 5. Exponential low-pass filter (frame-rate independent)
-    const alpha = 1 - Math.exp(-Math.max(2, smoothingRate) * safeDt);
+    // 6. Frame-rate independent output smoothing
+    const alpha = 1 - Math.exp(-Math.max(3, smoothingRate * 1.15) * safeDt);
     this.smoothedSteer += (targetSteer - this.smoothedSteer) * alpha;
     this.smoothedWheelDeg += (targetWheelDeg - this.smoothedWheelDeg) * alpha;
 
-    if (Math.abs(this.smoothedSteer) < 0.004 && targetSteer === 0) {
+    if (Math.abs(this.smoothedSteer) < 0.003 && targetSteer === 0) {
       this.smoothedSteer = 0;
     }
 

@@ -6,6 +6,7 @@
  */
 
 import gsap from 'gsap';
+import { CAR_PAINT_PRESETS } from '../game/Car.js';
 
 const PEDAL_MODE_HINTS = {
   auto_palm_brake:
@@ -31,6 +32,8 @@ export class Menu {
       navMuteBtn: document.getElementById('nav-mute-btn'),
       btnPlayCamera: document.getElementById('btn-play-camera'),
       btnPlayKeyboard: document.getElementById('btn-play-keyboard'),
+      titlePaintLabel: document.getElementById('title-paint-label'),
+      pausePaintSelect: document.getElementById('pause-paint-select'),
 
       // Consent Modal
       consentModal: document.getElementById('camera-consent-modal'),
@@ -112,6 +115,17 @@ export class Menu {
     });
     document.querySelectorAll('[data-action="toggle-mute"]').forEach((btn) => {
       btn.addEventListener('click', () => this.callbacks.onToggleMute?.());
+    });
+    document.querySelectorAll('[data-car-paint]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const presetId = btn.getAttribute('data-car-paint');
+        if (presetId) {
+          this.callbacks.onSelectCarPaint?.(presetId);
+        }
+      });
+    });
+    this.els.pausePaintSelect?.addEventListener('change', (e) => {
+      this.callbacks.onSelectCarPaint?.(e.target.value);
     });
 
     // Consent modal actions
@@ -241,6 +255,29 @@ export class Menu {
     if (this.els.pauseQualitySelect) {
       this.els.pauseQualitySelect.value = quality;
     }
+  }
+
+  setCarPaintState(presetId) {
+    const activePreset =
+      CAR_PAINT_PRESETS.find((p) => p.id === presetId) || CAR_PAINT_PRESETS[0];
+
+    if (this.els.titlePaintLabel) {
+      this.els.titlePaintLabel.textContent = `${activePreset.name} · ${activePreset.finishType}`;
+    }
+    if (this.els.pausePaintSelect) {
+      this.els.pausePaintSelect.value = activePreset.id;
+    }
+
+    document.querySelectorAll('[data-car-paint]').forEach((btn) => {
+      const isSelected = btn.getAttribute('data-car-paint') === activePreset.id;
+      btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+      btn.classList.toggle('border-[#22d3ee]', isSelected);
+      btn.classList.toggle('bg-[#132033]', isSelected);
+      btn.classList.toggle('text-white', isSelected);
+      btn.classList.toggle('border-white/12', !isSelected);
+      btn.classList.toggle('bg-[#0d1422]/90', !isSelected);
+      btn.classList.toggle('text-slate-300', !isSelected);
+    });
   }
 
   syncSettingsControls(settings = {}) {

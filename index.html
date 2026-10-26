@@ -21,6 +21,17 @@
       href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,600;0,700;1,700&family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="./src/compiled.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://cdn.jsdelivr.net/npm/three@0.186.1/build/three.module.js",
+          "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.186.1/examples/jsm/",
+          "gsap": "https://cdn.jsdelivr.net/npm/gsap@3.15.0/index.js",
+          "@mediapipe/tasks-vision": "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1/vision_bundle.mjs"
+        }
+      }
+    </script>
   </head>
   <body class="bg-[#070b12] text-[#f1f5f9] antialiased select-none overflow-hidden">
     <!-- Isolated WebGL Mount Container -->
@@ -57,14 +68,20 @@
         class="pointer-events-auto fixed inset-0 z-30 flex flex-col justify-between bg-gradient-to-t from-[#070b12]/95 via-[#070b12]/45 to-[#070b12]/80"
       >
         <!-- Top Bar (Strict 3-Zone Contract) -->
-        <header class="flex items-center justify-between gap-8 px-6 md:px-10 py-5 border-b border-white/10">
-          <a
-            href="#top"
-            id="brand-wordmark"
-            class="font-display text-lg font-bold tracking-wider text-white whitespace-nowrap shrink-0"
-          >
-            MOTION DRIVE 3D
-          </a>
+        <header class="flex items-center justify-between gap-6 px-6 md:px-10 py-4 border-b border-white/10">
+          <div class="flex items-center gap-2.5 whitespace-nowrap shrink-0">
+            <a
+              href="#top"
+              id="brand-wordmark"
+              class="font-display text-lg font-bold tracking-wider text-white"
+            >
+              MOTION DRIVE 3D
+            </a>
+            <span aria-hidden="true" class="text-slate-500">·</span>
+            <span class="text-xs font-medium text-[#67e8f9] tracking-wide">
+              Made by Anshika
+            </span>
+          </div>
           <nav class="hidden sm:flex items-center gap-6 text-sm font-medium text-slate-300">
             <button
               type="button"
@@ -126,12 +143,101 @@
             >
               MOTION DRIVE <span class="text-[#22d3ee]">3D</span>
             </h1>
-            <p class="text-lg sm:text-xl text-slate-200 font-normal leading-relaxed mb-8 max-w-xl">
+            <p class="text-lg sm:text-xl text-slate-200 font-normal leading-relaxed mb-6 max-w-xl">
               Your hands. Your steering wheel. Your race.
             </p>
 
+            <!-- Interactive Car Colour & Finish Type Selector -->
+            <div class="mb-7 max-w-xl">
+              <div class="flex items-center justify-between gap-3 mb-2.5 text-xs">
+                <span class="font-semibold text-slate-300 tracking-wide">
+                  Select Car Colour &amp; Finish
+                </span>
+                <span id="title-paint-label" class="font-mono text-[#22d3ee]">
+                  Cyber Cyan · Liquid Metallic
+                </span>
+              </div>
+              <div
+                class="grid grid-cols-2 sm:grid-cols-3 gap-2"
+                role="group"
+                aria-label="Select Car Colour and Finish Type"
+              >
+                <button
+                  type="button"
+                  data-car-paint="cyan_metallic"
+                  aria-pressed="true"
+                  class="px-3 py-2 rounded-lg border border-[#22d3ee] bg-[#132033] text-white text-left transition-colors cursor-pointer flex items-center gap-2.5"
+                >
+                  <span class="w-3.5 h-3.5 rounded-full shrink-0 bg-[#06b6d4] ring-1 ring-white/30"></span>
+                  <span class="min-w-0 truncate text-xs font-medium">
+                    Cyber Cyan <span class="text-slate-400">· Metallic</span>
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  data-car-paint="rosso_gloss"
+                  aria-pressed="false"
+                  class="px-3 py-2 rounded-lg border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left transition-colors cursor-pointer flex items-center gap-2.5"
+                >
+                  <span class="w-3.5 h-3.5 rounded-full shrink-0 bg-[#ef4444] ring-1 ring-white/30"></span>
+                  <span class="min-w-0 truncate text-xs font-medium">
+                    Crimson Rosso <span class="text-slate-400">· Gloss</span>
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  data-car-paint="solar_pearl"
+                  aria-pressed="false"
+                  class="px-3 py-2 rounded-lg border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left transition-colors cursor-pointer flex items-center gap-2.5"
+                >
+                  <span class="w-3.5 h-3.5 rounded-full shrink-0 bg-[#f59e0b] ring-1 ring-white/30"></span>
+                  <span class="min-w-0 truncate text-xs font-medium">
+                    Solar Papaya <span class="text-slate-400">· Pearl</span>
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  data-car-paint="emerald_satin"
+                  aria-pressed="false"
+                  class="px-3 py-2 rounded-lg border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left transition-colors cursor-pointer flex items-center gap-2.5"
+                >
+                  <span class="w-3.5 h-3.5 rounded-full shrink-0 bg-[#10b981] ring-1 ring-white/30"></span>
+                  <span class="min-w-0 truncate text-xs font-medium">
+                    Viper Emerald <span class="text-slate-400">· Satin</span>
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  data-car-paint="stealth_matte"
+                  aria-pressed="false"
+                  class="px-3 py-2 rounded-lg border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left transition-colors cursor-pointer flex items-center gap-2.5"
+                >
+                  <span class="w-3.5 h-3.5 rounded-full shrink-0 bg-[#334155] ring-1 ring-white/40"></span>
+                  <span class="min-w-0 truncate text-xs font-medium">
+                    Phantom <span class="text-slate-400">· Matte Carbon</span>
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  data-car-paint="pearl_ceramic"
+                  aria-pressed="false"
+                  class="px-3 py-2 rounded-lg border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left transition-colors cursor-pointer flex items-center gap-2.5"
+                >
+                  <span class="w-3.5 h-3.5 rounded-full shrink-0 bg-[#f8fafc] ring-1 ring-white/40"></span>
+                  <span class="min-w-0 truncate text-xs font-medium">
+                    Glacier White <span class="text-slate-400">· Ceramic</span>
+                  </span>
+                </button>
+              </div>
+            </div>
+
             <!-- Primary & Secondary Actions -->
-            <div class="flex flex-wrap items-center gap-4 mb-6">
+            <div class="flex flex-wrap items-center gap-4 mb-5">
               <button
                 type="button"
                 id="btn-play-camera"
@@ -171,23 +277,7 @@
         <!-- Quiet Footer -->
         <footer class="px-6 md:px-10 py-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400">
           <span>Hold both hands up like an imaginary wheel to steer left and right.</span>
-          <div class="flex flex-wrap items-center gap-4">
-            <a
-              href="/motion-drive-3d-single.html"
-              download="index.html"
-              data-export-only="true"
-              class="text-[#67e8f9] hover:text-white underline underline-offset-4 cursor-pointer whitespace-nowrap"
-            >
-              Download Single HTML (index.html)
-            </a>
-            <a
-              href="/motion-drive-3d-deploy-v2.zip"
-              download="motion-drive-3d-deploy-v2.zip"
-              data-export-only="true"
-              class="text-[#fbbf24] hover:text-white underline underline-offset-4 cursor-pointer whitespace-nowrap"
-            >
-              Download Netlify Drop ZIP
-            </a>
+          <div class="flex flex-wrap items-center gap-5">
             <button
               type="button"
               data-action="open-settings"
@@ -525,7 +615,10 @@
           </div>
 
           <!-- Top-Center: Live Tracking & Gesture Instruction Status -->
-          <div class="flex flex-col items-center gap-2">
+          <div class="flex flex-col items-center gap-1.5">
+            <span class="text-[11px] font-medium text-slate-300/80 tracking-wide">
+              Made by Anshika
+            </span>
             <div
               id="hud-gesture-banner"
               class="bg-[#090e17]/92 border border-white/12 rounded-lg px-4 py-2 text-center transition-colors"
@@ -735,6 +828,21 @@
 
           <!-- Quick Settings inside Pause / Settings -->
           <div class="space-y-4 text-xs">
+            <div class="flex items-center justify-between gap-4">
+              <label for="pause-paint-select" class="text-slate-300 font-medium">Car Colour &amp; Finish</label>
+              <select
+                id="pause-paint-select"
+                class="bg-[#090e17] border border-white/15 rounded-lg px-3 py-1.5 text-white"
+              >
+                <option value="cyan_metallic">Cyber Cyan · Liquid Metallic</option>
+                <option value="rosso_gloss">Crimson Rosso · Racing Gloss</option>
+                <option value="solar_pearl">Solar Papaya · Pearlescent</option>
+                <option value="emerald_satin">Viper Emerald · Satin Metallic</option>
+                <option value="stealth_matte">Phantom Stealth · Matte Carbon</option>
+                <option value="pearl_ceramic">Glacier White · Ceramic Gloss</option>
+              </select>
+            </div>
+
             <div class="flex items-center justify-between gap-4">
               <label for="pause-quality-select" class="text-slate-300 font-medium">Graphics Quality</label>
               <select
@@ -962,6 +1070,6 @@
       </section>
     </div>
 
-    <script type="module" src="/src/main.js"></script>
+    <script type="module" src="./src/main.js"></script>
   </body>
 </html>
