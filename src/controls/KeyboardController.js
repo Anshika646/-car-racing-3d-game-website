@@ -15,6 +15,12 @@ export class KeyboardController {
       down: false,
       boost: false,
     };
+    this.touch = {
+      left: false,
+      right: false,
+      brake: false,
+      boost: false,
+    };
     this.steerValue = 0;
 
     this._onKeyDown = this._onKeyDown.bind(this);
@@ -118,21 +124,33 @@ export class KeyboardController {
     this.reset();
   }
 
+  setTouchInput(control, active) {
+    if (control in this.touch) {
+      this.touch[control] = Boolean(active);
+    }
+  }
+
   reset() {
     this.keys.left = false;
     this.keys.right = false;
     this.keys.up = false;
     this.keys.down = false;
     this.keys.boost = false;
+    this.touch.left = false;
+    this.touch.right = false;
+    this.touch.brake = false;
+    this.touch.boost = false;
     this.steerValue = 0;
   }
 
   /**
-   * Advances smooth analog keyboard steering value in [-1..+1] with fast counter-steer return.
+   * Advances smooth analog keyboard + mobile touch steering value in [-1..+1].
    */
   update(dt = 0.016, sensitivity = 1.0) {
     const safeDt = Math.min(0.1, Math.max(0.001, dt));
-    const rawDir = (this.keys.right ? 1 : 0) - (this.keys.left ? 1 : 0);
+    const leftActive = this.keys.left || this.touch.left;
+    const rightActive = this.keys.right || this.touch.right;
+    const rawDir = (rightActive ? 1 : 0) - (leftActive ? 1 : 0);
     const target = rawDir;
     const isReversing =
       rawDir !== 0 &&
@@ -154,8 +172,8 @@ export class KeyboardController {
       steer: Math.max(-1, Math.min(1, this.steerValue)),
       wheelAngleDeg: this.steerValue * 42,
       accelerate: this.keys.up,
-      brake: this.keys.down,
-      boost: this.keys.boost,
+      brake: this.keys.down || this.touch.brake,
+      boost: this.keys.boost || this.touch.boost,
       hasSteerInput: rawDir !== 0,
     };
   }

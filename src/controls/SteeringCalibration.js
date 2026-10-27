@@ -1,47 +1,30 @@
 /**
  * SteeringCalibration.js
  *
- * Pure mathematical steering wheel gesture analyzer, neutral-grip calibrator,
- * low-pass jitter smoother, dead-zone processor, and tracking-loss safety controller.
- *
- * STEERING GEOMETRY & MIRRORING EXPLANATION:
- * 1. Raw webcam frames represent an unmirrored camera sensor view: the player's physical
- *    LEFT hand appears on the RIGHT side of the raw image (rawX ~ 0.70), while their
- *    physical RIGHT hand appears on the LEFT side (rawX ~ 0.30).
- * 2. Because the preview is mirrored horizontally for natural human feedback, we map
- *    every landmark into mirrored screen coordinates first:
- *      mirroredX = 1.0 - rawLandmark.x
- *      mirroredY = rawLandmark.y   (0 = top of frame, 1 = bottom of frame)
- * 3. We sort the two detected palm hubs by `mirroredX` so `leftHand` is always the
- *    leftmost hand in the mirrored view (the player's physical left hand) and `rightHand`
- *    is the rightmost hand (the player's physical right hand).
- * 4. The imaginary steering axle vector from `leftHand` to `rightHand` is:
- *      dx = rightHand.x - leftHand.x   (positive horizontal hand separation)
- *      dy = rightHand.y - leftHand.y   (vertical tilt between hands)
- *    - Turning LEFT (counter-clockwise): left hand moves DOWN (+y), right hand moves UP (-y),
- *      making `dy < 0` and `atan2(dy, dx) < 0` -> negative steer value -> car steers LEFT.
- *    - Turning RIGHT (clockwise): left hand moves UP (-y), right hand moves DOWN (+y),
- *      making `dy > 0` and `atan2(dy, dx) > 0` -> positive steer value -> car steers RIGHT.
- *    This depends purely on the relative angle between the two hands rather than where
- *    the player sits horizontally in front of the webcam.
+ * Mathematical steering wheel gesture analyzer (supporting BOTH 2-Hand Wheel Axle
+ * and seamless 1-Hand Tilt/Shift Steering for phone & laptop ergonomics),
+ * auto-neutral calibrator, 1-Euro adaptive jitter filter, and tracking-loss safety controller.
  */
 
 const STORAGE_KEY = 'motion_drive_3d_steering_settings_v1';
 
 export const GESTURE_STATUS = {
   HANDS_DETECTED: 'HANDS DETECTED',
+  ONE_HAND_ACTIVE: '1-HAND STEER ACTIVE',
   CALIBRATE: 'CALIBRATE STEERING',
   STEER_LEFT: 'STEER LEFT',
   STEER_RIGHT: 'STEER RIGHT',
   CENTER_HANDS: 'CENTER YOUR HANDS',
-  TRACKING_LOST: 'TRACKING LOST — SHOW BOTH HANDS',
+  TRACKING_LOST: 'TRACKING LOST — SHOW HANDS',
 };
 
 export const DEFAULT_STEERING_SETTINGS = {
   neutralAngleDeg: 0,
-  sensitivity: 1.15,
-  deadZoneDeg: 4.0,
-  maxAngleDeg: 38.0,
+  neutralSingleAngleDeg: 0,
+  neutralSingleX: 0.5,
+  sensitivity: 1.2,
+  deadZoneDeg: 3.5,
+  maxAngleDeg: 36.0,
   smoothingRate: 12.0,
   pedalMode: 'auto_palm_brake',
   isCalibrated: false,
@@ -70,8 +53,22 @@ export function computePalmHubMirrored(landmarks) {
 }
 
 /**
- * Scale-invariant check for whether a hand has fingers extended (open palm)
- * vs curled around an imaginary steering wheel rim (closed grip).
+ * Computes natural single-hand tilt angle in degrees in mirrored coordinates:
+ * Upright hand = 0°, tilting top of hand left < 0°, tilting top of hand right > 0°.
+ */
+export function computeSingleHandTiltDeg(landmarks) {
+  if (!Array.isArray(landmarks) || landmarks.length < 21) return 0;
+  const wrist = landmarks[0];
+  const midMcp = landmarks[9];
+  const dx = (1.0 - midMcp.x) - (1.0 - wrist.x);
+  const dy = Math.max(0.035, wrist.y - midMcp.y);
+  const rad = Math.atan2(dx, dy);
+  return Math.max(-55, Math.min(55, rad * (180 / Math.PI)));
+}
+
+/**
+ * Scale-invariant check for whether a hand has all 4 fingers clearly spread open
+ * (deliberate "STOP" brake gesture) vs a relaxed or closed steering grip.
  */
 export function isHandOpenPalm(landmarks) {
   if (!Array.isArray(landmarks) || landmarks.length < 21) return false;
@@ -89,16 +86,16 @@ export function isHandOpenPalm(landmarks) {
     const pip = landmarks[fingerPairs[i][1]];
     const tipDist = Math.hypot(tip.x - wrist.x, tip.y - wrist.y);
     const pipDist = Math.hypot(pip.x - wrist.x, pip.y - wrist.y);
-    if (tipDist > pipDist * 1.16) {
+    if (tipDist > pipDist * 1.32) {
       extendedCount++;
     }
   }
-  return extendedCount >= 3;
+  return extendedCount >= 4;
 }
 
 /**
- * Extracts two-hand wheel angle, hand hubs, confidence, and open-palm state
- * from MediaPipe HandLandmarker detections.
+ * Extracts two-hand wheel angle (plus single-hand fallback geometry), palm hubs,
+ * confidence, and open-palm state from MediaPipe HandLandmarker detections.
  */
 export function computeWheelGeometry(landmarksList = [], handednesses = []) {
   const handCount = Array.isArray(landmarksList) ? landmarksList.length : 0;
@@ -119,16 +116,32 @@ export function computeWheelGeometry(landmarksList = [], handednesses = []) {
     avgConfidence = 0.9;
   }
 
-  if (handCount < 2) {
-    const singleHub = handCount === 1 ? computePalmHubMirrored(landmarksList[0]) : null;
+  if (handCount === 0) {
     return {
-      handCount,
+      handCount: 0,
+      hasBothHands: false,
+      leftHub: null,
+      rightHub: null,
+      rawAngleDeg: 0,
+      singleHandTiltDeg: 0,
+      handSpan: 0,
+      openPalmCount: 0,
+      confidence: 0,
+    };
+  }
+
+  if (handCount === 1) {
+    const singleHub = computePalmHubMirrored(landmarksList[0]);
+    const singleTilt = computeSingleHandTiltDeg(landmarksList[0]);
+    return {
+      handCount: 1,
       hasBothHands: false,
       leftHub: singleHub,
       rightHub: null,
-      rawAngleDeg: 0,
+      rawAngleDeg: singleTilt,
+      singleHandTiltDeg: singleTilt,
       handSpan: 0,
-      openPalmCount: handCount === 1 && isHandOpenPalm(landmarksList[0]) ? 1 : 0,
+      openPalmCount: isHandOpenPalm(landmarksList[0]) ? 1 : 0,
       confidence: avgConfidence,
     };
   }
@@ -142,6 +155,7 @@ export function computeWheelGeometry(landmarksList = [], handednesses = []) {
       leftHub: null,
       rightHub: null,
       rawAngleDeg: 0,
+      singleHandTiltDeg: 0,
       handSpan: 0,
       openPalmCount: 0,
       confidence: 0,
@@ -161,7 +175,7 @@ export function computeWheelGeometry(landmarksList = [], handednesses = []) {
   const handSpan = Math.hypot(dx, dy);
 
   // Prevent wild angle spikes if hands cross vertically directly over one another
-  const safeDx = Math.max(0.06, dx);
+  const safeDx = Math.max(0.04, dx);
   const rawAngleRad = Math.atan2(dy, safeDx);
   const rawAngleDeg = rawAngleRad * (180 / Math.PI);
 
@@ -174,6 +188,7 @@ export function computeWheelGeometry(landmarksList = [], handednesses = []) {
     leftHub,
     rightHub,
     rawAngleDeg,
+    singleHandTiltDeg: 0,
     handSpan,
     openPalmCount: open0 + open1,
     confidence: avgConfidence,
@@ -193,10 +208,13 @@ export class SteeringCalibration {
     this.filteredAngleVel = 0;
     this.hasAngleSeed = false;
     this.lastRawAngleDeg = 0;
+    this.lastSingleTiltDeg = 0;
+    this.lastSingleX = 0.5;
     this.missingHandsTimer = 0;
     this.calibrationHoldTime = 0;
     this.calibrationSamples = [];
-    this.calibrationRequiredSeconds = 1.1;
+    this.calibrationSingleSamples = [];
+    this.calibrationRequiredSeconds = 0.72;
   }
 
   loadSettings() {
@@ -241,6 +259,7 @@ export class SteeringCalibration {
   resetCalibrationProgress() {
     this.calibrationHoldTime = 0;
     this.calibrationSamples = [];
+    this.calibrationSingleSamples = [];
   }
 
   /**
@@ -250,8 +269,14 @@ export class SteeringCalibration {
   captureNeutral(explicitAngleDeg = null) {
     const angle =
       typeof explicitAngleDeg === 'number' ? explicitAngleDeg : this.lastRawAngleDeg;
-    const clampedNeutral = Math.max(-25, Math.min(25, angle));
+    const clampedNeutral = Math.max(-28, Math.min(28, angle));
     this.settings.neutralAngleDeg = Number(clampedNeutral.toFixed(2));
+    this.settings.neutralSingleAngleDeg = Number(
+      Math.max(-28, Math.min(28, this.lastSingleTiltDeg)).toFixed(2),
+    );
+    this.settings.neutralSingleX = Number(
+      Math.max(0.2, Math.min(0.8, this.lastSingleX)).toFixed(3),
+    );
     this.settings.isCalibrated = true;
     this.smoothedSteer = 0;
     this.smoothedWheelDeg = 0;
@@ -264,15 +289,39 @@ export class SteeringCalibration {
 
   /**
    * Feeds live hand geometry during the calibration screen to auto-lock neutral
-   * once the player holds two hands reasonably level for ~1.1 seconds.
+   * once the player holds 2 hands (or 1 hand on mobile) steady for ~0.72 seconds.
    */
   feedCalibrationSample(geometry, dt) {
     const safeDt = Math.min(0.1, Math.max(0.001, dt || 0.016));
-    if (!geometry || !geometry.hasBothHands || geometry.handSpan < 0.12) {
-      this.calibrationHoldTime = Math.max(0, this.calibrationHoldTime - safeDt * 1.5);
-      if (this.calibrationHoldTime === 0) {
-        this.calibrationSamples = [];
+
+    // 2-Hand calibration (Primary)
+    if (geometry && geometry.hasBothHands && geometry.handSpan >= 0.055) {
+      this.lastRawAngleDeg = geometry.rawAngleDeg;
+
+      if (Math.abs(geometry.rawAngleDeg) <= 30) {
+        this.calibrationHoldTime += safeDt;
+        this.calibrationSamples.push(geometry.rawAngleDeg);
+        if (this.calibrationSamples.length > 90) {
+          this.calibrationSamples.shift();
+        }
+
+        if (this.calibrationHoldTime >= this.calibrationRequiredSeconds) {
+          const sum = this.calibrationSamples.reduce((acc, v) => acc + v, 0);
+          const avg = sum / Math.max(1, this.calibrationSamples.length);
+          this.captureNeutral(avg);
+          this.calibrationHoldTime = 0;
+          this.calibrationSamples = [];
+          this.calibrationSingleSamples = [];
+          return {
+            progress: 1,
+            completedJustNow: true,
+            neutralAngleDeg: this.settings.neutralAngleDeg,
+          };
+        }
+      } else {
+        this.calibrationHoldTime = Math.max(0, this.calibrationHoldTime - safeDt * 0.8);
       }
+
       return {
         progress: Math.min(1, this.calibrationHoldTime / this.calibrationRequiredSeconds),
         completedJustNow: false,
@@ -280,32 +329,55 @@ export class SteeringCalibration {
       };
     }
 
-    this.lastRawAngleDeg = geometry.rawAngleDeg;
+    // 1-Hand calibration (Phone selfie / single-hand comfort support)
+    if (geometry && geometry.handCount === 1 && geometry.leftHub) {
+      this.lastSingleTiltDeg = geometry.singleHandTiltDeg || 0;
+      this.lastSingleX = geometry.leftHub.x;
 
-    // Check that hands are held reasonably steady and near horizontal (-22° to +22°)
-    if (Math.abs(geometry.rawAngleDeg) <= 22) {
-      this.calibrationHoldTime += safeDt;
-      this.calibrationSamples.push(geometry.rawAngleDeg);
-      if (this.calibrationSamples.length > 90) {
-        this.calibrationSamples.shift();
+      if (Math.abs(this.lastSingleTiltDeg) <= 32) {
+        this.calibrationHoldTime += safeDt * 0.85;
+        this.calibrationSingleSamples.push({
+          tilt: this.lastSingleTiltDeg,
+          x: this.lastSingleX,
+        });
+        if (this.calibrationSingleSamples.length > 90) {
+          this.calibrationSingleSamples.shift();
+        }
+
+        if (this.calibrationHoldTime >= this.calibrationRequiredSeconds) {
+          const n = Math.max(1, this.calibrationSingleSamples.length);
+          const avgTilt =
+            this.calibrationSingleSamples.reduce((a, s) => a + s.tilt, 0) / n;
+          const avgX =
+            this.calibrationSingleSamples.reduce((a, s) => a + s.x, 0) / n;
+          this.lastSingleTiltDeg = avgTilt;
+          this.lastSingleX = avgX;
+          this.captureNeutral(0);
+          this.calibrationHoldTime = 0;
+          this.calibrationSingleSamples = [];
+          return {
+            progress: 1,
+            completedJustNow: true,
+            neutralAngleDeg: this.settings.neutralAngleDeg,
+          };
+        }
+      } else {
+        this.calibrationHoldTime = Math.max(0, this.calibrationHoldTime - safeDt * 0.8);
       }
 
-      if (this.calibrationHoldTime >= this.calibrationRequiredSeconds) {
-        const sum = this.calibrationSamples.reduce((acc, v) => acc + v, 0);
-        const avg = sum / Math.max(1, this.calibrationSamples.length);
-        this.captureNeutral(avg);
-        this.calibrationHoldTime = 0;
-        this.calibrationSamples = [];
-        return {
-          progress: 1,
-          completedJustNow: true,
-          neutralAngleDeg: this.settings.neutralAngleDeg,
-        };
-      }
-    } else {
-      this.calibrationHoldTime = Math.max(0, this.calibrationHoldTime - safeDt);
+      return {
+        progress: Math.min(1, this.calibrationHoldTime / this.calibrationRequiredSeconds),
+        completedJustNow: false,
+        neutralAngleDeg: this.settings.neutralAngleDeg,
+      };
     }
 
+    // 0 Hands visible
+    this.calibrationHoldTime = Math.max(0, this.calibrationHoldTime - safeDt * 1.4);
+    if (this.calibrationHoldTime === 0) {
+      this.calibrationSamples = [];
+      this.calibrationSingleSamples = [];
+    }
     return {
       progress: Math.min(1, this.calibrationHoldTime / this.calibrationRequiredSeconds),
       completedJustNow: false,
@@ -321,6 +393,8 @@ export class SteeringCalibration {
     const safeDt = Math.min(0.1, Math.max(0.001, dt));
     const {
       neutralAngleDeg,
+      neutralSingleAngleDeg = 0,
+      neutralSingleX = 0.5,
       sensitivity,
       deadZoneDeg,
       maxAngleDeg,
@@ -329,73 +403,88 @@ export class SteeringCalibration {
       isCalibrated,
     } = this.settings;
 
-    // 1. Handle missing hands / tracking loss safely by decaying steering to neutral (0)
-    if (!geometry || !geometry.hasBothHands) {
+    const handCount = geometry?.handCount ?? 0;
+
+    // 1. Handle 0 hands (complete tracking loss) safely by decaying steering to neutral (0)
+    if (!geometry || handCount === 0 || (!geometry.hasBothHands && !geometry.leftHub)) {
       this.missingHandsTimer += safeDt;
       this.hasAngleSeed = false;
-      const returnAlpha = 1 - Math.exp(-8.5 * safeDt);
-      this.smoothedSteer += (0 - this.smoothedSteer) * returnAlpha;
-      this.smoothedWheelDeg += (0 - this.smoothedWheelDeg) * returnAlpha;
-      if (Math.abs(this.smoothedSteer) < 0.005) this.smoothedSteer = 0;
-      if (Math.abs(this.smoothedWheelDeg) < 0.1) this.smoothedWheelDeg = 0;
 
-      // Short 100ms grace period avoids flickering on a single dropped frame
-      const isLost = this.missingHandsTimer >= 0.1 || (geometry?.handCount ?? 0) < 2;
+      // Brief 110ms micro-dropout hold prevents jitter if webcam drops 1-2 frames mid-turn
+      if (this.missingHandsTimer > 0.11) {
+        const returnAlpha = 1 - Math.exp(-9.2 * safeDt);
+        this.smoothedSteer += (0 - this.smoothedSteer) * returnAlpha;
+        this.smoothedWheelDeg += (0 - this.smoothedWheelDeg) * returnAlpha;
+        if (Math.abs(this.smoothedSteer) < 0.005) this.smoothedSteer = 0;
+        if (Math.abs(this.smoothedWheelDeg) < 0.1) this.smoothedWheelDeg = 0;
+      }
+
+      const isLost = this.missingHandsTimer >= 0.11;
       return {
         steer: this.smoothedSteer,
         wheelAngleDeg: this.smoothedWheelDeg,
-        throttle: false,
+        throttle: true,
         brake: false,
         trackingLost: isLost,
-        handCount: geometry?.handCount ?? 0,
-        confidence: geometry?.confidence ?? 0,
-        status: GESTURE_STATUS.TRACKING_LOST,
+        handCount: 0,
+        confidence: 0,
+        status: isLost ? GESTURE_STATUS.TRACKING_LOST : GESTURE_STATUS.HANDS_DETECTED,
       };
     }
 
-    // Both hands visible
+    // At least 1 hand is visible!
     this.missingHandsTimer = 0;
-    this.lastRawAngleDeg = geometry.rawAngleDeg;
 
-    // 2. Adaptive 1-Euro pre-filter on raw wheel angle:
-    //    Calm cutoff at rest suppresses webcam landmark micro-tremor, while rapid hand
-    //    rotations automatically boost cutoff frequency for instant, lag-free steering.
+    let measuredRelativeDeg = 0;
+    if (geometry.hasBothHands) {
+      this.lastRawAngleDeg = geometry.rawAngleDeg;
+      measuredRelativeDeg = geometry.rawAngleDeg - neutralAngleDeg;
+    } else {
+      // Seamless 1-Hand Steering: combines wrist-to-knuckle tilt + horizontal shift from center
+      const singleTilt = geometry.singleHandTiltDeg || 0;
+      const singleX = geometry.leftHub.x;
+      this.lastSingleTiltDeg = singleTilt;
+      this.lastSingleX = singleX;
+      const tiltDelta = (singleTilt - neutralSingleAngleDeg) * 0.85;
+      const posDelta = (singleX - neutralSingleX) * 78.0;
+      measuredRelativeDeg = Math.max(-52, Math.min(52, tiltDelta + posDelta));
+    }
+
+    // 2. Adaptive 1-Euro pre-filter on relative steering angle
     if (!this.hasAngleSeed) {
-      this.filteredAngleDeg = geometry.rawAngleDeg;
+      this.filteredAngleDeg = measuredRelativeDeg;
       this.filteredAngleVel = 0;
       this.hasAngleSeed = true;
     } else {
-      const rawVel = (geometry.rawAngleDeg - this.filteredAngleDeg) / safeDt;
+      const rawVel = (measuredRelativeDeg - this.filteredAngleDeg) / safeDt;
       const velAlpha = 1 - Math.exp(-16.0 * safeDt);
       this.filteredAngleVel += (rawVel - this.filteredAngleVel) * velAlpha;
 
-      const minRate = Math.max(4.5, smoothingRate * 0.65);
-      const adaptiveRate = minRate + Math.min(24.0, Math.abs(this.filteredAngleVel) * 0.14);
+      const minRate = Math.max(5.0, smoothingRate * 0.7);
+      const adaptiveRate = minRate + Math.min(26.0, Math.abs(this.filteredAngleVel) * 0.15);
       const angleAlpha = 1 - Math.exp(-adaptiveRate * safeDt);
-      this.filteredAngleDeg += (geometry.rawAngleDeg - this.filteredAngleDeg) * angleAlpha;
+      this.filteredAngleDeg += (measuredRelativeDeg - this.filteredAngleDeg) * angleAlpha;
     }
 
-    // 3. Relative angle from calibrated neutral reference
-    const relativeDeg = this.filteredAngleDeg - neutralAngleDeg;
+    const relativeDeg = this.filteredAngleDeg;
 
-    // 4. Apply smooth center dead zone so natural micro-tremors don't drift the car
+    // 3. Smooth center dead zone
     let effectiveDeg = 0;
     const absRel = Math.abs(relativeDeg);
     if (absRel > deadZoneDeg) {
       effectiveDeg = Math.sign(relativeDeg) * (absRel - deadZoneDeg);
     }
 
-    // 5. Normalize against maximum steering lock & apply progressive precision curve
+    // 4. Normalize against maximum steering lock & apply progressive precision curve
     const usableRange = Math.max(10, maxAngleDeg - deadZoneDeg);
     const linearNorm = Math.max(-1, Math.min(1, (effectiveDeg / usableRange) * sensitivity));
     const absLin = Math.abs(linearNorm);
-    // Blend 58% linear + 42% power-1.55 curve for fine center control and crisp full lock
-    const curvedMag = 0.58 * absLin + 0.42 * Math.pow(absLin, 1.55);
+    const curvedMag = 0.62 * absLin + 0.38 * Math.pow(absLin, 1.45);
     const targetSteer = Math.sign(linearNorm) * Math.min(1, curvedMag);
     const targetWheelDeg = Math.max(-maxAngleDeg, Math.min(maxAngleDeg, relativeDeg * sensitivity));
 
-    // 6. Frame-rate independent output smoothing
-    const alpha = 1 - Math.exp(-Math.max(3, smoothingRate * 1.15) * safeDt);
+    // 5. Frame-rate independent output smoothing
+    const alpha = 1 - Math.exp(-Math.max(4, smoothingRate * 1.2) * safeDt);
     this.smoothedSteer += (targetSteer - this.smoothedSteer) * alpha;
     this.smoothedWheelDeg += (targetWheelDeg - this.smoothedWheelDeg) * alpha;
 
@@ -403,37 +492,42 @@ export class SteeringCalibration {
       this.smoothedSteer = 0;
     }
 
-    // 6. Evaluate gesture throttle & brake according to user's selected pedal mode
-    const bothOpen = geometry.openPalmCount === 2;
+    // 6. Evaluate gesture throttle & brake (requires deliberate open palm(s))
+    const allVisibleOpen =
+      geometry.hasBothHands ? geometry.openPalmCount === 2 : false;
     const bothGripped = geometry.openPalmCount === 0;
     let throttle = true;
     let brake = false;
 
     if (pedalMode === 'auto_palm_brake') {
-      brake = bothOpen;
+      brake = allVisibleOpen;
       throttle = !brake;
     } else if (pedalMode === 'grip_gas_palm_brake') {
-      brake = bothOpen;
+      brake = allVisibleOpen;
       throttle = bothGripped;
     } else if (pedalMode === 'palm_gas_fist_brake') {
-      throttle = bothOpen;
+      throttle = allVisibleOpen;
       brake = bothGripped;
     } else {
-      // 'auto_only' — hands strictly steer, car accelerates automatically
       throttle = true;
       brake = false;
     }
 
-    // 7. Determine accurate real-time gesture feedback status
-    let status = GESTURE_STATUS.HANDS_DETECTED;
-    if (!isCalibrated) {
+    // 7. Real-time gesture feedback status
+    let status = geometry.hasBothHands
+      ? GESTURE_STATUS.HANDS_DETECTED
+      : GESTURE_STATUS.ONE_HAND_ACTIVE;
+
+    if (!isCalibrated && Math.abs(this.smoothedSteer) < 0.14) {
       status = GESTURE_STATUS.CALIBRATE;
-    } else if (this.smoothedSteer < -0.14) {
+    } else if (this.smoothedSteer < -0.13) {
       status = GESTURE_STATUS.STEER_LEFT;
-    } else if (this.smoothedSteer > 0.14) {
+    } else if (this.smoothedSteer > 0.13) {
       status = GESTURE_STATUS.STEER_RIGHT;
-    } else if (absRel <= deadZoneDeg * 1.25) {
-      status = GESTURE_STATUS.HANDS_DETECTED;
+    } else if (absRel <= deadZoneDeg * 1.35) {
+      status = geometry.hasBothHands
+        ? GESTURE_STATUS.HANDS_DETECTED
+        : GESTURE_STATUS.ONE_HAND_ACTIVE;
     } else {
       status = GESTURE_STATUS.CENTER_HANDS;
     }
@@ -444,7 +538,7 @@ export class SteeringCalibration {
       throttle,
       brake,
       trackingLost: false,
-      handCount: 2,
+      handCount,
       confidence: geometry.confidence,
       status,
     };

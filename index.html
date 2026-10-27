@@ -2,16 +2,16 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>MOTION DRIVE 3D</title>
     <meta
       name="description"
-      content="Your hands. Your steering wheel. Your race. A real-time 3D highway racing game steered with webcam hand gestures via MediaPipe and Three.js."
+      content="Your hands. Your steering wheel. Your race. A real-time 3D highway racing game steered with webcam hand gestures, keyboard, or mobile touch controls."
     />
     <meta property="og:title" content="MOTION DRIVE 3D" />
     <meta
       property="og:description"
-      content="Your hands. Your steering wheel. Your race. A real-time 3D highway racing game steered with webcam hand gestures via MediaPipe and Three.js."
+      content="Your hands. Your steering wheel. Your race. A real-time 3D highway racing game steered with webcam hand gestures, keyboard, or mobile touch controls."
     />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
@@ -40,10 +40,10 @@
     <!-- Graceful WebGL Failure Fallback -->
     <div
       id="webgl-fallback"
-      class="hidden fixed inset-0 z-50 bg-[#070b12] flex items-center justify-center p-6"
+      class="hidden fixed inset-0 z-50 bg-[#070b12] flex items-center justify-center p-5"
       role="alert"
     >
-      <div class="max-w-lg w-full bg-[#0f1623] border border-white/10 rounded-xl p-8 text-center">
+      <div class="max-w-lg w-full bg-[#0f1623] border border-white/10 rounded-xl p-6 sm:p-8 text-center">
         <h2 class="font-display text-2xl font-bold text-white mb-3">
           3D Graphics Context Unavailable
         </h2>
@@ -62,27 +62,28 @@
 
     <!-- UI Overlay Root -->
     <div id="ui-layer" class="fixed inset-0 z-10 pointer-events-none flex flex-col justify-between">
-      <!-- TITLE SCREEN -->
+      <!-- TITLE SCREEN (Laptop + Phone Responsive, Clutter-Free Dropdown Garage) -->
       <section
         id="title-screen"
-        class="pointer-events-auto fixed inset-0 z-30 flex flex-col justify-between bg-gradient-to-t from-[#070b12]/95 via-[#070b12]/45 to-[#070b12]/80"
+        class="pointer-events-auto fixed inset-0 z-30 flex flex-col justify-between bg-gradient-to-t from-[#070b12]/90 via-transparent to-[#070b12]/70 md:bg-gradient-to-r md:from-[#070b12]/88 md:via-[#070b12]/35 md:to-transparent"
       >
-        <!-- Top Bar (Strict 3-Zone Contract) -->
-        <header class="flex items-center justify-between gap-6 px-6 md:px-10 py-4 border-b border-white/10">
-          <div class="flex items-center gap-2.5 whitespace-nowrap shrink-0">
+        <!-- Top Bar (Compact on Mobile & Laptop) -->
+        <header class="flex items-center justify-between gap-3 px-4 sm:px-6 lg:px-10 py-2.5 sm:py-3 border-b border-white/10 bg-[#070b12]/70 shrink-0">
+          <div class="flex items-center gap-2 min-w-0">
             <a
               href="#top"
               id="brand-wordmark"
-              class="font-display text-lg font-bold tracking-wider text-white"
+              class="font-display text-sm sm:text-base lg:text-lg font-bold tracking-wider text-white whitespace-nowrap shrink-0"
             >
               MOTION DRIVE 3D
             </a>
             <span aria-hidden="true" class="text-slate-500">·</span>
-            <span class="text-xs font-medium text-[#67e8f9] tracking-wide">
+            <span class="text-[11px] sm:text-xs font-medium text-[#67e8f9] tracking-wide truncate">
               Made by Anshika
             </span>
           </div>
-          <nav class="hidden sm:flex items-center gap-6 text-sm font-medium text-slate-300">
+
+          <nav class="hidden md:flex items-center gap-5 lg:gap-6 text-xs lg:text-sm font-medium text-slate-300">
             <button
               type="button"
               data-action="open-help"
@@ -114,265 +115,380 @@
               Audio: On
             </button>
           </nav>
-          <div class="flex items-center shrink-0">
+
+          <div class="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              data-action="open-settings"
+              class="md:hidden px-2.5 py-1.5 text-[11px] font-semibold text-slate-200 bg-white/10 rounded-lg hover:bg-white/15 transition-colors whitespace-nowrap cursor-pointer"
+            >
+              Settings
+            </button>
             <button
               type="button"
               data-action="open-help"
-              class="sm:hidden px-3.5 py-2 text-xs font-semibold text-slate-200 bg-white/10 rounded-lg hover:bg-white/15 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              class="md:hidden px-2.5 py-1.5 text-[11px] font-semibold text-[#67e8f9] bg-white/10 rounded-lg hover:bg-white/15 transition-colors whitespace-nowrap cursor-pointer"
             >
-              How to Play
+              Help
             </button>
             <span
               id="title-best-readout"
-              class="hidden sm:inline-block font-mono text-xs text-slate-300 tabular-nums whitespace-nowrap shrink-0"
+              class="hidden md:inline-block font-mono text-xs text-slate-300 tabular-nums whitespace-nowrap shrink-0"
             >
               Personal Best: 0 pts
             </span>
           </div>
         </header>
 
-        <!-- Center Focal Hero + Interactive 3D Garage -->
-        <div class="flex-1 flex items-center px-6 md:px-12 lg:px-16 overflow-y-auto py-3">
-          <div class="max-w-xl w-full bg-[#080d17]/78 border border-white/10 rounded-xl p-5 sm:p-6 shadow-2xl">
-            <p class="text-[11px] font-medium text-[#22d3ee] tracking-wide mb-1.5">
-              Real-Time Hand Steering · Custom 3D Garage · Named Highway Rivals
-            </p>
-            <h1
-              class="font-display text-4xl sm:text-5xl font-bold tracking-tight text-white leading-[1.02] mb-1.5"
-              style="text-wrap: balance"
-            >
-              MOTION DRIVE <span class="text-[#22d3ee]">3D</span>
-            </h1>
-            <p class="text-sm sm:text-base text-slate-300 font-normal leading-snug mb-4">
-              Your hands. Your steering wheel. Your race.
-            </p>
+        <!-- Main Responsive Body: Open 3D Car Window on Mobile Top / Right Showroom on Laptop -->
+        <div class="flex-1 min-h-0 flex flex-col md:flex-row md:items-center justify-end md:justify-start px-3.5 sm:px-6 lg:px-12 py-2.5 sm:py-4 overflow-y-auto clean-scroll">
+          <!-- Mobile-only transparent 3D car showcase window so phone users see their 3D car & nameplate clearly -->
+          <div class="md:hidden flex-1 min-h-[125px] sm:min-h-[170px] pointer-events-none"></div>
 
-            <!-- 1. Editable Driver Name (Floating Above Car) + Track Atmosphere -->
-            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 mb-4">
-              <div class="sm:col-span-7">
-                <label
-                  for="input-driver-name"
-                  class="block text-[11px] font-semibold text-slate-300 tracking-wide mb-1.5"
-                >
-                  Driver Name (Shown Above Your Car)
-                </label>
+          <!-- Compact, Organized Hero & Dropdown Garage Panel -->
+          <div class="w-full max-w-[500px] bg-[#080d17]/90 border border-white/12 rounded-xl p-4 sm:p-5 shadow-2xl shrink-0">
+            <div class="mb-3.5">
+              <p class="text-[11px] font-medium text-[#22d3ee] tracking-wide mb-1">
+                Hand Gesture Steering · Touch &amp; Keyboard · Custom 3D Garage
+              </p>
+              <h1
+                class="font-display text-2xl sm:text-4xl font-bold tracking-tight text-white leading-[1.05]"
+              >
+                MOTION DRIVE <span class="text-[#22d3ee]">3D</span>
+              </h1>
+              <p class="text-xs sm:text-sm text-slate-300 mt-0.5">
+                Your hands. Your steering wheel. Your race.
+              </p>
+            </div>
+
+            <!-- 4 Cleanly Separated Garage Controls (2x2 Grid on Laptop/Tablet, Clean Stack on Phone) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 pt-3 border-t border-white/10">
+              <!-- Field 1: Driver Name (Above Car) -->
+              <div>
+                <div class="flex items-center justify-between gap-2 mb-1 text-[11px]">
+                  <label for="input-driver-name" class="font-semibold text-slate-200">
+                    1. Driver Name
+                  </label>
+                  <span class="text-[10px] text-slate-400">Above car</span>
+                </div>
                 <div class="flex items-center gap-1.5">
                   <input
                     id="input-driver-name"
                     type="text"
                     maxlength="16"
                     value="ANSHIKA"
-                    placeholder="Enter racer name..."
+                    placeholder="Your name..."
                     autocomplete="off"
                     spellcheck="false"
-                    class="w-full bg-[#0d1524] border border-white/15 focus:border-[#22d3ee] rounded-lg px-3 py-1.5 text-xs font-display font-bold tracking-wider text-white focus:outline-none"
+                    class="w-full h-10 bg-[#0d1524] border border-white/15 focus:border-[#22d3ee] rounded-lg px-3 text-xs font-display font-bold tracking-wider text-white focus:outline-none min-w-0"
                   />
                   <button
                     type="button"
                     id="btn-random-driver-name"
-                    class="px-2.5 py-1.5 bg-[#111c2f] hover:bg-[#192842] border border-white/12 rounded-lg text-[11px] font-semibold text-[#67e8f9] transition-colors cursor-pointer whitespace-nowrap shrink-0"
-                    title="Pick a random racer callsign"
+                    class="h-10 px-2.5 bg-[#111c2f] hover:bg-[#192842] border border-white/15 rounded-lg text-[11px] font-semibold text-[#67e8f9] transition-colors cursor-pointer whitespace-nowrap shrink-0"
+                    title="Pick a random racer name"
                   >
                     Random
                   </button>
                 </div>
               </div>
 
-              <div class="sm:col-span-5">
-                <span class="block text-[11px] font-semibold text-slate-300 tracking-wide mb-1.5">
-                  Highway Atmosphere
-                </span>
-                <div class="grid grid-cols-3 gap-1" role="group" aria-label="Highway Atmosphere">
+              <!-- Field 2: Highway Atmosphere Dropdown -->
+              <div class="relative" data-dropdown="atmo">
+                <div class="flex items-center justify-between gap-2 mb-1 text-[11px]">
+                  <span class="font-semibold text-slate-200">2. Highway Theme</span>
+                  <span class="text-[10px] text-slate-400">Lighting &amp; sky</span>
+                </div>
+                <button
+                  type="button"
+                  id="btn-dd-atmo"
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  class="w-full h-10 bg-[#0d1524] hover:bg-[#131f35] border border-white/15 rounded-lg px-3 flex items-center justify-between gap-2 text-left transition-colors cursor-pointer"
+                >
+                  <span class="flex items-center gap-2 min-w-0">
+                    <span id="dd-atmo-swatch" class="w-3 h-3 rounded-full shrink-0 bg-[#38bdf8] ring-1 ring-white/30"></span>
+                    <span id="dd-atmo-label" class="text-xs font-semibold text-white truncate">Midnight Express</span>
+                  </span>
+                  <svg class="w-4 h-4 text-slate-400 shrink-0 transition-transform" data-dd-chevron viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+
+                <div
+                  id="menu-dd-atmo"
+                  role="listbox"
+                  aria-label="Highway Atmosphere"
+                  class="hidden absolute left-0 right-0 top-full mt-1.5 z-50 bg-[#0c1424] border border-white/20 rounded-lg p-1.5 shadow-2xl space-y-1"
+                >
                   <button
                     type="button"
                     data-atmosphere="midnight"
                     aria-pressed="true"
-                    class="px-2 py-1.5 rounded-lg border border-[#22d3ee] bg-[#132033] text-white text-[11px] font-medium transition-colors cursor-pointer truncate"
+                    class="w-full px-2.5 py-2 rounded-md border border-[#22d3ee] bg-[#132033] text-white text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
                   >
-                    Midnight
+                    <span class="flex items-center gap-2 min-w-0">
+                      <span class="w-3 h-3 rounded-full bg-[#38bdf8] shrink-0"></span>
+                      <span class="text-xs font-medium truncate">Midnight Express</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400 shrink-0">Neon Night</span>
                   </button>
                   <button
                     type="button"
                     data-atmosphere="sunset"
                     aria-pressed="false"
-                    class="px-2 py-1.5 rounded-lg border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-[11px] font-medium transition-colors cursor-pointer truncate"
+                    class="w-full px-2.5 py-2 rounded-md border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
                   >
-                    Sunset
+                    <span class="flex items-center gap-2 min-w-0">
+                      <span class="w-3 h-3 rounded-full bg-[#fb923c] shrink-0"></span>
+                      <span class="text-xs font-medium truncate">Golden Sunset</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400 shrink-0">Warm Dusk</span>
                   </button>
                   <button
                     type="button"
                     data-atmosphere="cyber_dusk"
                     aria-pressed="false"
-                    class="px-2 py-1.5 rounded-lg border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-[11px] font-medium transition-colors cursor-pointer truncate"
+                    class="w-full px-2.5 py-2 rounded-md border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
                   >
-                    Cyber
+                    <span class="flex items-center gap-2 min-w-0">
+                      <span class="w-3 h-3 rounded-full bg-[#e879f9] shrink-0"></span>
+                      <span class="text-xs font-medium truncate">Cyber Horizon</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400 shrink-0">Violet Glow</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Field 3: 3D Car Model Dropdown -->
+              <div class="relative" data-dropdown="model">
+                <div class="flex items-center justify-between gap-2 mb-1 text-[11px]">
+                  <span class="font-semibold text-slate-200">3. Car Model</span>
+                  <span id="title-model-stats" class="font-mono text-[10px] text-[#67e8f9] tabular-nums truncate">
+                    SPD 95 · HND 93 · N2O 92
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  id="btn-dd-model"
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  class="w-full h-10 bg-[#0d1524] hover:bg-[#131f35] border border-white/15 rounded-lg px-3 flex items-center justify-between gap-2 text-left transition-colors cursor-pointer"
+                >
+                  <span class="min-w-0 flex items-baseline gap-1.5 truncate">
+                    <span id="dd-model-name" class="font-display text-xs font-bold text-white truncate">Apex GT-R</span>
+                    <span id="dd-model-class" class="text-[10px] text-slate-400 truncate">· Hyper Coupe</span>
+                  </span>
+                  <svg class="w-4 h-4 text-slate-400 shrink-0 transition-transform" data-dd-chevron viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+
+                <div
+                  id="menu-dd-model"
+                  role="listbox"
+                  aria-label="Select 3D Car Model"
+                  class="hidden absolute left-0 right-0 sm:w-[300px] bottom-full sm:bottom-auto sm:top-full mb-1.5 sm:mb-0 sm:mt-1.5 z-50 bg-[#0c1424] border border-white/20 rounded-lg p-1.5 shadow-2xl space-y-1 max-h-60 overflow-y-auto clean-scroll"
+                >
+                  <button
+                    type="button"
+                    data-car-model="apex_gtr"
+                    aria-pressed="true"
+                    class="w-full px-2.5 py-2 rounded-md border border-[#22d3ee] bg-[#132033] text-white text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
+                  >
+                    <span class="min-w-0">
+                      <span class="block font-display text-xs font-bold truncate">Apex GT-R</span>
+                      <span class="block text-[10px] text-slate-400 truncate">Hyper Coupe · Balanced Aero</span>
+                    </span>
+                    <span class="font-mono text-[10px] text-[#67e8f9] shrink-0">95/93</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    data-car-model="vortex_f1"
+                    aria-pressed="false"
+                    class="w-full px-2.5 py-2 rounded-md border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
+                  >
+                    <span class="min-w-0">
+                      <span class="block font-display text-xs font-bold truncate">Vortex F1-X</span>
+                      <span class="block text-[10px] text-slate-400 truncate">Formula Aero · Open Wheel</span>
+                    </span>
+                    <span class="font-mono text-[10px] text-[#67e8f9] shrink-0">98/97</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    data-car-model="titan_v8"
+                    aria-pressed="false"
+                    class="w-full px-2.5 py-2 rounded-md border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
+                  >
+                    <span class="min-w-0">
+                      <span class="block font-display text-xs font-bold truncate">Titan V8</span>
+                      <span class="block text-[10px] text-slate-400 truncate">Street Muscle · Supercharged</span>
+                    </span>
+                    <span class="font-mono text-[10px] text-[#67e8f9] shrink-0">96/88</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    data-car-model="nomad_x"
+                    aria-pressed="false"
+                    class="w-full px-2.5 py-2 rounded-md border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
+                  >
+                    <span class="min-w-0">
+                      <span class="block font-display text-xs font-bold truncate">Nomad Cyber-X</span>
+                      <span class="block text-[10px] text-slate-400 truncate">Armored Rally · Off-Road Rig</span>
+                    </span>
+                    <span class="font-mono text-[10px] text-[#67e8f9] shrink-0">91/90</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Field 4: Car Colour & Finish Dropdown -->
+              <div class="relative" data-dropdown="paint">
+                <div class="flex items-center justify-between gap-2 mb-1 text-[11px]">
+                  <span class="font-semibold text-slate-200">4. Car Colour</span>
+                  <span id="title-paint-label" class="font-mono text-[10px] text-[#22d3ee] truncate">
+                    Liquid Metallic
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  id="btn-dd-paint"
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  class="w-full h-10 bg-[#0d1524] hover:bg-[#131f35] border border-white/15 rounded-lg px-3 flex items-center justify-between gap-2 text-left transition-colors cursor-pointer"
+                >
+                  <span class="flex items-center gap-2 min-w-0">
+                    <span id="dd-paint-swatch" class="w-3.5 h-3.5 rounded-full shrink-0 bg-[#06b6d4] ring-1 ring-white/35"></span>
+                    <span id="dd-paint-name" class="text-xs font-semibold text-white truncate">Cyber Cyan</span>
+                  </span>
+                  <svg class="w-4 h-4 text-slate-400 shrink-0 transition-transform" data-dd-chevron viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
+                  </svg>
+                </button>
+
+                <div
+                  id="menu-dd-paint"
+                  role="listbox"
+                  aria-label="Select Car Colour and Finish"
+                  class="hidden absolute right-0 left-0 sm:left-auto sm:w-[290px] bottom-full sm:bottom-auto sm:top-full mb-1.5 sm:mb-0 sm:mt-1.5 z-50 bg-[#0c1424] border border-white/20 rounded-lg p-1.5 shadow-2xl space-y-1 max-h-56 overflow-y-auto clean-scroll"
+                >
+                  <button
+                    type="button"
+                    data-car-paint="cyan_metallic"
+                    aria-pressed="true"
+                    class="w-full px-2.5 py-1.5 rounded-md border border-[#22d3ee] bg-[#132033] text-white text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
+                  >
+                    <span class="flex items-center gap-2 min-w-0">
+                      <span class="w-3 h-3 rounded-full shrink-0 bg-[#06b6d4] ring-1 ring-white/30"></span>
+                      <span class="text-xs font-medium truncate">Cyber Cyan</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400 shrink-0">Metallic</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    data-car-paint="rosso_gloss"
+                    aria-pressed="false"
+                    class="w-full px-2.5 py-1.5 rounded-md border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
+                  >
+                    <span class="flex items-center gap-2 min-w-0">
+                      <span class="w-3 h-3 rounded-full shrink-0 bg-[#ef4444] ring-1 ring-white/30"></span>
+                      <span class="text-xs font-medium truncate">Crimson Red</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400 shrink-0">Gloss</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    data-car-paint="solar_pearl"
+                    aria-pressed="false"
+                    class="w-full px-2.5 py-1.5 rounded-md border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
+                  >
+                    <span class="flex items-center gap-2 min-w-0">
+                      <span class="w-3 h-3 rounded-full shrink-0 bg-[#f59e0b] ring-1 ring-white/30"></span>
+                      <span class="text-xs font-medium truncate">Solar Gold</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400 shrink-0">Pearl</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    data-car-paint="emerald_satin"
+                    aria-pressed="false"
+                    class="w-full px-2.5 py-1.5 rounded-md border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
+                  >
+                    <span class="flex items-center gap-2 min-w-0">
+                      <span class="w-3 h-3 rounded-full shrink-0 bg-[#10b981] ring-1 ring-white/30"></span>
+                      <span class="text-xs font-medium truncate">Viper Emerald</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400 shrink-0">Satin</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    data-car-paint="stealth_matte"
+                    aria-pressed="false"
+                    class="w-full px-2.5 py-1.5 rounded-md border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
+                  >
+                    <span class="flex items-center gap-2 min-w-0">
+                      <span class="w-3 h-3 rounded-full shrink-0 bg-[#334155] ring-1 ring-white/40"></span>
+                      <span class="text-xs font-medium truncate">Matte Black</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400 shrink-0">Carbon</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    data-car-paint="pearl_ceramic"
+                    aria-pressed="false"
+                    class="w-full px-2.5 py-1.5 rounded-md border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
+                  >
+                    <span class="flex items-center gap-2 min-w-0">
+                      <span class="w-3 h-3 rounded-full shrink-0 bg-[#f8fafc] ring-1 ring-white/40"></span>
+                      <span class="text-xs font-medium truncate">Glacier White</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400 shrink-0">Ceramic</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    data-car-paint="ultraviolet_chrome"
+                    aria-pressed="false"
+                    class="w-full px-2.5 py-1.5 rounded-md border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
+                  >
+                    <span class="flex items-center gap-2 min-w-0">
+                      <span class="w-3 h-3 rounded-full shrink-0 bg-[#a855f7] ring-1 ring-white/35"></span>
+                      <span class="text-xs font-medium truncate">Ultraviolet</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400 shrink-0">Chrome</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    data-car-paint="rosegold_pearl"
+                    aria-pressed="false"
+                    class="w-full px-2.5 py-1.5 rounded-md border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
+                  >
+                    <span class="flex items-center gap-2 min-w-0">
+                      <span class="w-3 h-3 rounded-full shrink-0 bg-[#fb7185] ring-1 ring-white/35"></span>
+                      <span class="text-xs font-medium truncate">Rose Velvet</span>
+                    </span>
+                    <span class="text-[10px] text-slate-400 shrink-0">Satin Pearl</span>
                   </button>
                 </div>
               </div>
             </div>
 
-            <!-- 2. Select 3D Car Model (4 Distinct Chassis Classes) -->
-            <div class="mb-4">
-              <div class="flex items-center justify-between gap-2 mb-1.5 text-[11px]">
-                <span class="font-semibold text-slate-300 tracking-wide">
-                  Select Car Model
-                </span>
-                <span id="title-model-stats" class="font-mono text-[#67e8f9] tabular-nums truncate">
-                  Apex GT-R · SPD 95 · HND 93 · N2O 92
-                </span>
-              </div>
-              <div
-                class="grid grid-cols-2 sm:grid-cols-4 gap-1.5"
-                role="group"
-                aria-label="Select 3D Car Model"
-              >
-                <button
-                  type="button"
-                  data-car-model="apex_gtr"
-                  aria-pressed="true"
-                  class="px-2.5 py-2 rounded-lg border border-[#22d3ee] bg-[#132033] text-white text-left transition-colors cursor-pointer"
-                >
-                  <div class="font-display text-xs font-bold truncate">Apex GT-R</div>
-                  <div class="text-[10px] text-slate-400 truncate">Hyper Coupe</div>
-                </button>
-
-                <button
-                  type="button"
-                  data-car-model="vortex_f1"
-                  aria-pressed="false"
-                  class="px-2.5 py-2 rounded-lg border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left transition-colors cursor-pointer"
-                >
-                  <div class="font-display text-xs font-bold truncate">Vortex F1-X</div>
-                  <div class="text-[10px] text-slate-400 truncate">Formula Aero</div>
-                </button>
-
-                <button
-                  type="button"
-                  data-car-model="titan_v8"
-                  aria-pressed="false"
-                  class="px-2.5 py-2 rounded-lg border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left transition-colors cursor-pointer"
-                >
-                  <div class="font-display text-xs font-bold truncate">Titan V8</div>
-                  <div class="text-[10px] text-slate-400 truncate">Street Muscle</div>
-                </button>
-
-                <button
-                  type="button"
-                  data-car-model="nomad_x"
-                  aria-pressed="false"
-                  class="px-2.5 py-2 rounded-lg border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left transition-colors cursor-pointer"
-                >
-                  <div class="font-display text-xs font-bold truncate">Nomad X</div>
-                  <div class="text-[10px] text-slate-400 truncate">Armored Rally</div>
-                </button>
-              </div>
-            </div>
-
-            <!-- 3. Interactive Car Colour & Finish Type Selector (8 Finishes) -->
-            <div class="mb-5">
-              <div class="flex items-center justify-between gap-3 mb-1.5 text-[11px]">
-                <span class="font-semibold text-slate-300 tracking-wide">
-                  Select Car Colour &amp; Finish
-                </span>
-                <span id="title-paint-label" class="font-mono text-[#22d3ee] truncate">
-                  Cyber Cyan · Liquid Metallic
-                </span>
-              </div>
-              <div
-                class="grid grid-cols-2 sm:grid-cols-4 gap-1.5"
-                role="group"
-                aria-label="Select Car Colour and Finish Type"
-              >
-                <button
-                  type="button"
-                  data-car-paint="cyan_metallic"
-                  aria-pressed="true"
-                  class="px-2.5 py-1.5 rounded-lg border border-[#22d3ee] bg-[#132033] text-white text-left transition-colors cursor-pointer flex items-center gap-2"
-                >
-                  <span class="w-3 h-3 rounded-full shrink-0 bg-[#06b6d4] ring-1 ring-white/30"></span>
-                  <span class="min-w-0 truncate text-[11px] font-medium">Cyber Cyan</span>
-                </button>
-
-                <button
-                  type="button"
-                  data-car-paint="rosso_gloss"
-                  aria-pressed="false"
-                  class="px-2.5 py-1.5 rounded-lg border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left transition-colors cursor-pointer flex items-center gap-2"
-                >
-                  <span class="w-3 h-3 rounded-full shrink-0 bg-[#ef4444] ring-1 ring-white/30"></span>
-                  <span class="min-w-0 truncate text-[11px] font-medium">Crimson Red</span>
-                </button>
-
-                <button
-                  type="button"
-                  data-car-paint="solar_pearl"
-                  aria-pressed="false"
-                  class="px-2.5 py-1.5 rounded-lg border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left transition-colors cursor-pointer flex items-center gap-2"
-                >
-                  <span class="w-3 h-3 rounded-full shrink-0 bg-[#f59e0b] ring-1 ring-white/30"></span>
-                  <span class="min-w-0 truncate text-[11px] font-medium">Solar Gold</span>
-                </button>
-
-                <button
-                  type="button"
-                  data-car-paint="emerald_satin"
-                  aria-pressed="false"
-                  class="px-2.5 py-1.5 rounded-lg border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left transition-colors cursor-pointer flex items-center gap-2"
-                >
-                  <span class="w-3 h-3 rounded-full shrink-0 bg-[#10b981] ring-1 ring-white/30"></span>
-                  <span class="min-w-0 truncate text-[11px] font-medium">Emerald</span>
-                </button>
-
-                <button
-                  type="button"
-                  data-car-paint="stealth_matte"
-                  aria-pressed="false"
-                  class="px-2.5 py-1.5 rounded-lg border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left transition-colors cursor-pointer flex items-center gap-2"
-                >
-                  <span class="w-3 h-3 rounded-full shrink-0 bg-[#334155] ring-1 ring-white/40"></span>
-                  <span class="min-w-0 truncate text-[11px] font-medium">Matte Black</span>
-                </button>
-
-                <button
-                  type="button"
-                  data-car-paint="pearl_ceramic"
-                  aria-pressed="false"
-                  class="px-2.5 py-1.5 rounded-lg border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left transition-colors cursor-pointer flex items-center gap-2"
-                >
-                  <span class="w-3 h-3 rounded-full shrink-0 bg-[#f8fafc] ring-1 ring-white/40"></span>
-                  <span class="min-w-0 truncate text-[11px] font-medium">Glacier White</span>
-                </button>
-
-                <button
-                  type="button"
-                  data-car-paint="ultraviolet_chrome"
-                  aria-pressed="false"
-                  class="px-2.5 py-1.5 rounded-lg border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left transition-colors cursor-pointer flex items-center gap-2"
-                >
-                  <span class="w-3 h-3 rounded-full shrink-0 bg-[#a855f7] ring-1 ring-white/35"></span>
-                  <span class="min-w-0 truncate text-[11px] font-medium">Ultraviolet</span>
-                </button>
-
-                <button
-                  type="button"
-                  data-car-paint="rosegold_pearl"
-                  aria-pressed="false"
-                  class="px-2.5 py-1.5 rounded-lg border border-white/12 bg-[#0d1422]/90 hover:bg-[#152033] text-slate-300 text-left transition-colors cursor-pointer flex items-center gap-2"
-                >
-                  <span class="w-3 h-3 rounded-full shrink-0 bg-[#fb7185] ring-1 ring-white/35"></span>
-                  <span class="min-w-0 truncate text-[11px] font-medium">Rose Velvet</span>
-                </button>
-              </div>
-            </div>
-
-            <!-- Primary & Secondary Actions -->
-            <div class="flex flex-wrap items-center gap-3 mb-3.5">
+            <!-- Primary & Secondary Play Actions (Phone + Laptop Ergonomic) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-2.5">
               <button
                 type="button"
                 id="btn-play-camera"
-                class="px-6 py-3.5 bg-[#06b6d4] hover:bg-[#22d3ee] active:scale-[0.99] text-[#031219] font-display font-bold text-sm sm:text-base tracking-wide rounded-lg transition-all shadow-lg cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-2.5"
+                class="min-h-[46px] px-4 py-2.5 bg-[#06b6d4] hover:bg-[#22d3ee] active:scale-[0.99] text-[#031219] font-display font-bold text-sm tracking-wide rounded-lg transition-all shadow-lg cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap"
               >
-                <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                   <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14v-4z" />
                   <rect x="3" y="6" width="12" height="12" rx="2" />
                 </svg>
@@ -382,44 +498,42 @@
               <button
                 type="button"
                 id="btn-play-keyboard"
-                class="px-5 py-3.5 bg-[#111927] hover:bg-[#192436] text-white border border-white/15 font-display font-semibold text-sm sm:text-base tracking-wide rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-2"
+                class="min-h-[46px] px-4 py-2.5 bg-[#111927] hover:bg-[#192436] text-white border border-white/15 font-display font-semibold text-sm tracking-wide rounded-lg transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap"
               >
-                <svg class="w-5 h-5 text-[#f59e0b] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg class="w-4 h-4 text-[#f59e0b] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="2" y="6" width="20" height="12" rx="2" />
                   <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8" />
                 </svg>
-                <span>PLAY WITH KEYBOARD</span>
+                <span class="sm:hidden">PLAY WITH TOUCH</span>
+                <span class="hidden sm:inline">KEYBOARD / TOUCH</span>
               </button>
             </div>
 
             <!-- Quiet Unboxed Metadata -->
-            <div class="flex flex-wrap items-center gap-2 text-[11px] text-slate-400">
-              <span>100% browser hand-tracking</span>
-              <span aria-hidden="true">·</span>
-              <span>Space = Nitro Boost · C = Camera View</span>
-              <span aria-hidden="true">·</span>
+            <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-400">
+              <span>Phone &amp; Laptop ready · Space/Tap = Nitro</span>
               <span id="title-best-mobile" class="font-mono tabular-nums text-slate-300">Best: 0 pts</span>
             </div>
           </div>
         </div>
 
-        <!-- Quiet Footer -->
-        <footer class="px-6 md:px-10 py-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400">
-          <span>Hold both hands up like an imaginary wheel to steer left and right.</span>
-          <div class="flex flex-wrap items-center gap-5">
+        <!-- Quiet Laptop Footer (Hidden on small mobile screens to maximize 3D viewport) -->
+        <footer class="hidden md:flex px-6 lg:px-10 py-2.5 border-t border-white/10 bg-[#070b12]/65 items-center justify-between gap-4 text-xs text-slate-400 shrink-0">
+          <span>Hold both hands like a steering wheel for Camera Mode, or race with Keyboard / Mobile Touch pads.</span>
+          <div class="flex items-center gap-5 shrink-0">
             <button
               type="button"
               data-action="open-settings"
               class="text-slate-300 hover:text-white underline underline-offset-4 cursor-pointer whitespace-nowrap"
             >
-              Adjust Sensitivity &amp; Graphics
+              Sensitivity &amp; Graphics
             </button>
             <button
               type="button"
               data-action="open-help"
               class="text-slate-300 hover:text-white underline underline-offset-4 cursor-pointer whitespace-nowrap"
             >
-              Keyboard Shortcuts
+              Driving Guide
             </button>
           </div>
         </footer>
@@ -428,15 +542,15 @@
       <!-- CAMERA CONSENT & PERMISSION EXPLANATION MODAL -->
       <section
         id="camera-consent-modal"
-        class="hidden pointer-events-auto fixed inset-0 z-40 bg-[#070b12]/90 flex items-center justify-center p-4"
+        class="hidden pointer-events-auto fixed inset-0 z-40 bg-[#070b12]/90 flex items-center justify-center p-3.5 sm:p-4"
         role="dialog"
         aria-modal="true"
         aria-labelledby="consent-title"
       >
-        <div class="max-w-lg w-full bg-[#0e1522] border border-white/12 rounded-xl p-6 sm:p-8 shadow-2xl">
-          <div class="flex items-center justify-between gap-4 mb-4">
-            <h2 id="consent-title" class="font-display text-2xl font-bold text-white">
-              Enable Webcam Steering
+        <div class="max-w-lg w-full max-h-[92dvh] overflow-y-auto clean-scroll bg-[#0e1522] border border-white/12 rounded-xl p-5 sm:p-7 shadow-2xl">
+          <div class="flex items-center justify-between gap-4 mb-3">
+            <h2 id="consent-title" class="font-display text-xl sm:text-2xl font-bold text-white">
+              Enable Camera Hand Steering
             </h2>
             <button
               type="button"
@@ -448,20 +562,19 @@
             </button>
           </div>
 
-          <p class="text-sm text-slate-300 leading-relaxed mb-4">
-            Motion Drive 3D uses your webcam to track both hands as you turn an imaginary steering wheel in front of you.
+          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed mb-4">
+            Motion Drive 3D uses your front camera or laptop webcam to track both hands as you turn an imaginary steering wheel.
           </p>
 
-          <div class="bg-[#090e17] border border-white/8 rounded-lg p-4 mb-5 space-y-2 text-xs text-slate-300">
-            <p><strong class="text-white">Local-Only Privacy:</strong> Video frames are analyzed directly inside your browser using MediaPipe and are never uploaded or stored on any server.</p>
-            <p><strong class="text-white">Secure Context:</strong> Browser camera access requires HTTPS in production or <code class="font-mono text-[#22d3ee]">localhost</code> during local development.</p>
-            <p><strong class="text-white">Automatic Cleanup:</strong> Camera tracks stop immediately when you exit camera mode or close the tab.</p>
+          <div class="bg-[#090e17] border border-white/8 rounded-lg p-3.5 mb-4 space-y-2 text-xs text-slate-300">
+            <p><strong class="text-white">100% On-Device Privacy:</strong> Video frames run locally inside your browser via MediaPipe and are never uploaded anywhere.</p>
+            <p><strong class="text-white">Phone &amp; Laptop Tip:</strong> Prop your phone upright or open your laptop so both hands fit comfortably in view.</p>
           </div>
 
           <!-- Error / Status Box inside consent modal -->
           <div
             id="camera-error-box"
-            class="hidden bg-[#2a1215] border border-red-500/40 rounded-lg p-4 mb-5 text-xs text-red-200 leading-relaxed"
+            class="hidden bg-[#2a1215] border border-red-500/40 rounded-lg p-3.5 mb-4 text-xs text-red-200 leading-relaxed"
             role="alert"
           >
             <p id="camera-error-title" class="font-semibold text-red-100 mb-1">Camera Unavailable</p>
@@ -471,23 +584,23 @@
           <!-- Loading indicator while MediaPipe initializes -->
           <div
             id="camera-loading-box"
-            class="hidden bg-[#091824] border border-[#06b6d4]/30 rounded-lg p-4 mb-5 text-xs text-[#67e8f9]"
+            class="hidden bg-[#091824] border border-[#06b6d4]/30 rounded-lg p-3.5 mb-4 text-xs text-[#67e8f9]"
           >
-            <span id="camera-loading-text">Requesting webcam permission and loading hand-tracking model...</span>
+            <span id="camera-loading-text">Requesting camera permission and loading hand-tracking model...</span>
           </div>
 
-          <div class="flex flex-wrap items-center justify-end gap-3">
+          <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
             <button
               type="button"
               id="btn-consent-keyboard"
-              class="px-4 py-2.5 text-xs font-semibold text-slate-200 bg-white/8 hover:bg-white/14 rounded-lg transition-colors cursor-pointer whitespace-nowrap"
+              class="min-h-[42px] px-4 py-2.5 text-xs font-semibold text-slate-200 bg-white/8 hover:bg-white/14 rounded-lg transition-colors cursor-pointer whitespace-nowrap"
             >
-              Play with Keyboard Instead
+              Use Touch / Keyboard Instead
             </button>
             <button
               type="button"
               id="btn-confirm-camera"
-              class="px-5 py-2.5 text-sm font-display font-bold text-[#031219] bg-[#06b6d4] hover:bg-[#22d3ee] rounded-lg transition-colors cursor-pointer whitespace-nowrap"
+              class="min-h-[42px] px-5 py-2.5 text-sm font-display font-bold text-[#031219] bg-[#06b6d4] hover:bg-[#22d3ee] rounded-lg transition-colors cursor-pointer whitespace-nowrap"
             >
               Allow Camera &amp; Calibrate
             </button>
@@ -498,46 +611,44 @@
       <!-- STEERING CALIBRATION & TUNING STUDIO -->
       <section
         id="calibration-screen"
-        class="hidden pointer-events-auto fixed inset-0 z-40 bg-[#070b12]/92 flex items-center justify-center p-4 overflow-y-auto"
+        class="hidden pointer-events-auto fixed inset-0 z-40 bg-[#070b12]/92 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
         role="dialog"
         aria-modal="true"
         aria-labelledby="calibration-title"
       >
-        <div class="max-w-4xl w-full bg-[#0e1522] border border-white/12 rounded-xl p-6 sm:p-8 shadow-2xl my-auto">
-          <div class="flex flex-wrap items-center justify-between gap-4 pb-5 mb-6 border-b border-white/10">
+        <div class="max-w-4xl w-full max-h-[94dvh] overflow-y-auto clean-scroll bg-[#0e1522] border border-white/12 rounded-xl p-4 sm:p-6 shadow-2xl my-auto">
+          <div class="flex flex-wrap items-center justify-between gap-3 pb-3.5 mb-4 border-b border-white/10">
             <div>
-              <h2 id="calibration-title" class="font-display text-2xl font-bold text-white">
+              <h2 id="calibration-title" class="font-display text-xl sm:text-2xl font-bold text-white">
                 Steering Wheel Calibration
               </h2>
-              <p class="text-xs text-slate-300 mt-1">
-                Raise both hands as if gripping a steering wheel at 9 and 3 o'clock, hold steady to set neutral, and test turning left and right.
+              <p class="text-xs text-slate-300 mt-0.5">
+                Hold both hands at 9 and 3 o'clock to lock neutral center, then rotate left and right.
               </p>
             </div>
-            <div class="flex items-center gap-3">
-              <button
-                type="button"
-                id="btn-cal-cancel"
-                class="px-3.5 py-2 text-xs font-semibold text-slate-300 bg-white/8 hover:bg-white/14 rounded-lg transition-colors cursor-pointer whitespace-nowrap"
-              >
-                Back
-              </button>
-            </div>
+            <button
+              type="button"
+              id="btn-cal-cancel"
+              class="px-3.5 py-2 text-xs font-semibold text-slate-300 bg-white/8 hover:bg-white/14 rounded-lg transition-colors cursor-pointer whitespace-nowrap"
+            >
+              Back
+            </button>
           </div>
 
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-stretch">
             <!-- Left Column: Live Mirrored Camera + Hand Skeleton -->
-            <div class="lg:col-span-7 flex flex-col justify-between bg-[#080d16] border border-white/10 rounded-lg p-4">
-              <div class="flex items-center justify-between gap-2 mb-3 text-xs">
-                <span id="cal-status-badge" class="font-display font-bold text-[#22d3ee] tracking-wide">
+            <div class="lg:col-span-7 flex flex-col justify-between bg-[#080d16] border border-white/10 rounded-lg p-3.5 sm:p-4">
+              <div class="flex items-center justify-between gap-2 mb-2.5 text-xs">
+                <span id="cal-status-badge" class="font-display font-bold text-[#22d3ee] tracking-wide truncate">
                   CALIBRATE STEERING
                 </span>
-                <span id="cal-confidence-text" class="font-mono text-slate-400 tabular-nums">
-                  Hands: 0/2 · Confidence: --
+                <span id="cal-confidence-text" class="font-mono text-[11px] text-slate-400 tabular-nums shrink-0">
+                  Hands: 0/2 · Conf: --
                 </span>
               </div>
 
               <!-- Mirrored Video + Skeleton Canvas Container -->
-              <div class="relative w-full aspect-[4/3] bg-[#05080f] rounded-lg overflow-hidden border border-white/10">
+              <div class="relative w-full aspect-[4/3] max-h-[260px] sm:max-h-[320px] bg-[#05080f] rounded-lg overflow-hidden border border-white/10 mx-auto">
                 <video
                   id="cal-video-preview"
                   class="w-full h-full object-cover scale-x-[-1]"
@@ -553,10 +664,10 @@
                 <!-- Calibration Hold Progress Overlay -->
                 <div
                   id="cal-progress-banner"
-                  class="absolute bottom-3 inset-x-3 bg-[#090f1a]/92 border border-white/12 rounded-lg px-3.5 py-2.5 flex items-center justify-between gap-3"
+                  class="absolute bottom-2.5 inset-x-2.5 bg-[#090f1a]/92 border border-white/12 rounded-lg px-3 py-2 flex items-center justify-between gap-2"
                 >
-                  <span id="cal-instruction-text" class="text-xs font-medium text-slate-200">
-                    Show both hands comfortably level to calibrate neutral steering.
+                  <span id="cal-instruction-text" class="text-[11px] sm:text-xs font-medium text-slate-200 leading-snug">
+                    Show both hands level to calibrate neutral steering.
                   </span>
                   <span id="cal-progress-pct" class="font-mono text-xs font-bold text-[#22d3ee] tabular-nums shrink-0">
                     0%
@@ -565,12 +676,12 @@
               </div>
 
               <!-- Virtual Wheel & L / CENTER / R Gauge -->
-              <div class="mt-4 pt-4 border-t border-white/8 flex items-center justify-between gap-4">
+              <div class="mt-3 pt-3 border-t border-white/8 flex flex-wrap items-center justify-between gap-3">
                 <div class="flex items-center gap-3">
-                  <div class="w-12 h-12 rounded-full bg-[#0d1524] border border-white/15 flex items-center justify-center shrink-0">
+                  <div class="w-11 h-11 rounded-full bg-[#0d1524] border border-white/15 flex items-center justify-center shrink-0">
                     <svg
                       id="cal-wheel-svg"
-                      class="w-9 h-9 text-[#22d3ee] transition-transform duration-75"
+                      class="w-8 h-8 text-[#22d3ee] transition-transform duration-75"
                       viewBox="0 0 64 64"
                       fill="none"
                       stroke="currentColor"
@@ -583,10 +694,10 @@
                     </svg>
                   </div>
                   <div>
-                    <div id="cal-direction-label" class="font-display text-sm font-bold text-white">
+                    <div id="cal-direction-label" class="font-display text-xs sm:text-sm font-bold text-white">
                       CENTER YOUR HANDS
                     </div>
-                    <div id="cal-angle-readout" class="font-mono text-xs text-slate-400 tabular-nums">
+                    <div id="cal-angle-readout" class="font-mono text-[11px] text-slate-400 tabular-nums">
                       Steer: 0% · Neutral: 0.0°
                     </div>
                   </div>
@@ -595,7 +706,7 @@
                 <button
                   type="button"
                   id="btn-capture-neutral"
-                  class="px-4 py-2 text-xs font-semibold bg-white/10 hover:bg-white/16 text-white rounded-lg transition-colors cursor-pointer whitespace-nowrap shrink-0"
+                  class="px-3.5 py-2 text-xs font-semibold bg-white/10 hover:bg-white/16 text-white rounded-lg transition-colors cursor-pointer whitespace-nowrap"
                 >
                   Set Current Grip as Neutral
                 </button>
@@ -603,15 +714,15 @@
             </div>
 
             <!-- Right Column: Tuning Controls & Gesture Pedal Config -->
-            <div class="lg:col-span-5 flex flex-col justify-between bg-[#080d16] border border-white/10 rounded-lg p-5 space-y-5">
-              <div class="space-y-4">
-                <h3 class="font-display text-base font-bold text-white">
+            <div class="lg:col-span-5 flex flex-col justify-between bg-[#080d16] border border-white/10 rounded-lg p-4 space-y-4">
+              <div class="space-y-3.5">
+                <h3 class="font-display text-sm sm:text-base font-bold text-white">
                   Steering Response &amp; Gestures
                 </h3>
 
                 <!-- Sensitivity -->
                 <div>
-                  <div class="flex justify-between text-xs mb-1.5">
+                  <div class="flex justify-between text-xs mb-1">
                     <label for="input-sensitivity" class="text-slate-300 font-medium">Steering Sensitivity</label>
                     <span id="val-sensitivity" class="font-mono text-[#22d3ee] tabular-nums">1.15x</span>
                   </div>
@@ -628,7 +739,7 @@
 
                 <!-- Dead Zone -->
                 <div>
-                  <div class="flex justify-between text-xs mb-1.5">
+                  <div class="flex justify-between text-xs mb-1">
                     <label for="input-deadzone" class="text-slate-300 font-medium">Center Dead Zone</label>
                     <span id="val-deadzone" class="font-mono text-[#22d3ee] tabular-nums">4.0°</span>
                   </div>
@@ -645,9 +756,9 @@
 
                 <!-- Smoothing -->
                 <div>
-                  <div class="flex justify-between text-xs mb-1.5">
+                  <div class="flex justify-between text-xs mb-1">
                     <label for="input-smoothing" class="text-slate-300 font-medium">Jitter Smoothing Filter</label>
-                    <span id="val-smoothing" class="font-mono text-[#22d3ee] tabular-nums">Medium</span>
+                    <span id="val-smoothing" class="font-mono text-[#22d3ee] tabular-nums">Balanced</span>
                   </div>
                   <input
                     id="input-smoothing"
@@ -662,7 +773,7 @@
 
                 <!-- Max Steering Angle -->
                 <div>
-                  <div class="flex justify-between text-xs mb-1.5">
+                  <div class="flex justify-between text-xs mb-1">
                     <label for="input-maxangle" class="text-slate-300 font-medium">Max Wheel Lock Angle</label>
                     <span id="val-maxangle" class="font-mono text-[#22d3ee] tabular-nums">38°</span>
                   </div>
@@ -679,15 +790,15 @@
 
                 <!-- Gesture Throttle / Brake Mode -->
                 <div>
-                  <label for="select-pedal-mode" class="block text-xs text-slate-300 font-medium mb-1.5">
+                  <label for="select-pedal-mode" class="block text-xs text-slate-300 font-medium mb-1">
                     Acceleration &amp; Braking Gesture Mode
                   </label>
                   <select
                     id="select-pedal-mode"
-                    class="w-full bg-[#0f1726] border border-white/15 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#06b6d4]"
+                    class="w-full bg-[#0f1726] border border-white/15 rounded-lg px-2.5 py-2 text-xs text-white focus:outline-none focus:border-[#06b6d4]"
                   >
                     <option value="auto_palm_brake">
-                      Auto-Accelerate + Open Both Palms to Brake (Recommended)
+                      Auto-Accelerate + Open Palms to Brake (Recommended)
                     </option>
                     <option value="grip_gas_palm_brake">
                       Closed Grip = Accelerate · Open Palms = Brake
@@ -696,27 +807,27 @@
                       Open Palms = Accelerate · Closed Fists = Brake
                     </option>
                     <option value="auto_only">
-                      Auto-Accelerate Only (Hands Reserved for Steering)
+                      Auto-Accelerate Only (Hands Steer Only)
                     </option>
                   </select>
-                  <p id="pedal-mode-hint" class="text-[11px] text-slate-400 mt-1.5 leading-snug">
-                    Car accelerates smoothly on its own. Spread both palms open to brake, or use W/S keys anytime.
+                  <p id="pedal-mode-hint" class="text-[11px] text-slate-400 mt-1 leading-snug">
+                    Car accelerates smoothly on its own. Spread both palms open to brake.
                   </p>
                 </div>
               </div>
 
-              <div class="pt-4 border-t border-white/10 flex flex-col gap-2.5">
+              <div class="pt-3 border-t border-white/10 flex flex-col gap-2">
                 <button
                   type="button"
                   id="btn-start-calibrated-race"
-                  class="w-full py-3.5 px-5 bg-[#06b6d4] hover:bg-[#22d3ee] text-[#031219] font-display font-bold text-base tracking-wide rounded-lg transition-colors cursor-pointer whitespace-nowrap"
+                  class="w-full min-h-[44px] py-2.5 px-5 bg-[#06b6d4] hover:bg-[#22d3ee] text-[#031219] font-display font-bold text-base tracking-wide rounded-lg transition-colors cursor-pointer whitespace-nowrap"
                 >
                   Start Race
                 </button>
                 <button
                   type="button"
                   id="btn-reset-calibration-defaults"
-                  class="w-full py-2 px-4 text-xs text-slate-300 hover:text-white transition-colors cursor-pointer whitespace-nowrap"
+                  class="w-full py-1.5 px-4 text-xs text-slate-300 hover:text-white transition-colors cursor-pointer whitespace-nowrap"
                 >
                   Reset Calibration Defaults
                 </button>
@@ -726,91 +837,87 @@
         </div>
       </section>
 
-      <!-- ACTIVE RACE HUD -->
-      <div id="race-hud" class="hidden fixed inset-0 z-20 pointer-events-none flex flex-col justify-between p-4 sm:p-6">
+      <!-- ACTIVE RACE HUD (Phone + Laptop Ergonomic Layout) -->
+      <div id="race-hud" class="hidden fixed inset-0 z-20 pointer-events-none flex flex-col justify-between p-2.5 sm:p-5">
         <!-- Top HUD Row -->
-        <div class="flex items-start justify-between gap-4">
+        <div class="flex items-start justify-between gap-2 sm:gap-4">
           <!-- Top-Left: Score, Combo, Best, Distance -->
-          <div class="bg-[#090e17]/90 border border-white/10 rounded-lg px-4 py-3 min-w-[198px]">
-            <div class="flex items-baseline justify-between gap-3">
-              <div class="flex items-center gap-2">
-                <span class="text-[11px] text-slate-400 font-medium">Score</span>
+          <div class="bg-[#090e17]/90 border border-white/10 rounded-lg px-2.5 py-2 sm:px-4 sm:py-2.5 min-w-[126px] sm:min-w-[192px]">
+            <div class="flex items-baseline justify-between gap-2">
+              <div class="flex items-center gap-1.5">
+                <span class="text-[10px] sm:text-[11px] text-slate-400 font-medium">Score</span>
                 <span
                   id="hud-combo-badge"
-                  class="hidden px-1.5 py-0.5 rounded bg-[#f59e0b]/20 border border-[#f59e0b]/45 font-display text-[10px] font-bold text-[#fbbf24]"
+                  class="hidden px-1.5 py-0.5 rounded bg-[#f59e0b]/20 border border-[#f59e0b]/45 font-display text-[9px] sm:text-[10px] font-bold text-[#fbbf24]"
                 >
                   COMBO x2
                 </span>
               </div>
-              <span id="hud-score" class="font-display text-2xl font-bold text-white tabular-nums">0</span>
+              <span id="hud-score" class="font-display text-lg sm:text-2xl font-bold text-white tabular-nums">0</span>
             </div>
-            <div class="mt-1.5 pt-1.5 border-t border-white/8 flex items-center justify-between gap-3 text-xs text-slate-300 font-mono tabular-nums">
+            <div class="mt-1 pt-1 border-t border-white/8 flex items-center justify-between gap-2 text-[10px] sm:text-xs text-slate-300 font-mono tabular-nums">
               <span id="hud-distance">0.00 km</span>
-              <span aria-hidden="true" class="text-slate-600">·</span>
-              <span id="hud-best">Best 0</span>
+              <span id="hud-best" class="hidden sm:inline">Best 0</span>
             </div>
           </div>
 
-          <!-- Top-Center: Live Tracking & Gesture Instruction Status -->
-          <div class="flex flex-col items-center gap-1.5">
-            <span class="text-[11px] font-medium text-slate-300/80 tracking-wide">
+          <!-- Top-Center: Live Tracking & Gesture Status + Bonus Toast -->
+          <div class="flex flex-col items-center gap-1 min-w-0">
+            <span class="text-[10px] sm:text-[11px] font-medium text-[#67e8f9]/90 tracking-wide whitespace-nowrap">
               Made by Anshika
             </span>
             <div
               id="hud-gesture-banner"
-              class="bg-[#090e17]/92 border border-white/12 rounded-lg px-4 py-2 text-center transition-colors"
+              class="bg-[#090e17]/92 border border-white/12 rounded-lg px-2.5 py-1 sm:px-4 sm:py-1.5 text-center transition-colors max-w-[175px] sm:max-w-none"
             >
-              <span id="hud-gesture-status" class="font-display text-xs sm:text-sm font-bold tracking-wide text-[#22d3ee] whitespace-nowrap">
+              <span id="hud-gesture-status" class="font-display text-[10px] sm:text-xs font-bold tracking-wide text-[#22d3ee] block truncate">
                 KEYBOARD MODE
               </span>
             </div>
             <div
               id="hud-bonus-toast"
-              class="opacity-0 transform -translate-y-1 transition-all duration-200 bg-[#1c1507]/95 border border-[#f59e0b]/40 rounded-md px-3 py-1 text-xs font-display font-bold text-[#fbbf24] whitespace-nowrap"
+              class="opacity-0 transform -translate-y-1 transition-all duration-200 bg-[#1c1507]/95 border border-[#f59e0b]/40 rounded-md px-2.5 py-1 text-[10px] sm:text-xs font-display font-bold text-[#fbbf24] whitespace-nowrap"
             >
               NEAR MISS +50
             </div>
           </div>
 
           <!-- Top-Right: Integrity Shield + Quick Actions -->
-          <div class="pointer-events-auto flex flex-col items-end gap-2">
-            <div class="bg-[#090e17]/90 border border-white/10 rounded-lg px-3.5 py-2.5 flex items-center gap-3">
-              <!-- Integrity Bars -->
-              <div class="flex items-center gap-1.5" aria-label="Vehicle integrity">
-                <span class="text-[11px] text-slate-400 mr-1">Hull</span>
-                <span id="hull-bar-1" class="w-4 h-2 rounded-xs bg-[#10b981]"></span>
-                <span id="hull-bar-2" class="w-4 h-2 rounded-xs bg-[#10b981]"></span>
-                <span id="hull-bar-3" class="w-4 h-2 rounded-xs bg-[#10b981]"></span>
-                <span id="hud-hull-text" class="font-mono text-xs text-slate-300 tabular-nums ml-1">3/3</span>
+          <div class="pointer-events-auto flex flex-col items-end gap-1.5">
+            <div class="bg-[#090e17]/90 border border-white/10 rounded-lg px-2.5 py-1.5 sm:px-3.5 sm:py-2 flex items-center gap-2 sm:gap-3">
+              <div class="flex items-center gap-1" aria-label="Vehicle integrity">
+                <span class="hidden sm:inline text-[11px] text-slate-400 mr-1">Hull</span>
+                <span id="hull-bar-1" class="w-3 sm:w-4 h-2 rounded-xs bg-[#10b981]"></span>
+                <span id="hull-bar-2" class="w-3 sm:w-4 h-2 rounded-xs bg-[#10b981]"></span>
+                <span id="hull-bar-3" class="w-3 sm:w-4 h-2 rounded-xs bg-[#10b981]"></span>
+                <span id="hud-hull-text" class="font-mono text-[10px] sm:text-xs text-slate-300 tabular-nums ml-0.5">3/3</span>
               </div>
-
-              <span class="h-4 w-px bg-white/10"></span>
-
-              <span id="hud-control-mode" class="text-xs font-medium text-slate-300 whitespace-nowrap">
+              <span class="hidden sm:inline-block h-3.5 w-px bg-white/10"></span>
+              <span id="hud-control-mode" class="hidden sm:inline text-xs font-medium text-slate-300 whitespace-nowrap">
                 Camera
               </span>
             </div>
 
-            <div class="flex flex-wrap items-center justify-end gap-1.5">
+            <div class="flex flex-wrap items-center justify-end gap-1 sm:gap-1.5">
               <button
                 type="button"
                 id="btn-hud-camera-view"
-                class="px-2.5 py-1.5 bg-[#090e17]/90 hover:bg-[#141e30] border border-white/12 rounded-lg text-xs font-medium text-slate-200 transition-colors cursor-pointer whitespace-nowrap"
+                class="min-h-[32px] px-2 sm:px-2.5 py-1 bg-[#090e17]/90 hover:bg-[#141e30] border border-white/12 rounded-lg text-[11px] sm:text-xs font-medium text-slate-200 transition-colors cursor-pointer whitespace-nowrap"
                 title="Switch Camera Perspective [C]"
               >
-                Cam: Chase [C]
+                Cam: Chase
               </button>
               <button
                 type="button"
                 id="btn-hud-recalibrate"
-                class="hidden px-3 py-1.5 bg-[#090e17]/90 hover:bg-[#141e30] border border-white/12 rounded-lg text-xs font-medium text-[#67e8f9] transition-colors cursor-pointer whitespace-nowrap"
+                class="hidden min-h-[32px] px-2 sm:px-2.5 py-1 bg-[#090e17]/90 hover:bg-[#141e30] border border-white/12 rounded-lg text-[11px] sm:text-xs font-medium text-[#67e8f9] transition-colors cursor-pointer whitespace-nowrap"
               >
-                Recalibrate
+                Calibrate
               </button>
               <button
                 type="button"
                 id="btn-hud-mute"
-                class="px-2.5 py-1.5 bg-[#090e17]/90 hover:bg-[#141e30] border border-white/12 rounded-lg text-xs font-medium text-slate-200 transition-colors cursor-pointer whitespace-nowrap"
+                class="min-h-[32px] px-2 sm:px-2.5 py-1 bg-[#090e17]/90 hover:bg-[#141e30] border border-white/12 rounded-lg text-[11px] sm:text-xs font-medium text-slate-200 transition-colors cursor-pointer whitespace-nowrap"
                 title="Toggle Sound"
               >
                 Sound: On
@@ -818,133 +925,182 @@
               <button
                 type="button"
                 id="btn-hud-pause"
-                class="px-3 py-1.5 bg-[#090e17]/90 hover:bg-[#141e30] border border-white/12 rounded-lg text-xs font-semibold text-white transition-colors cursor-pointer whitespace-nowrap"
+                class="min-h-[32px] px-2.5 sm:px-3 py-1 bg-[#090e17]/90 hover:bg-[#141e30] border border-white/12 rounded-lg text-[11px] sm:text-xs font-semibold text-white transition-colors cursor-pointer whitespace-nowrap"
               >
-                Pause [Esc]
+                Pause
               </button>
             </div>
           </div>
         </div>
 
-        <!-- Bottom HUD Row (Speed + Nitro, Collapsible Dock, Unobtrusive Camera PiP) -->
-        <div class="flex items-end justify-between gap-4">
-          <!-- Bottom-Left: Speedometer + Hyper Nitro Boost Gauge -->
-          <div id="hud-speed-panel" class="pointer-events-auto bg-[#090e17]/90 border border-white/10 rounded-lg px-4 py-3 min-w-[186px] transition-transform duration-200">
-            <div class="flex items-baseline justify-between gap-2">
-              <div class="flex items-baseline gap-1.5">
-                <span id="hud-speed" class="font-display text-4xl font-bold text-white tabular-nums leading-none">
-                  0
-                </span>
-                <span class="font-display text-xs font-semibold text-slate-400">KM/H</span>
-              </div>
-              <span id="hud-difficulty-tier" class="font-mono text-[11px] text-slate-400 tabular-nums">Tier 1</span>
-            </div>
-            <div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden mt-2">
-              <div id="hud-speed-bar" class="h-full bg-[#06b6d4] w-0 transition-none"></div>
-            </div>
-            <div class="mt-2 pt-2 border-t border-white/8">
-              <div class="flex items-center justify-between text-[10px] mb-1">
-                <span id="hud-pedal-state" class="font-semibold text-slate-400">Cruising</span>
-                <span id="hud-nitro-pct" class="font-mono text-[#67e8f9] tabular-nums">100%</span>
-              </div>
-              <div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden mb-2">
-                <div id="hud-nitro-bar" class="h-full bg-[#38bdf8] w-full transition-none"></div>
-              </div>
-              <button
-                type="button"
-                id="btn-hud-nitro"
-                class="w-full py-1 px-2 bg-[#142238] hover:bg-[#1c304f] border border-[#38bdf8]/40 rounded text-[11px] font-display font-bold tracking-wider text-[#67e8f9] cursor-pointer whitespace-nowrap"
-              >
-                NITRO [Space]
-              </button>
-            </div>
-          </div>
-
-          <!-- Bottom-Center: Unified Steering Wheel & Direction Indicator + Collapse Toggle -->
-          <div class="pointer-events-auto flex flex-col items-center">
-            <button
-              type="button"
-              id="btn-toggle-hud-dock"
-              class="mb-1.5 px-2.5 py-1 bg-[#090e17]/85 hover:bg-[#121c2e] border border-white/10 rounded-md text-[11px] text-slate-300 cursor-pointer whitespace-nowrap"
-            >
-              ▾ Hide Gauge [H]
-            </button>
-            <div
-              id="hud-steering-dock"
-              class="bg-[#090e17]/90 border border-white/10 rounded-lg px-5 py-2.5 flex items-center gap-4 transition-all duration-200"
-            >
-              <span id="hud-dir-left" class="font-display text-xs font-bold text-slate-500 w-10 text-right">
-                LEFT
-              </span>
-
-              <!-- Rotating Virtual Steering Wheel -->
-              <div class="relative flex items-center justify-center w-11 h-11 rounded-full bg-[#0e1726] border border-white/12">
-                <svg
-                  id="hud-wheel-svg"
-                  class="w-8 h-8 text-[#22d3ee]"
-                  viewBox="0 0 64 64"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="4.5"
-                >
-                  <circle cx="32" cy="32" r="25" />
-                  <circle cx="32" cy="32" r="7" />
-                  <path d="M9 28h16M39 28h16M32 39v18" />
-                  <circle cx="32" cy="7" r="3" fill="#f59e0b" stroke="none" />
-                </svg>
-              </div>
-
-              <span id="hud-dir-right" class="font-display text-xs font-bold text-slate-500 w-10 text-left">
-                RIGHT
-              </span>
-
-              <!-- Linear Steer Bar -->
-              <div class="hidden sm:flex flex-col gap-1 w-28">
-                <div class="relative w-full h-2 bg-white/10 rounded-full overflow-hidden">
-                  <div class="absolute left-1/2 top-0 bottom-0 w-0.5 bg-white/40 -translate-x-1/2"></div>
-                  <div
-                    id="hud-steer-fill"
-                    class="absolute top-0 bottom-0 bg-[#22d3ee]"
-                    style="left: 50%; width: 0%"
-                  ></div>
-                </div>
-                <span id="hud-steer-text" class="font-mono text-[10px] text-slate-400 text-center tabular-nums">
-                  CENTER · 0°
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Bottom-Right: Compact Mirrored Webcam Preview Panel (Camera Mode Only) -->
+        <!-- Bottom Section: Mobile Touch Driving Controls + Speed/Wheel/PiP -->
+        <div class="flex flex-col gap-2.5">
+          <!-- Dedicated Mobile Touch Steering & Pedal Controls (Shown automatically on Touch Devices in Touch/Keyboard Mode) -->
           <div
-            id="hud-camera-pip"
-            class="hidden pointer-events-auto bg-[#090e17]/92 border border-white/15 rounded-lg p-2 w-[196px] sm:w-[220px] shadow-xl"
+            id="hud-touch-controls"
+            class="hidden pointer-events-auto flex items-end justify-between gap-3 px-0.5"
           >
-            <div class="flex items-center justify-between gap-2 mb-1.5 px-0.5 text-[11px]">
-              <span id="pip-tracking-label" class="font-semibold text-[#22d3ee] truncate">
-                Camera Active
-              </span>
+            <!-- Left Thumb: Smooth Multi-Touch Steer Pad -->
+            <div
+              id="touch-steer-zone"
+              class="flex items-center gap-2 touch-control-btn"
+              aria-label="Touch Steering Controls"
+            >
               <button
                 type="button"
-                id="btn-toggle-pip-size"
-                class="text-slate-400 hover:text-white cursor-pointer whitespace-nowrap"
-                title="Minimize or restore camera preview"
+                id="btn-touch-left"
+                class="touch-control-btn w-16 h-14 sm:w-20 sm:h-16 rounded-xl bg-[#090e17]/88 active:bg-[#13293d] border border-white/20 active:border-[#22d3ee] text-white font-display text-xl font-bold flex items-center justify-center shadow-lg"
+                aria-label="Steer Left"
               >
-                Minimize
+                ◀
+              </button>
+              <button
+                type="button"
+                id="btn-touch-right"
+                class="touch-control-btn w-16 h-14 sm:w-20 sm:h-16 rounded-xl bg-[#090e17]/88 active:bg-[#13293d] border border-white/20 active:border-[#22d3ee] text-white font-display text-xl font-bold flex items-center justify-center shadow-lg"
+                aria-label="Steer Right"
+              >
+                ▶
               </button>
             </div>
-            <div id="pip-video-wrapper" class="relative w-full aspect-[4/3] bg-[#05080f] rounded overflow-hidden border border-white/10">
-              <video
-                id="hud-video-preview"
-                class="w-full h-full object-cover scale-x-[-1]"
-                autoplay
-                playsinline
-                muted
-              ></video>
-              <canvas
-                id="hud-landmark-canvas"
-                class="absolute inset-0 w-full h-full pointer-events-none"
-              ></canvas>
+
+            <!-- Right Thumb: Tactile Brake & Hyper Nitro Pedals -->
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                id="btn-touch-brake"
+                class="touch-control-btn h-14 sm:h-16 px-4 rounded-xl bg-[#1a120b]/90 active:bg-[#3b210c] border border-[#f59e0b]/45 text-[#fbbf24] font-display text-xs font-bold tracking-wider flex items-center justify-center shadow-lg"
+              >
+                BRAKE
+              </button>
+              <button
+                type="button"
+                id="btn-touch-nitro"
+                class="touch-control-btn h-14 sm:h-16 px-4 rounded-xl bg-[#17122b]/92 active:bg-[#331854] border border-[#e879f9]/55 text-[#f0abfc] font-display text-xs font-bold tracking-wider flex items-center justify-center shadow-lg"
+              >
+                NITRO ⚡
+              </button>
+            </div>
+          </div>
+
+          <!-- Bottom Telemetry Row (Speed + Nitro, Collapsible Steering Gauge, Camera PiP) -->
+          <div class="flex items-end justify-between gap-2 sm:gap-4">
+            <!-- Bottom-Left: Speedometer + Hyper Nitro Boost Gauge -->
+            <div id="hud-speed-panel" class="pointer-events-auto bg-[#090e17]/90 border border-white/10 rounded-lg px-3 py-2 sm:px-4 sm:py-3 min-w-[138px] sm:min-w-[186px] transition-transform duration-200">
+              <div class="flex items-baseline justify-between gap-2">
+                <div class="flex items-baseline gap-1">
+                  <span id="hud-speed" class="font-display text-2xl sm:text-4xl font-bold text-white tabular-nums leading-none">
+                    0
+                  </span>
+                  <span class="font-display text-[10px] sm:text-xs font-semibold text-slate-400">KM/H</span>
+                </div>
+                <span id="hud-difficulty-tier" class="font-mono text-[10px] sm:text-[11px] text-slate-400 tabular-nums">Tier 1</span>
+              </div>
+              <div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden mt-1.5">
+                <div id="hud-speed-bar" class="h-full bg-[#06b6d4] w-0 transition-none"></div>
+              </div>
+              <div class="mt-1.5 pt-1.5 border-t border-white/8">
+                <div class="flex items-center justify-between text-[10px] mb-1">
+                  <span id="hud-pedal-state" class="font-semibold text-slate-400">Cruising</span>
+                  <span id="hud-nitro-pct" class="font-mono text-[#67e8f9] tabular-nums">100%</span>
+                </div>
+                <div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden mb-1.5">
+                  <div id="hud-nitro-bar" class="h-full bg-[#38bdf8] w-full transition-none"></div>
+                </div>
+                <button
+                  type="button"
+                  id="btn-hud-nitro"
+                  class="hidden sm:block w-full py-1 px-2 bg-[#142238] hover:bg-[#1c304f] border border-[#38bdf8]/40 rounded text-[11px] font-display font-bold tracking-wider text-[#67e8f9] cursor-pointer whitespace-nowrap"
+                >
+                  NITRO [Space]
+                </button>
+              </div>
+            </div>
+
+            <!-- Bottom-Center: Collapsible Virtual Steering Wheel Dock (Laptop/Tablet) -->
+            <div class="hidden md:flex pointer-events-auto flex-col items-center">
+              <button
+                type="button"
+                id="btn-toggle-hud-dock"
+                class="mb-1.5 px-2.5 py-1 bg-[#090e17]/85 hover:bg-[#121c2e] border border-white/10 rounded-md text-[11px] text-slate-300 cursor-pointer whitespace-nowrap"
+              >
+                ▾ Hide Gauge [H]
+              </button>
+              <div
+                id="hud-steering-dock"
+                class="bg-[#090e17]/90 border border-white/10 rounded-lg px-5 py-2.5 flex items-center gap-4 transition-all duration-200"
+              >
+                <span id="hud-dir-left" class="font-display text-xs font-bold text-slate-500 w-10 text-right">
+                  LEFT
+                </span>
+
+                <div class="relative flex items-center justify-center w-11 h-11 rounded-full bg-[#0e1726] border border-white/12">
+                  <svg
+                    id="hud-wheel-svg"
+                    class="w-8 h-8 text-[#22d3ee]"
+                    viewBox="0 0 64 64"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="4.5"
+                  >
+                    <circle cx="32" cy="32" r="25" />
+                    <circle cx="32" cy="32" r="7" />
+                    <path d="M9 28h16M39 28h16M32 39v18" />
+                    <circle cx="32" cy="7" r="3" fill="#f59e0b" stroke="none" />
+                  </svg>
+                </div>
+
+                <span id="hud-dir-right" class="font-display text-xs font-bold text-slate-500 w-10 text-left">
+                  RIGHT
+                </span>
+
+                <div class="flex flex-col gap-1 w-28">
+                  <div class="relative w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                    <div class="absolute left-1/2 top-0 bottom-0 w-0.5 bg-white/40 -translate-x-1/2"></div>
+                    <div
+                      id="hud-steer-fill"
+                      class="absolute top-0 bottom-0 bg-[#22d3ee]"
+                      style="left: 50%; width: 0%"
+                    ></div>
+                  </div>
+                  <span id="hud-steer-text" class="font-mono text-[10px] text-slate-400 text-center tabular-nums">
+                    CENTER · 0°
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bottom-Right: Compact Mirrored Webcam Preview Panel (Camera Mode Only, Mobile + Laptop Sized) -->
+            <div
+              id="hud-camera-pip"
+              class="hidden pointer-events-auto bg-[#090e17]/92 border border-white/15 rounded-lg p-1.5 sm:p-2 w-[132px] sm:w-[210px] shadow-xl"
+            >
+              <div class="flex items-center justify-between gap-1.5 mb-1 px-0.5 text-[10px] sm:text-[11px]">
+                <span id="pip-tracking-label" class="font-semibold text-[#22d3ee] truncate">
+                  Camera Active
+                </span>
+                <button
+                  type="button"
+                  id="btn-toggle-pip-size"
+                  class="text-slate-400 hover:text-white cursor-pointer whitespace-nowrap shrink-0"
+                  title="Minimize or restore camera preview"
+                >
+                  Hide
+                </button>
+              </div>
+              <div id="pip-video-wrapper" class="relative w-full aspect-[4/3] bg-[#05080f] rounded overflow-hidden border border-white/10">
+                <video
+                  id="hud-video-preview"
+                  class="w-full h-full object-cover scale-x-[-1]"
+                  autoplay
+                  playsinline
+                  muted
+                ></video>
+                <canvas
+                  id="hud-landmark-canvas"
+                  class="absolute inset-0 w-full h-full pointer-events-none"
+                ></canvas>
+              </div>
             </div>
           </div>
         </div>
@@ -953,32 +1109,32 @@
       <!-- RACE COUNTDOWN OVERLAY -->
       <div
         id="countdown-overlay"
-        class="hidden fixed inset-0 z-30 pointer-events-none flex items-center justify-center"
+        class="hidden fixed inset-0 z-30 pointer-events-none flex items-center justify-center p-4"
       >
         <div class="text-center">
           <div
             id="countdown-number"
-            class="font-display text-7xl sm:text-8xl font-bold text-white drop-shadow-[0_4px_24px_rgba(6,182,212,0.45)]"
+            class="font-display text-6xl sm:text-8xl font-bold text-white drop-shadow-[0_4px_24px_rgba(6,182,212,0.45)]"
           >
             3
           </div>
-          <p id="countdown-sub" class="font-display text-sm tracking-widest text-[#67e8f9] mt-2">
+          <p id="countdown-sub" class="font-display text-xs sm:text-sm tracking-widest text-[#67e8f9] mt-2">
             HOLD YOUR STEERING WHEEL
           </p>
         </div>
       </div>
 
-      <!-- PAUSE & SETTINGS MODAL -->
+      <!-- PAUSE & SETTINGS MODAL (Scroll-Safe on Phone & Laptop) -->
       <section
         id="pause-modal"
-        class="hidden pointer-events-auto fixed inset-0 z-40 bg-[#070b12]/88 flex items-center justify-center p-4"
+        class="hidden pointer-events-auto fixed inset-0 z-40 bg-[#070b12]/88 flex items-center justify-center p-3.5 sm:p-4"
         role="dialog"
         aria-modal="true"
         aria-labelledby="pause-title"
       >
-        <div class="max-w-md w-full bg-[#0e1522] border border-white/12 rounded-xl p-6 sm:p-7 shadow-2xl space-y-5">
-          <div class="flex items-center justify-between border-b border-white/10 pb-4">
-            <h2 id="pause-title" class="font-display text-2xl font-bold text-white">
+        <div class="max-w-md w-full max-h-[92dvh] overflow-y-auto clean-scroll bg-[#0e1522] border border-white/12 rounded-xl p-5 sm:p-6 shadow-2xl space-y-4">
+          <div class="flex items-center justify-between border-b border-white/10 pb-3">
+            <h2 id="pause-title" class="font-display text-xl sm:text-2xl font-bold text-white">
               Race Paused
             </h2>
             <span id="pause-mode-label" class="text-xs text-slate-400 font-mono">
@@ -986,24 +1142,24 @@
             </span>
           </div>
 
-          <!-- Quick Settings inside Pause / Settings -->
-          <div class="space-y-3.5 text-xs">
-            <div class="flex items-center justify-between gap-4">
+          <!-- Clean Dropdown Settings inside Pause / Settings -->
+          <div class="space-y-3 text-xs">
+            <div class="flex items-center justify-between gap-3">
               <label for="pause-driver-name" class="text-slate-300 font-medium whitespace-nowrap">Driver Name</label>
               <input
                 id="pause-driver-name"
                 type="text"
                 maxlength="16"
                 value="ANSHIKA"
-                class="w-44 bg-[#090e17] border border-white/15 rounded-lg px-3 py-1.5 text-white font-display font-bold tracking-wider"
+                class="w-44 sm:w-52 bg-[#090e17] border border-white/15 rounded-lg px-3 py-1.5 text-white font-display font-bold tracking-wider"
               />
             </div>
 
-            <div class="flex items-center justify-between gap-4">
-              <label for="pause-model-select" class="text-slate-300 font-medium">Car Model</label>
+            <div class="flex items-center justify-between gap-3">
+              <label for="pause-model-select" class="text-slate-300 font-medium whitespace-nowrap">Car Model</label>
               <select
                 id="pause-model-select"
-                class="bg-[#090e17] border border-white/15 rounded-lg px-3 py-1.5 text-white"
+                class="w-44 sm:w-52 bg-[#090e17] border border-white/15 rounded-lg px-2.5 py-1.5 text-white"
               >
                 <option value="apex_gtr">Apex GT-R · Hyper Coupe</option>
                 <option value="vortex_f1">Vortex F1-X · Formula Aero</option>
@@ -1012,44 +1168,44 @@
               </select>
             </div>
 
-            <div class="flex items-center justify-between gap-4">
-              <label for="pause-paint-select" class="text-slate-300 font-medium">Car Colour &amp; Finish</label>
+            <div class="flex items-center justify-between gap-3">
+              <label for="pause-paint-select" class="text-slate-300 font-medium whitespace-nowrap">Car Colour</label>
               <select
                 id="pause-paint-select"
-                class="bg-[#090e17] border border-white/15 rounded-lg px-3 py-1.5 text-white"
+                class="w-44 sm:w-52 bg-[#090e17] border border-white/15 rounded-lg px-2.5 py-1.5 text-white"
               >
                 <option value="cyan_metallic">Cyber Cyan · Liquid Metallic</option>
-                <option value="rosso_gloss">Crimson Rosso · Racing Gloss</option>
-                <option value="solar_pearl">Solar Papaya · Pearlescent</option>
+                <option value="rosso_gloss">Crimson Red · Racing Gloss</option>
+                <option value="solar_pearl">Solar Gold · Pearlescent</option>
                 <option value="emerald_satin">Viper Emerald · Satin Metallic</option>
-                <option value="stealth_matte">Phantom Stealth · Matte Carbon</option>
+                <option value="stealth_matte">Matte Black · Matte Carbon</option>
                 <option value="pearl_ceramic">Glacier White · Ceramic Gloss</option>
                 <option value="ultraviolet_chrome">Ultraviolet · Mirror Chrome</option>
                 <option value="rosegold_pearl">Rose Velvet · Satin Pearl</option>
               </select>
             </div>
 
-            <div class="flex items-center justify-between gap-4">
-              <label for="pause-atmosphere-select" class="text-slate-300 font-medium">Atmosphere</label>
+            <div class="flex items-center justify-between gap-3">
+              <label for="pause-atmosphere-select" class="text-slate-300 font-medium whitespace-nowrap">Atmosphere</label>
               <select
                 id="pause-atmosphere-select"
-                class="bg-[#090e17] border border-white/15 rounded-lg px-3 py-1.5 text-white"
+                class="w-44 sm:w-52 bg-[#090e17] border border-white/15 rounded-lg px-2.5 py-1.5 text-white"
               >
-                <option value="midnight">Midnight Neon</option>
-                <option value="sunset">Sunset Horizon</option>
-                <option value="cyber_dusk">Cyber Dusk</option>
+                <option value="midnight">Midnight Express</option>
+                <option value="sunset">Golden Sunset</option>
+                <option value="cyber_dusk">Cyber Horizon</option>
               </select>
             </div>
 
-            <div class="flex items-center justify-between gap-4">
-              <label for="pause-quality-select" class="text-slate-300 font-medium">Graphics Quality</label>
+            <div class="flex items-center justify-between gap-3">
+              <label for="pause-quality-select" class="text-slate-300 font-medium whitespace-nowrap">Graphics</label>
               <select
                 id="pause-quality-select"
-                class="bg-[#090e17] border border-white/15 rounded-lg px-3 py-1.5 text-white"
+                class="w-44 sm:w-52 bg-[#090e17] border border-white/15 rounded-lg px-2.5 py-1.5 text-white"
               >
                 <option value="high">High (Shadows + Reflections)</option>
                 <option value="medium">Balanced</option>
-                <option value="low">Low (Performance Hardware)</option>
+                <option value="low">Low (Battery / Smooth FPS)</option>
               </select>
             </div>
 
@@ -1081,11 +1237,11 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-1 gap-2.5 pt-2">
+          <div class="grid grid-cols-1 gap-2 pt-1">
             <button
               type="button"
               id="btn-resume-race"
-              class="w-full py-3 bg-[#06b6d4] hover:bg-[#22d3ee] text-[#031219] font-display font-bold text-sm rounded-lg transition-colors cursor-pointer whitespace-nowrap"
+              class="w-full min-h-[42px] py-2.5 bg-[#06b6d4] hover:bg-[#22d3ee] text-[#031219] font-display font-bold text-sm rounded-lg transition-colors cursor-pointer whitespace-nowrap"
             >
               Resume Race [Esc]
             </button>
@@ -1096,7 +1252,7 @@
             >
               Recalibrate Camera Steering
             </button>
-            <div class="grid grid-cols-2 gap-2.5">
+            <div class="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 id="btn-pause-restart"
@@ -1115,7 +1271,7 @@
             <button
               type="button"
               id="btn-pause-quit"
-              class="w-full py-2.5 text-slate-400 hover:text-white text-xs font-medium transition-colors cursor-pointer whitespace-nowrap"
+              class="w-full py-2 text-slate-400 hover:text-white text-xs font-medium transition-colors cursor-pointer whitespace-nowrap"
             >
               Exit to Title Screen
             </button>
@@ -1126,17 +1282,17 @@
       <!-- GAME OVER SCREEN -->
       <section
         id="gameover-screen"
-        class="hidden pointer-events-auto fixed inset-0 z-40 bg-[#070b12]/90 flex items-center justify-center p-4"
+        class="hidden pointer-events-auto fixed inset-0 z-40 bg-[#070b12]/90 flex items-center justify-center p-3.5 sm:p-4"
         role="dialog"
         aria-modal="true"
         aria-labelledby="gameover-title"
       >
-        <div class="max-w-md w-full bg-[#0e1522] border border-white/12 rounded-xl p-6 sm:p-8 shadow-2xl">
+        <div class="max-w-md w-full max-h-[92dvh] overflow-y-auto clean-scroll bg-[#0e1522] border border-white/12 rounded-xl p-5 sm:p-7 shadow-2xl">
           <p id="gameover-kicker" class="text-xs font-semibold text-[#f59e0b] mb-1">
             Hull Integrity Depleted
           </p>
-          <div class="flex items-baseline justify-between gap-3 mb-5">
-            <h2 id="gameover-title" class="font-display text-3xl font-bold text-white">
+          <div class="flex items-baseline justify-between gap-3 mb-4">
+            <h2 id="gameover-title" class="font-display text-2xl sm:text-3xl font-bold text-white">
               Race Complete
             </h2>
             <span id="go-driver-summary" class="font-mono text-xs text-[#67e8f9] truncate">
@@ -1146,12 +1302,12 @@
 
           <div
             id="gameover-new-best"
-            class="hidden mb-5 px-3.5 py-2 bg-[#082229] border border-[#06b6d4]/40 rounded-lg text-xs font-semibold text-[#67e8f9]"
+            class="hidden mb-4 px-3.5 py-2 bg-[#082229] border border-[#06b6d4]/40 rounded-lg text-xs font-semibold text-[#67e8f9]"
           >
             New Personal Best Recorded
           </div>
 
-          <div class="bg-[#080d16] border border-white/8 rounded-lg p-4 space-y-2.5 mb-6 font-mono text-sm tabular-nums">
+          <div class="bg-[#080d16] border border-white/8 rounded-lg p-3.5 sm:p-4 space-y-2 mb-5 font-mono text-sm tabular-nums">
             <div class="flex items-center justify-between">
               <span class="font-sans text-xs text-slate-400">Final Score</span>
               <span id="go-score" class="text-xl font-bold text-white">0</span>
@@ -1178,26 +1334,26 @@
             </div>
           </div>
 
-          <div class="space-y-2.5">
+          <div class="space-y-2">
             <button
               type="button"
               id="btn-gameover-replay"
-              class="w-full py-3.5 bg-[#06b6d4] hover:bg-[#22d3ee] text-[#031219] font-display font-bold text-base rounded-lg transition-colors cursor-pointer whitespace-nowrap"
+              class="w-full min-h-[44px] py-3 bg-[#06b6d4] hover:bg-[#22d3ee] text-[#031219] font-display font-bold text-base rounded-lg transition-colors cursor-pointer whitespace-nowrap"
             >
               Race Again [R]
             </button>
-            <div class="grid grid-cols-2 gap-2.5">
+            <div class="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 id="btn-gameover-switch"
-                class="py-2.5 bg-white/8 hover:bg-white/14 text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer whitespace-nowrap"
+                class="min-h-[40px] py-2 bg-white/8 hover:bg-white/14 text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer whitespace-nowrap"
               >
-                Switch Control Mode
+                Switch Controls
               </button>
               <button
                 type="button"
                 id="btn-gameover-menu"
-                class="py-2.5 bg-white/8 hover:bg-white/14 text-slate-300 hover:text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer whitespace-nowrap"
+                class="min-h-[40px] py-2 bg-white/8 hover:bg-white/14 text-slate-300 hover:text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer whitespace-nowrap"
               >
                 Title Screen
               </button>
@@ -1206,17 +1362,17 @@
         </div>
       </section>
 
-      <!-- CONTROLS HELP MODAL -->
+      <!-- CONTROLS HELP MODAL (Laptop + Phone Guide) -->
       <section
         id="help-modal"
-        class="hidden pointer-events-auto fixed inset-0 z-50 bg-[#070b12]/90 flex items-center justify-center p-4"
+        class="hidden pointer-events-auto fixed inset-0 z-50 bg-[#070b12]/90 flex items-center justify-center p-3.5 sm:p-4"
         role="dialog"
         aria-modal="true"
         aria-labelledby="help-title"
       >
-        <div class="max-w-2xl w-full bg-[#0e1522] border border-white/12 rounded-xl p-6 sm:p-8 shadow-2xl">
-          <div class="flex items-center justify-between pb-4 mb-6 border-b border-white/10">
-            <h2 id="help-title" class="font-display text-2xl font-bold text-white">
+        <div class="max-w-2xl w-full max-h-[92dvh] overflow-y-auto clean-scroll bg-[#0e1522] border border-white/12 rounded-xl p-5 sm:p-7 shadow-2xl">
+          <div class="flex items-center justify-between pb-3.5 mb-5 border-b border-white/10">
+            <h2 id="help-title" class="font-display text-xl sm:text-2xl font-bold text-white">
               Controls &amp; Driving Guide
             </h2>
             <button
@@ -1229,46 +1385,41 @@
             </button>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 text-xs leading-relaxed">
-            <div class="bg-[#080d16] border border-white/8 rounded-lg p-4 space-y-2.5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 text-xs leading-relaxed">
+            <div class="bg-[#080d16] border border-white/8 rounded-lg p-4 space-y-2">
               <h3 class="font-display text-sm font-bold text-[#22d3ee]">
-                Webcam Hand Steering (Primary)
+                Camera Hand Steering (Laptop &amp; Phone)
               </h3>
               <p class="text-slate-300">
-                1. Hold both hands up in view of your camera as if gripping an imaginary wheel at 9 and 3 o'clock.
+                1. Hold both hands in view of your camera like gripping a steering wheel at 9 and 3 o'clock.
               </p>
               <p class="text-slate-300">
-                2. Rotate both hands counter-clockwise to steer left, or clockwise to steer right.
+                2. Rotate counter-clockwise to steer left, or clockwise to steer right.
               </p>
               <p class="text-slate-300">
-                3. Spread both palms wide open to brake (configurable in Calibration settings).
-              </p>
-              <p class="text-slate-400">
-                If a hand leaves the camera frame, steering safely eases back toward center until both hands return.
+                3. Spread both palms open to brake.
               </p>
             </div>
 
             <div class="bg-[#080d16] border border-white/8 rounded-lg p-4 space-y-2">
               <h3 class="font-display text-sm font-bold text-[#f59e0b]">
-                Keyboard Controls (Fallback &amp; Assist)
+                Phone Touch &amp; Laptop Keyboard
               </h3>
               <div class="space-y-1.5 font-mono text-slate-200">
-                <div class="flex justify-between"><span>A / D or Arrows</span><span class="text-slate-400">Steer Left / Right</span></div>
-                <div class="flex justify-between"><span>W / S or Up / Down</span><span class="text-slate-400">Accelerate / Brake</span></div>
-                <div class="flex justify-between"><span>Space / Shift</span><span class="text-[#e879f9]">Hyper Nitro Boost</span></div>
-                <div class="flex justify-between"><span>C</span><span class="text-[#67e8f9]">Switch Camera View</span></div>
-                <div class="flex justify-between"><span>Escape</span><span class="text-slate-400">Pause / Resume</span></div>
-                <div class="flex justify-between"><span>R</span><span class="text-slate-400">Restart Race</span></div>
-                <div class="flex justify-between"><span>H</span><span class="text-slate-400">Hide / Show Gauge</span></div>
+                <div class="flex justify-between gap-2"><span>Phone Touch Pads</span><span class="text-[#22d3ee]">◀ ▶ + Brake / Nitro</span></div>
+                <div class="flex justify-between gap-2"><span>A / D or Arrows</span><span class="text-slate-400">Steer Left / Right</span></div>
+                <div class="flex justify-between gap-2"><span>W / S or Up / Down</span><span class="text-slate-400">Gas / Brake</span></div>
+                <div class="flex justify-between gap-2"><span>Space / Shift</span><span class="text-[#e879f9]">Hyper Nitro</span></div>
+                <div class="flex justify-between gap-2"><span>C / Esc / R</span><span class="text-slate-400">Cam / Pause / Restart</span></div>
               </div>
             </div>
           </div>
 
-          <div class="mt-6 flex justify-end">
+          <div class="mt-5 flex justify-end">
             <button
               type="button"
               id="btn-done-help"
-              class="px-5 py-2.5 bg-[#06b6d4] hover:bg-[#22d3ee] text-[#031219] font-display font-bold text-xs rounded-lg transition-colors cursor-pointer whitespace-nowrap"
+              class="min-h-[40px] px-5 py-2 bg-[#06b6d4] hover:bg-[#22d3ee] text-[#031219] font-display font-bold text-xs rounded-lg transition-colors cursor-pointer whitespace-nowrap"
             >
               Got It
             </button>

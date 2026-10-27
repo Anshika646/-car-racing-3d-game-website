@@ -361,6 +361,10 @@ export class Game {
         this.audio.unlock();
         this.hudNitroPressed = Boolean(active);
       },
+      onTouchControl: (control, active) => {
+        this.audio.unlock();
+        this.keyboard.setTouchInput(control, active);
+      },
     });
 
     this.menu = new Menu({
@@ -670,12 +674,14 @@ export class Game {
       this.calibration.resetCalibrationProgress();
       this.state = GAME_STATE.CALIBRATING;
       this.menu?.openCalibrationScreen(this.calibration.settings);
+      // Re-trigger playback now that #calibration-screen is visible in the DOM
+      await this.cameraController.attachToVideos([calVideo, hudVideo]);
     } catch (err) {
       this.cameraController.stopCamera();
       this.menu?.showConsentError(
         err?.title || 'Camera Setup Issue',
         err?.message ||
-          'Unable to start webcam hand tracking. Check permissions or play with Keyboard Controls.',
+          'Unable to start webcam hand tracking. Check permissions or play with Touch / Keyboard Controls.',
       );
     }
   }
@@ -687,6 +693,8 @@ export class Game {
     this.state = GAME_STATE.CALIBRATING;
     this.hud?.hide();
     this.menu?.openCalibrationScreen(this.calibration.settings);
+    const calVideo = document.getElementById('cal-video-preview');
+    this.cameraController.attachToVideos([calVideo]);
   }
 
   exitCameraModeToTitle() {
@@ -840,7 +848,8 @@ export class Game {
       const calCanvas =
         typeof document !== 'undefined' ? document.getElementById('cal-landmark-canvas') : null;
 
-      const geo = this.handTracker.detect(calVideo, performance.now());
+      const detectVideo = this.cameraController.getDetectionVideo(calVideo);
+      const geo = this.handTracker.detect(detectVideo, performance.now());
       const holdRes = this.calibration.feedCalibrationSample(geo, safeDt);
       if (holdRes.completedJustNow) {
         this.audio.playCalibrationLock();
@@ -889,7 +898,8 @@ export class Game {
       const hudCanvas =
         typeof document !== 'undefined' ? document.getElementById('hud-landmark-canvas') : null;
 
-      const geo = this.handTracker.detect(hudVideo, performance.now());
+      const detectVideo = this.cameraController.getDetectionVideo(hudVideo);
+      const geo = this.handTracker.detect(detectVideo, performance.now());
       const camEval = this.calibration.evaluate(geo, safeDt);
       this.handTracker.renderOverlay(hudCanvas, this.calibration.settings.neutralAngleDeg);
 
@@ -1140,20 +1150,37 @@ export class Game {
   _updateCameraRig(dt, mode = 'race') {
     if (!this.camera || !this.car) return;
 
+    const aspect = this.camera.aspect || 1.6;
+    const isPortraitMobile = aspect < 1.05;
+
     if (mode === 'showcase') {
-      const t = performance.now() * 0.00032;
-      // Frame the car + floating nameplate cleanly in the right half of the Title Screen
-      const targetX = -1.6 + Math.sin(t) * 0.85;
-      this.camPos.x = THREE.MathUtils.damp(this.camPos.x, targetX, 3.2, dt);
-      this.camPos.y = THREE.MathUtils.damp(this.camPos.y, 2.25, 3.2, dt);
-      this.camPos.z = THREE.MathUtils.damp(this.camPos.z, 5.65, 3.2, dt);
+      const t = performance.now() * 0.00034;
+      if (isPortraitMobile) {
+        // On Phone Portrait, Garage sheet sits below -> project car + nameplate cleanly into top window
+        const targetX = Math.sin(t) * 1.1;
+        this.camPos.x = THREE.MathUtils.damp(this.camPos.x, targetX, 3.2, dt);
+        this.camPos.y = THREE.MathUtils.damp(this.camPos.y, 2.35, 3.2, dt);
+        this.camPos.z = THREE.MathUtils.damp(this.camPos.z, 7.25, 3.2, dt);
+        _lookTarget.set(this.car.x, -0.78, -3.2);
+      } else {
+        // On Laptop/Desktop, Garage panel sits on left -> frame car + nameplate cleanly on right half
+        const targetX = -1.65 + Math.sin(t) * 0.9;
+        this.camPos.x = THREE.MathUtils.damp(this.camPos.x, targetX, 3.2, dt);
+        this.camPos.y = THREE.MathUtils.damp(this.camPos.y, 2.22, 3.2, dt);
+        this.camPos.z = THREE.MathUtils.damp(this.camPos.z, 5.55, 3.2, dt);
+        _lookTarget.set(this.car.x - 1.35, 0.88, -3.2);
+      }
 
-      _lookTarget.set(this.car.x - 1.15, 0.92, -3.2);
       this.camLook.lerp(_lookTarget, 1 - Math.exp(-5.5 * dt));
-
       this.camera.position.copy(this.camPos);
       this.camera.lookAt(this.camLook);
       this.camera.rotation.z = 0;
+
+      const showcaseFov = isPortraitMobile ? 64 : 58;
+      if (Math.abs(this.camera.fov - showcaseFov) > 0.05) {
+        this.camera.fov = THREE.MathUtils.damp(this.camera.fov, showcaseFov, 6.0, dt);
+        this.camera.updateProjectionMatrix();
+      }
       return;
     }
 
@@ -1207,7 +1234,8 @@ export class Game {
     this.camera.rotation.z = this.camBank;
 
     const nitroFov = this.isBoosting ? 7.5 : 0;
-    const baseFov = this.cameraView === 'hood' ? 64 : 58;
+    const portraitExtraFov = aspect < 0.85 ? Math.min(13, (0.85 - aspect) * 32) : 0;
+    const baseFov = (this.cameraView === 'hood' ? 64 : 58) + portraitExtraFov;
     const targetFov = baseFov + speedRatio * 9 + nitroFov;
     if (Math.abs(this.camera.fov - targetFov) > 0.05) {
       this.camera.fov = THREE.MathUtils.damp(this.camera.fov, targetFov, 6.0, dt);

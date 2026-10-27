@@ -12,11 +12,22 @@
 import gsap from 'gsap';
 import { GESTURE_STATUS } from '../controls/SteeringCalibration.js';
 
+function detectTouchCapable() {
+  if (typeof window === 'undefined') return false;
+  return (
+    'ontouchstart' in window ||
+    (navigator && navigator.maxTouchPoints > 0) ||
+    Boolean(window.matchMedia?.('(pointer: coarse)')?.matches)
+  );
+}
+
 export class HUD {
   constructor(callbacks = {}) {
     this.callbacks = callbacks;
     this.isDockCollapsed = false;
     this.isPipMinimized = false;
+    this.hasTouchSupport = detectTouchCapable();
+    this._currentControlMode = 'keyboard';
     this._bonusTimer = null;
 
     this.els = {
@@ -47,6 +58,12 @@ export class HUD {
       nitroBar: document.getElementById('hud-nitro-bar'),
       nitroPct: document.getElementById('hud-nitro-pct'),
       btnNitro: document.getElementById('btn-hud-nitro'),
+      touchControls: document.getElementById('hud-touch-controls'),
+      touchSteerZone: document.getElementById('touch-steer-zone'),
+      btnTouchLeft: document.getElementById('btn-touch-left'),
+      btnTouchRight: document.getElementById('btn-touch-right'),
+      btnTouchBrake: document.getElementById('btn-touch-brake'),
+      btnTouchNitro: document.getElementById('btn-touch-nitro'),
       btnToggleDock: document.getElementById('btn-toggle-hud-dock'),
       steeringDock: document.getElementById('hud-steering-dock'),
       dirLeft: document.getElementById('hud-dir-left'),
@@ -89,6 +106,90 @@ export class HUD {
       this.els.btnNitro.addEventListener('pointerleave', stopNitro);
       this.els.btnNitro.addEventListener('pointercancel', stopNitro);
     }
+
+    // Bind dedicated Mobile Multi-Touch Steering & Pedals
+    this._bindTouchButton(this.els.btnTouchLeft, 'left');
+    this._bindTouchButton(this.els.btnTouchRight, 'right');
+    this._bindTouchButton(this.els.btnTouchBrake, 'brake');
+    this._bindTouchButton(this.els.btnTouchNitro, 'boost');
+
+    // Allow smooth left-thumb slide across the steer zone between ◀ and ▶
+    if (this.els.touchSteerZone) {
+      let steerPointerId = null;
+      const updateSlideSteer = (clientX) => {
+        const rect = this.els.touchSteerZone.getBoundingClientRect();
+        const midX = rect.left + rect.width * 0.5;
+        const goLeft = clientX < midX;
+        this.callbacks.onTouchControl?.('left', goLeft);
+        this.callbacks.onTouchControl?.('right', !goLeft);
+      };
+      this.els.touchSteerZone.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        steerPointerId = e.pointerId;
+        this.els.touchSteerZone.setPointerCapture?.(e.pointerId);
+        updateSlideSteer(e.clientX);
+      });
+      this.els.touchSteerZone.addEventListener('pointermove', (e) => {
+        if (e.pointerId === steerPointerId) {
+          updateSlideSteer(e.clientX);
+        }
+      });
+      const releaseSlide = (e) => {
+        if (e.pointerId === steerPointerId) {
+          steerPointerId = null;
+          this.callbacks.onTouchControl?.('left', false);
+          this.callbacks.onTouchControl?.('right', false);
+        }
+      };
+      this.els.touchSteerZone.addEventListener('pointerup', releaseSlide);
+      this.els.touchSteerZone.addEventListener('pointercancel', releaseSlide);
+    }
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener(
+        'touchstart',
+        () => {
+          if (!this.hasTouchSupport) {
+            this.hasTouchSupport = true;
+            this._syncTouchPadVisibility();
+          }
+        },
+        { passive: true },
+      );
+      window.addEventListener('resize', () => this._syncTouchPadVisibility());
+    }
+  }
+
+  _bindTouchButton(btn, controlName) {
+    if (!btn) return;
+    // Steer buttons inside touchSteerZone are handled by the unified thumb-slide listener above
+    if (controlName === 'left' || controlName === 'right') return;
+
+    const press = (e) => {
+      e.preventDefault();
+      btn.setPointerCapture?.(e.pointerId);
+      if (controlName === 'boost') {
+        this.callbacks.onTriggerNitro?.(true);
+      }
+      this.callbacks.onTouchControl?.(controlName, true);
+    };
+    const release = () => {
+      if (controlName === 'boost') {
+        this.callbacks.onTriggerNitro?.(false);
+      }
+      this.callbacks.onTouchControl?.(controlName, false);
+    };
+    btn.addEventListener('pointerdown', press);
+    btn.addEventListener('pointerup', release);
+    btn.addEventListener('pointercancel', release);
+  }
+
+  _syncTouchPadVisibility() {
+    if (!this.els.touchControls) return;
+    const isSmallViewport = typeof window !== 'undefined' && window.innerWidth < 768;
+    const showTouchPads =
+      this._currentControlMode !== 'camera' && (this.hasTouchSupport || isSmallViewport);
+    this.els.touchControls.classList.toggle('hidden', !showTouchPads);
   }
 
   show(controlMode = 'keyboard') {
@@ -109,9 +210,14 @@ export class HUD {
   }
 
   setControlMode(controlMode) {
+    this._currentControlMode = controlMode;
     const isCamera = controlMode === 'camera';
     if (this.els.controlMode) {
-      this.els.controlMode.textContent = isCamera ? 'Camera Steering' : 'Keyboard Controls';
+      this.els.controlMode.textContent = isCamera
+        ? 'Camera'
+        : this.hasTouchSupport
+          ? 'Touch / Keys'
+          : 'Keyboard';
     }
     if (this.els.cameraPip) {
       this.els.cameraPip.classList.toggle('hidden', !isCamera);
@@ -119,16 +225,17 @@ export class HUD {
     if (this.els.btnRecalibrate) {
       this.els.btnRecalibrate.classList.toggle('hidden', !isCamera);
     }
+    this._syncTouchPadVisibility();
   }
 
   setCameraViewLabel(viewId = 'chase') {
     if (!this.els.btnCameraView) return;
     const labels = {
-      chase: 'Cam: Chase [C]',
-      close: 'Cam: Action [C]',
-      hood: 'Cam: Hood [C]',
+      chase: 'Cam: Chase',
+      close: 'Cam: Action',
+      hood: 'Cam: Hood',
     };
-    this.els.btnCameraView.textContent = labels[viewId] || 'Cam: Chase [C]';
+    this.els.btnCameraView.textContent = labels[viewId] || 'Cam: Chase';
   }
 
   setMutedState(isMuted) {
@@ -161,7 +268,7 @@ export class HUD {
       this.els.pipVideoWrapper.classList.toggle('hidden', this.isPipMinimized);
     }
     if (this.els.btnTogglePipSize) {
-      this.els.btnTogglePipSize.textContent = this.isPipMinimized ? 'Show Video' : 'Minimize';
+      this.els.btnTogglePipSize.textContent = this.isPipMinimized ? 'Show' : 'Hide';
     }
   }
 
@@ -348,24 +455,26 @@ export class HUD {
         if (this.els.pipTrackingLabel) {
           if (handCount >= 2) {
             const confPct = Math.round(confidence * 100);
-            this.els.pipTrackingLabel.textContent = `2 Hands · ${confPct}% Conf`;
+            this.els.pipTrackingLabel.textContent = `2 Hands · ${confPct}%`;
             this.els.pipTrackingLabel.style.color = '#22d3ee';
           } else if (handCount === 1) {
-            this.els.pipTrackingLabel.textContent = '1 Hand — Show Both Hands';
-            this.els.pipTrackingLabel.style.color = '#fbbf24';
+            const confPct = Math.round(confidence * 100);
+            this.els.pipTrackingLabel.textContent = `1 Hand Active · ${confPct}%`;
+            this.els.pipTrackingLabel.style.color = '#22d3ee';
           } else {
-            this.els.pipTrackingLabel.textContent = 'Searching for Hands...';
+            this.els.pipTrackingLabel.textContent = 'Show Hand(s)...';
             this.els.pipTrackingLabel.style.color = '#fbbf24';
           }
         }
       } else {
+        const modePrefix = this.hasTouchSupport ? 'TOUCH' : 'KEYS';
         const kbStatus = isBoosting
           ? 'HYPER NITRO ENGAGED'
           : isLeft
-            ? 'KEYBOARD · STEER LEFT'
+            ? `${modePrefix} · STEER LEFT`
             : isRight
-              ? 'KEYBOARD · STEER RIGHT'
-              : 'KEYBOARD CONTROLS ACTIVE';
+              ? `${modePrefix} · STEER RIGHT`
+              : `${modePrefix} CONTROLS READY`;
         this.els.gestureStatus.textContent = kbStatus;
         this.els.gestureBanner.style.borderColor = isBoosting
           ? 'rgba(232, 121, 249, 0.55)'

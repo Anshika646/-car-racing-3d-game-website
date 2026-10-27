@@ -103,6 +103,18 @@ describe('MOTION DRIVE 3D — Automated Verification Suite', () => {
     expect(pausedCount).toBe(1);
     expect(restartCount).toBe(1);
 
+    // Mobile Touch Controls integration
+    kb.reset();
+    kb.setTouchInput('left', true);
+    kb.setTouchInput('boost', true);
+    state = kb.update(0.1);
+    expect(state.steer).toBeLessThan(-0.4);
+    expect(state.boost).toBe(true);
+    kb.setTouchInput('left', false);
+    kb.setTouchInput('brake', true);
+    state = kb.update(0.016);
+    expect(state.brake).toBe(true);
+
     kb.dispose();
   });
 
@@ -423,5 +435,39 @@ describe('MOTION DRIVE 3D — Automated Verification Suite', () => {
     expect(game.atmosphere).toBe('sunset');
 
     game.dispose();
+  });
+
+  it('supports seamless 1-hand camera calibration and steering (for phone selfie or single-hand grip)', () => {
+    const cal = new SteeringCalibration(window.localStorage);
+
+    // Center single hand at rawX = 0.50 -> mirroredX = 0.50
+    const centerOneHand = computeWheelGeometry([createSyntheticHand(0.5, 0.5)]);
+    expect(centerOneHand.handCount).toBe(1);
+
+    for (let i = 0; i < 15; i++) {
+      const res = cal.feedCalibrationSample(centerOneHand, 0.1);
+      if (res.completedJustNow) break;
+    }
+    expect(cal.settings.isCalibrated).toBe(true);
+
+    // Move hand physically LEFT (rawX = 0.72 -> mirroredX = 0.28)
+    const leftOneHand = computeWheelGeometry([createSyntheticHand(0.72, 0.5)]);
+    let leftRes = null;
+    for (let i = 0; i < 12; i++) {
+      leftRes = cal.evaluate(leftOneHand, 0.032);
+    }
+    expect(leftRes.trackingLost).toBe(false);
+    expect(leftRes.steer).toBeLessThan(-0.25);
+    expect(leftRes.status).toBe(GESTURE_STATUS.STEER_LEFT);
+
+    // Move hand physically RIGHT (rawX = 0.28 -> mirroredX = 0.72)
+    const rightOneHand = computeWheelGeometry([createSyntheticHand(0.28, 0.5)]);
+    let rightRes = null;
+    for (let i = 0; i < 14; i++) {
+      rightRes = cal.evaluate(rightOneHand, 0.032);
+    }
+    expect(rightRes.trackingLost).toBe(false);
+    expect(rightRes.steer).toBeGreaterThan(0.25);
+    expect(rightRes.status).toBe(GESTURE_STATUS.STEER_RIGHT);
   });
 });

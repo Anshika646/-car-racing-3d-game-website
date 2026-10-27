@@ -34,11 +34,26 @@ export class Menu {
       btnPlayCamera: document.getElementById('btn-play-camera'),
       btnPlayKeyboard: document.getElementById('btn-play-keyboard'),
 
-      // Garage Controls (Driver Name, Car Model, Paint Colour, Atmosphere)
+      // Garage Controls (Driver Name + Custom Dropdowns for Model, Paint, Atmosphere)
       inputDriverName: document.getElementById('input-driver-name'),
       btnRandomDriverName: document.getElementById('btn-random-driver-name'),
       titleModelStats: document.getElementById('title-model-stats'),
       titlePaintLabel: document.getElementById('title-paint-label'),
+
+      btnDdModel: document.getElementById('btn-dd-model'),
+      menuDdModel: document.getElementById('menu-dd-model'),
+      ddModelName: document.getElementById('dd-model-name'),
+      ddModelClass: document.getElementById('dd-model-class'),
+
+      btnDdPaint: document.getElementById('btn-dd-paint'),
+      menuDdPaint: document.getElementById('menu-dd-paint'),
+      ddPaintSwatch: document.getElementById('dd-paint-swatch'),
+      ddPaintName: document.getElementById('dd-paint-name'),
+
+      btnDdAtmo: document.getElementById('btn-dd-atmo'),
+      menuDdAtmo: document.getElementById('menu-dd-atmo'),
+      ddAtmoSwatch: document.getElementById('dd-atmo-swatch'),
+      ddAtmoLabel: document.getElementById('dd-atmo-label'),
 
       // Pause / Settings Equivalents
       pauseDriverName: document.getElementById('pause-driver-name'),
@@ -139,12 +154,55 @@ export class Menu {
       this.callbacks.onRandomizeDriverName?.();
     });
 
+    // Custom Dropdown toggles (Model, Paint, Atmosphere)
+    const dropdownPairs = [
+      { key: 'model', btn: this.els.btnDdModel, menu: this.els.menuDdModel },
+      { key: 'paint', btn: this.els.btnDdPaint, menu: this.els.menuDdPaint },
+      { key: 'atmo', btn: this.els.btnDdAtmo, menu: this.els.menuDdAtmo },
+    ];
+
+    this.closeAllDropdowns = () => {
+      for (const pair of dropdownPairs) {
+        if (!pair.menu || !pair.btn) continue;
+        pair.menu.classList.add('hidden');
+        pair.btn.setAttribute('aria-expanded', 'false');
+        const chev = pair.btn.querySelector('[data-dd-chevron]');
+        if (chev) chev.style.transform = 'rotate(0deg)';
+      }
+    };
+
+    for (const pair of dropdownPairs) {
+      pair.btn?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = pair.menu && !pair.menu.classList.contains('hidden');
+        this.closeAllDropdowns();
+        if (!isOpen && pair.menu) {
+          pair.menu.classList.remove('hidden');
+          pair.btn.setAttribute('aria-expanded', 'true');
+          const chev = pair.btn.querySelector('[data-dd-chevron]');
+          if (chev) chev.style.transform = 'rotate(180deg)';
+        }
+      });
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!e.target?.closest?.('[data-dropdown]')) {
+        this.closeAllDropdowns();
+      }
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        this.closeAllDropdowns();
+      }
+    });
+
     // Car Model Selection
     document.querySelectorAll('[data-car-model]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const modelId = btn.getAttribute('data-car-model');
         if (modelId) {
           this.callbacks.onSelectCarModel?.(modelId);
+          this.closeAllDropdowns();
         }
       });
     });
@@ -158,6 +216,7 @@ export class Menu {
         const presetId = btn.getAttribute('data-car-paint');
         if (presetId) {
           this.callbacks.onSelectCarPaint?.(presetId);
+          this.closeAllDropdowns();
         }
       });
     });
@@ -171,6 +230,7 @@ export class Menu {
         const themeId = btn.getAttribute('data-atmosphere');
         if (themeId) {
           this.callbacks.onSelectAtmosphere?.(themeId);
+          this.closeAllDropdowns();
         }
       });
     });
@@ -321,7 +381,13 @@ export class Menu {
       CAR_MODEL_PRESETS.find((m) => m.id === modelId) || CAR_MODEL_PRESETS[0];
 
     if (this.els.titleModelStats) {
-      this.els.titleModelStats.textContent = `${activeModel.name} · SPD ${activeModel.speedRating} · HND ${activeModel.handlingRating} · N2O ${activeModel.nitroRating}`;
+      this.els.titleModelStats.textContent = `SPD ${activeModel.speedRating} · HND ${activeModel.handlingRating} · N2O ${activeModel.nitroRating}`;
+    }
+    if (this.els.ddModelName) {
+      this.els.ddModelName.textContent = activeModel.name;
+    }
+    if (this.els.ddModelClass) {
+      this.els.ddModelClass.textContent = `· ${activeModel.category || 'Hyper Coupe'}`;
     }
     if (this.els.pauseModelSelect) {
       this.els.pauseModelSelect.value = activeModel.id;
@@ -344,7 +410,13 @@ export class Menu {
       CAR_PAINT_PRESETS.find((p) => p.id === presetId) || CAR_PAINT_PRESETS[0];
 
     if (this.els.titlePaintLabel) {
-      this.els.titlePaintLabel.textContent = `${activePreset.name} · ${activePreset.finishType}`;
+      this.els.titlePaintLabel.textContent = activePreset.finishType;
+    }
+    if (this.els.ddPaintSwatch) {
+      this.els.ddPaintSwatch.style.backgroundColor = activePreset.swatch;
+    }
+    if (this.els.ddPaintName) {
+      this.els.ddPaintName.textContent = activePreset.name;
     }
     if (this.els.pausePaintSelect) {
       this.els.pausePaintSelect.value = activePreset.id;
@@ -366,6 +438,17 @@ export class Menu {
     const activeTheme =
       ATMOSPHERE_PRESETS.find((t) => t.id === themeId) || ATMOSPHERE_PRESETS[0];
 
+    const swatchMap = {
+      midnight: '#38bdf8',
+      sunset: '#fb923c',
+      cyber_dusk: '#e879f9',
+    };
+    if (this.els.ddAtmoSwatch) {
+      this.els.ddAtmoSwatch.style.backgroundColor = swatchMap[activeTheme.id] || '#38bdf8';
+    }
+    if (this.els.ddAtmoLabel) {
+      this.els.ddAtmoLabel.textContent = activeTheme.name;
+    }
     if (this.els.pauseAtmosphereSelect) {
       this.els.pauseAtmosphereSelect.value = activeTheme.id;
     }
@@ -502,26 +585,27 @@ export class Menu {
     if (this.els.calStatusBadge) {
       this.els.calStatusBadge.textContent = status;
       this.els.calStatusBadge.style.color =
-        handCount < 2 ? '#fbbf24' : '#22d3ee';
+        handCount === 0 ? '#fbbf24' : '#22d3ee';
     }
     if (this.els.calConfidenceText) {
       const confStr = handCount > 0 ? `${Math.round(confidence * 100)}%` : '--';
-      this.els.calConfidenceText.textContent = `Hands: ${handCount}/2 · Confidence: ${confStr}`;
+      this.els.calConfidenceText.textContent = `Hands: ${handCount} · Conf: ${confStr}`;
     }
 
     if (this.els.calInstructionText) {
       if (handCount === 0) {
         this.els.calInstructionText.textContent =
-          'Raise both hands into the camera frame like holding a steering wheel.';
-      } else if (handCount === 1) {
-        this.els.calInstructionText.textContent =
-          '1 hand visible — bring both hands into frame so the wheel axle can form.';
+          'Raise 1 or 2 hands clearly into camera view to calibrate steering.';
       } else if (!isCalibrated) {
         this.els.calInstructionText.textContent =
-          'Hold both hands steady in a comfortable neutral grip to lock center...';
+          handCount >= 2
+            ? '2 hands detected! Hold steady for a moment to lock center...'
+            : '1 hand detected! Hold steady (or raise second hand) to lock center...';
       } else {
         this.els.calInstructionText.textContent =
-          'Neutral calibrated! Rotate your hands left and right to test steering, then click Start Race.';
+          handCount >= 2
+            ? '2-Hand Wheel Locked! Rotate left/right to test, then click Start Race.'
+            : '1-Hand Steer Locked! Tilt or move hand left/right, or raise both hands.';
       }
     }
 
