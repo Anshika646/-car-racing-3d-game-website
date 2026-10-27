@@ -8,7 +8,8 @@ import {
 import { CameraController } from '../src/controls/CameraController.js';
 import { HandTracker } from '../src/controls/HandTracker.js';
 import { KeyboardController } from '../src/controls/KeyboardController.js';
-import { Car, PLAYER_MAX_X, CAR_PAINT_PRESETS } from '../src/game/Car.js';
+import { Car, PLAYER_MAX_X, CAR_PAINT_PRESETS, CAR_MODEL_PRESETS } from '../src/game/Car.js';
+import { RANDOM_RIVAL_NAMES } from '../src/game/Nameplate.js';
 import { CollisionSystem } from '../src/game/CollisionSystem.js';
 import { TrafficManager } from '../src/game/TrafficManager.js';
 import {
@@ -16,6 +17,8 @@ import {
   GAME_STATE,
   BEST_SCORE_STORAGE_KEY,
   CAR_PAINT_STORAGE_KEY,
+  CAR_MODEL_STORAGE_KEY,
+  DRIVER_NAME_STORAGE_KEY,
 } from '../src/game/Game.js';
 
 /**
@@ -356,6 +359,68 @@ describe('MOTION DRIVE 3D — Automated Verification Suite', () => {
 
     game.setCarPaint('stealth_matte');
     expect(game.car.bodyPaintMat.clearcoat).toBeLessThan(0.5);
+
+    game.dispose();
+  });
+
+  it('switches between all 4 distinct 3D car models and persists selection in localStorage', () => {
+    const game = new Game({ headless: true });
+    expect(CAR_MODEL_PRESETS.length).toBe(4);
+
+    for (const model of CAR_MODEL_PRESETS) {
+      game.setCarModel(model.id);
+      expect(game.carModel).toBe(model.id);
+      expect(game.car.modelPresetId).toBe(model.id);
+      expect(game.car.wheelSpinGroups.length).toBe(4);
+      expect(window.localStorage.getItem(CAR_MODEL_STORAGE_KEY)).toBe(model.id);
+    }
+
+    game.dispose();
+  });
+
+  it('updates floating 3D driver nameplate above player car and assigns random names to highway rivals', () => {
+    const game = new Game({ headless: true });
+
+    game.setDriverName('Anshika_GT');
+    expect(game.driverName).toBe('Anshika_GT');
+    expect(game.car.driverName).toBe('Anshika_GT');
+    expect(game.car.nameplate.userData.driverName).toBe('Anshika_GT');
+    expect(window.localStorage.getItem(DRIVER_NAME_STORAGE_KEY)).toBe('Anshika_GT');
+
+    // Spawn highway rivals and verify random floating gamer names are assigned
+    game.traffic.reset();
+    game.traffic.spawnWave(6);
+    expect(game.traffic.activeVehicles.length).toBeGreaterThanOrEqual(1);
+    for (const rival of game.traffic.activeVehicles) {
+      expect(typeof rival.driverName).toBe('string');
+      expect(rival.driverName.length).toBeGreaterThan(2);
+      expect(RANDOM_RIVAL_NAMES).toContain(rival.driverName);
+      expect(rival.nameplate.userData.driverName).toBe(rival.driverName);
+    }
+
+    game.dispose();
+  });
+
+  it('engages Hyper Nitro Boost for higher top speed and cycles camera views & track atmospheres', () => {
+    const game = new Game({ headless: true });
+    game.beginRaceCountdown();
+    game.state = GAME_STATE.RACING;
+    game.traffic.activeVehicles = [];
+
+    const initialNitro = game.nitroCharge;
+    for (let i = 0; i < 20; i++) {
+      game.traffic.activeVehicles = [];
+      game.stepSimulation(0.05, { steer: 0, accelerate: true, brake: false, boost: true });
+    }
+    expect(game.nitroCharge).toBeLessThan(initialNitro);
+    expect(game.speedMps).toBeGreaterThan(36);
+
+    const initialCam = game.cameraView;
+    const nextCam = game.cycleCameraView();
+    expect(nextCam).not.toBe(initialCam);
+
+    game.setAtmosphere('sunset');
+    expect(game.atmosphere).toBe('sunset');
 
     game.dispose();
   });

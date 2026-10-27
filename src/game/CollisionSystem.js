@@ -1,15 +1,15 @@
 /**
  * CollisionSystem.js
  *
- * Pure, deterministic AABB collision & near-miss overtake detector
- * between the player's car and active highway traffic vehicles.
+ * Pure, deterministic AABB collision, near-miss overtake, and clean rival pass detector
+ * between the player's car and active highway rival/traffic vehicles.
  */
 
 export class CollisionSystem {
   constructor(options = {}) {
     this.maxHealth = options.maxHealth || 3;
     this.health = this.maxHealth;
-    this.nearMissLateralMargin = options.nearMissLateralMargin || 1.45;
+    this.nearMissLateralMargin = options.nearMissLateralMargin || 1.48;
   }
 
   reset() {
@@ -30,12 +30,15 @@ export class CollisionSystem {
 
   /**
    * Evaluates all active traffic vehicles against the player's bounds.
-   * Returns { hitVehicle, fatalCrash, nearMissCount, health }.
+   * Returns { hitVehicle, fatalCrash, nearMissCount, nearMissNames, overtakeCount, overtakeNames, health }.
    */
   evaluate(playerBounds, trafficVehicles = [], isInvulnerable = false, playerSpeedMps = 0) {
     let hitVehicle = null;
     let fatalCrash = false;
     let nearMissCount = 0;
+    const nearMissNames = [];
+    let overtakeCount = 0;
+    const overtakeNames = [];
 
     for (let i = 0; i < trafficVehicles.length; i++) {
       const v = trafficVehicles[i];
@@ -52,17 +55,22 @@ export class CollisionSystem {
           break;
         }
       } else if (
-        !v.nearMissAwarded &&
-        playerSpeedMps > 20 &&
+        playerSpeedMps > 18 &&
         v.z > playerBounds.z + 1.2 &&
-        v.z < playerBounds.z + 8.5
+        v.z < playerBounds.z + 9.0
       ) {
-        // Vehicle just passed close alongside the player without hitting
         const lateralGap =
           Math.abs(playerBounds.x - v.x) - (playerBounds.halfWidth + v.halfWidth);
-        if (lateralGap >= 0 && lateralGap <= this.nearMissLateralMargin) {
+
+        if (!v.nearMissAwarded && lateralGap >= 0 && lateralGap <= this.nearMissLateralMargin) {
           v.nearMissAwarded = true;
+          v.overtakenAwarded = true;
           nearMissCount++;
+          if (v.driverName) nearMissNames.push(v.driverName);
+        } else if (!v.overtakenAwarded && v.z > playerBounds.z + 3.2) {
+          v.overtakenAwarded = true;
+          overtakeCount++;
+          if (v.driverName) overtakeNames.push(v.driverName);
         }
       }
     }
@@ -71,6 +79,9 @@ export class CollisionSystem {
       hitVehicle,
       fatalCrash,
       nearMissCount,
+      nearMissNames,
+      overtakeCount,
+      overtakeNames,
       health: this.health,
     };
   }

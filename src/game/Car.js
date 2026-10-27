@@ -1,23 +1,80 @@
 /**
  * Car.js
  *
- * Detailed multi-part 3D GT Supercar built procedurally with Three.js:
- * - Sculpted beveled lower chassis (ExtrudeGeometry)
- * - Aerodynamic smoked-glass canopy (ExtrudeGeometry)
- * - Matte carbon front splitter, side skirts & rear diffuser
- * - Twin brushed-titanium exhausts with throttle glow
- * - Dual-pylon GT rear wing with cyan endplate accents
- * - LED matrix headlights + road light pools & dynamic horizon brake bar
- * - 4 multi-part articulated wheels (tire, 5-spoke rim, amber caliper)
- * - Soft radial contact shadow & collision spark burst pool
+ * Modular multi-model 3D Garage & Player Vehicle system built procedurally with Three.js:
+ * - 4 distinct selectable 3D vehicle models:
+ *   1. Apex GT-R (Hyper Coupe)
+ *   2. Vortex F1-X (Formula Open-Wheel Prototype)
+ *   3. Titan V8 (Muscle Interceptor)
+ *   4. Nomad Cyber-X (Armored Rally SUV)
+ * - 8 selectable custom paint colours & material finishes (Metallic, Gloss, Pearl, Satin, Matte, Ceramic, Chrome)
+ * - Live editable 3D floating driver nameplate sprite above the roof
+ * - Articulated steering knuckles, spinning wheels, dynamic brake bar, Nitro afterburner flames & collision sparks
  */
 
 import * as THREE from 'three';
+import {
+  createNameplateSprite,
+  updateNameplateSprite,
+  sanitizeDriverName,
+  DEFAULT_DRIVER_NAME,
+} from './Nameplate.js';
 
 export const ROAD_HALF_WIDTH = 7.0;
 export const CAR_HALF_WIDTH = 0.96;
 export const CAR_HALF_LENGTH = 2.15;
 export const PLAYER_MAX_X = ROAD_HALF_WIDTH - CAR_HALF_WIDTH - 0.35; // 5.69m safe inside barriers
+
+export const CAR_MODEL_PRESETS = [
+  {
+    id: 'apex_gtr',
+    name: 'Apex GT-R',
+    category: 'Hyper Coupe',
+    speedRating: 95,
+    handlingRating: 93,
+    nitroRating: 92,
+    topSpeedFactor: 1.0,
+    handlingFactor: 1.0,
+    nitroPower: 1.0,
+    nameplateY: 1.72,
+  },
+  {
+    id: 'vortex_f1',
+    name: 'Vortex F1-X',
+    category: 'Formula Aero',
+    speedRating: 98,
+    handlingRating: 99,
+    nitroRating: 95,
+    topSpeedFactor: 1.05,
+    handlingFactor: 1.14,
+    nitroPower: 1.05,
+    nameplateY: 1.58,
+  },
+  {
+    id: 'titan_v8',
+    name: 'Titan V8',
+    category: 'Street Muscle',
+    speedRating: 96,
+    handlingRating: 88,
+    nitroRating: 97,
+    topSpeedFactor: 1.03,
+    handlingFactor: 0.95,
+    nitroPower: 1.1,
+    nameplateY: 1.76,
+  },
+  {
+    id: 'nomad_x',
+    name: 'Nomad Cyber-X',
+    category: 'Armored Rally',
+    speedRating: 91,
+    handlingRating: 90,
+    nitroRating: 94,
+    topSpeedFactor: 0.98,
+    handlingFactor: 0.98,
+    nitroPower: 1.06,
+    nameplateY: 2.04,
+  },
+];
 
 export const CAR_PAINT_PRESETS = [
   {
@@ -116,6 +173,38 @@ export const CAR_PAINT_PRESETS = [
     rimColor: 0x1e293b,
     exhaustColor: 0x38bdf8,
   },
+  {
+    id: 'ultraviolet_chrome',
+    name: 'Ultraviolet',
+    finishType: 'Mirror Chrome',
+    swatch: '#a855f7',
+    bodyColor: 0x581c87,
+    metalness: 0.92,
+    roughness: 0.11,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.03,
+    trimColor: 0xe879f9,
+    trimEmissive: 0xa21caf,
+    caliperColor: 0x22d3ee,
+    rimColor: 0xf3e8ff,
+    exhaustColor: 0xe879f9,
+  },
+  {
+    id: 'rosegold_pearl',
+    name: 'Rose Velvet',
+    finishType: 'Satin Pearl',
+    swatch: '#fb7185',
+    bodyColor: 0xbe185d,
+    metalness: 0.76,
+    roughness: 0.2,
+    clearcoat: 0.95,
+    clearcoatRoughness: 0.08,
+    trimColor: 0xfda4af,
+    trimEmissive: 0xe11d48,
+    caliperColor: 0xfde047,
+    rimColor: 0xfff1f2,
+    exhaustColor: 0xfb7185,
+  },
 ];
 
 const _sparkDummy = new THREE.Object3D();
@@ -179,7 +268,9 @@ export class Car {
 
     this.root = new THREE.Group();
     this.chassisGroup = new THREE.Group();
+    this.wheelsContainer = new THREE.Group();
     this.root.add(this.chassisGroup);
+    this.root.add(this.wheelsContainer);
 
     // Kinematic state
     this.x = 0;
@@ -195,15 +286,58 @@ export class Car {
 
     this.frontWheelPivots = [];
     this.wheelSpinGroups = [];
+    this.nitroPlumes = [];
     this.sparks = [];
+
+    this.modelPresetId = options.modelPresetId || CAR_MODEL_PRESETS[0].id;
     this.paintPresetId = options.paintPresetId || CAR_PAINT_PRESETS[0].id;
+    this.driverName = sanitizeDriverName(options.driverName || DEFAULT_DRIVER_NAME);
 
     this._buildMaterials();
-    this._buildBody();
-    this._buildWheels();
     this._buildGroundEffects();
     this._buildSparkSystem();
+
+    // Floating 3D Driver Nameplate right above the car roof
+    this.nameplate = createNameplateSprite({
+      name: this.driverName,
+      badge: 'YOU',
+      accentColor: '#22d3ee',
+      isPlayer: true,
+    });
+    this.root.add(this.nameplate);
+
+    this.setModelPreset(this.modelPresetId);
     this.setPaintPreset(this.paintPresetId);
+  }
+
+  getActiveModelPreset() {
+    return (
+      CAR_MODEL_PRESETS.find((m) => m.id === this.modelPresetId) || CAR_MODEL_PRESETS[0]
+    );
+  }
+
+  getActivePaintPreset() {
+    return (
+      CAR_PAINT_PRESETS.find((p) => p.id === this.paintPresetId) || CAR_PAINT_PRESETS[0]
+    );
+  }
+
+  setDriverName(rawName) {
+    this.driverName = sanitizeDriverName(rawName, DEFAULT_DRIVER_NAME);
+    const paint = this.getActivePaintPreset();
+    updateNameplateSprite(this.nameplate, {
+      name: this.driverName,
+      badge: 'YOU',
+      accentColor: paint.swatch,
+      isPlayer: true,
+    });
+    return this.driverName;
+  }
+
+  setNameplateVisible(visible) {
+    if (this.nameplate) {
+      this.nameplate.visible = Boolean(visible);
+    }
   }
 
   setPaintPreset(presetId) {
@@ -232,7 +366,92 @@ export class Car {
     if (this.exhaustGlowMat) {
       this.exhaustGlowMat.color.setHex(preset.exhaustColor);
     }
+    if (this.nameplate) {
+      updateNameplateSprite(this.nameplate, {
+        name: this.driverName,
+        badge: 'YOU',
+        accentColor: preset.swatch,
+        isPlayer: true,
+      });
+    }
     return preset;
+  }
+
+  setModelPreset(modelId) {
+    const model =
+      CAR_MODEL_PRESETS.find((m) => m.id === modelId) || CAR_MODEL_PRESETS[0];
+    this.modelPresetId = model.id;
+
+    this._clearGroupGeometries(this.chassisGroup);
+    this._clearGroupGeometries(this.wheelsContainer);
+    this.frontWheelPivots = [];
+    this.wheelSpinGroups = [];
+    this.nitroPlumes = [];
+
+    if (model.id === 'vortex_f1') {
+      this._buildFormulaBody();
+      this._buildWheels({
+        radius: 0.36,
+        width: 0.35,
+        frontX: 0.95,
+        rearX: 0.98,
+        frontZ: -1.42,
+        rearZ: 1.38,
+        openWheel: true,
+      });
+    } else if (model.id === 'titan_v8') {
+      this._buildMuscleBody();
+      this._buildWheels({
+        radius: 0.35,
+        width: 0.3,
+        frontX: 0.93,
+        rearX: 0.96,
+        frontZ: -1.34,
+        rearZ: 1.34,
+        openWheel: false,
+      });
+    } else if (model.id === 'nomad_x') {
+      this._buildRallySuvBody();
+      this._buildWheels({
+        radius: 0.4,
+        width: 0.32,
+        frontX: 0.96,
+        rearX: 0.96,
+        frontZ: -1.32,
+        rearZ: 1.32,
+        openWheel: false,
+      });
+    } else {
+      this._buildHyperCoupeBody();
+      this._buildWheels({
+        radius: 0.34,
+        width: 0.28,
+        frontX: 0.92,
+        rearX: 0.94,
+        frontZ: -1.32,
+        rearZ: 1.32,
+        openWheel: false,
+      });
+    }
+
+    if (this.nameplate) {
+      this.nameplate.position.set(0, model.nameplateY, 0.1);
+    }
+
+    return model;
+  }
+
+  _clearGroupGeometries(group) {
+    const geometries = new Set();
+    group.traverse((child) => {
+      if (child.isMesh && child.geometry) {
+        geometries.add(child.geometry);
+      }
+    });
+    while (group.children.length > 0) {
+      group.remove(group.children[0]);
+    }
+    geometries.forEach((geo) => geo.dispose());
   }
 
   _buildMaterials() {
@@ -304,17 +523,50 @@ export class Car {
       transparent: true,
       opacity: 0.0,
     });
+
+    this.nitroFlameMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
   }
 
-  _buildBody() {
-    // 1. Sculpted Aerodynamic Lower Hull (ExtrudeGeometry side silhouette -> rotated along X)
+  _addExhaustPair(positionsX, y, z) {
+    const exhaustGeo = new THREE.CylinderGeometry(0.072, 0.082, 0.24, 14);
+    exhaustGeo.rotateX(Math.PI / 2);
+    const glowGeo = new THREE.CircleGeometry(0.06, 12);
+    const plumeGeo = new THREE.ConeGeometry(0.085, 0.95, 12);
+    plumeGeo.rotateX(Math.PI / 2);
+
+    for (const sideX of positionsX) {
+      const pipe = new THREE.Mesh(exhaustGeo, this.rimMat);
+      pipe.position.set(sideX, y, z);
+      this.chassisGroup.add(pipe);
+
+      const flame = new THREE.Mesh(glowGeo, this.exhaustGlowMat);
+      flame.position.set(sideX, y, z + 0.125);
+      this.chassisGroup.add(flame);
+
+      const nitroCone = new THREE.Mesh(plumeGeo, this.nitroFlameMat);
+      nitroCone.position.set(sideX, y, z + 0.56);
+      this.nitroPlumes.push(nitroCone);
+      this.chassisGroup.add(nitroCone);
+    }
+  }
+
+  /**
+   * Model 1: Apex GT-R (Sleek Widebody Hyper Coupe)
+   */
+  _buildHyperCoupeBody() {
     const sideProfile = new THREE.Shape();
     sideProfile.moveTo(-2.12, 0.24);
-    sideProfile.lineTo(-2.02, 0.52); // Nose slope
-    sideProfile.lineTo(-1.15, 0.68); // Hood
-    sideProfile.lineTo(1.25, 0.74);  // Rear deck
-    sideProfile.lineTo(2.08, 0.66);  // Tail Kammback
-    sideProfile.lineTo(2.12, 0.28);  // Rear diffuser height
+    sideProfile.lineTo(-2.02, 0.52);
+    sideProfile.lineTo(-1.15, 0.68);
+    sideProfile.lineTo(1.25, 0.74);
+    sideProfile.lineTo(2.08, 0.66);
+    sideProfile.lineTo(2.12, 0.28);
     sideProfile.lineTo(-2.12, 0.24);
 
     const hullGeo = new THREE.ExtrudeGeometry(sideProfile, {
@@ -325,7 +577,6 @@ export class Car {
       bevelSegments: 3,
     });
     hullGeo.center();
-    // Rotate so length runs along Z (-Z is forward, +Z is rear facing camera)
     hullGeo.rotateY(Math.PI / 2);
 
     const hullMesh = new THREE.Mesh(hullGeo, this.bodyPaintMat);
@@ -334,12 +585,11 @@ export class Car {
     hullMesh.receiveShadow = !this.isSoftwareGl;
     this.chassisGroup.add(hullMesh);
 
-    // 2. Tapered Smoked-Glass GT Canopy
     const cabinProfile = new THREE.Shape();
     cabinProfile.moveTo(-0.95, 0);
-    cabinProfile.lineTo(-0.32, 0.44); // Windshield rake
-    cabinProfile.lineTo(0.45, 0.45);  // Roofline
-    cabinProfile.lineTo(1.28, 0.06);  // Fastback rear glass
+    cabinProfile.lineTo(-0.32, 0.44);
+    cabinProfile.lineTo(0.45, 0.45);
+    cabinProfile.lineTo(1.28, 0.06);
     cabinProfile.lineTo(-0.95, 0);
 
     const cabinGeo = new THREE.ExtrudeGeometry(cabinProfile, {
@@ -357,7 +607,6 @@ export class Car {
     cabinMesh.castShadow = !this.isSoftwareGl;
     this.chassisGroup.add(cabinMesh);
 
-    // Roof Spine Accent
     const spineMesh = new THREE.Mesh(
       new THREE.BoxGeometry(0.1, 0.04, 1.3),
       this.accentTrimMat,
@@ -365,7 +614,6 @@ export class Car {
     spineMesh.position.set(0, 1.13, 0.22);
     this.chassisGroup.add(spineMesh);
 
-    // 3. Front Carbon Aero Splitter & Side Skirts
     const splitter = new THREE.Mesh(
       new THREE.BoxGeometry(1.94, 0.07, 0.48),
       this.carbonMat,
@@ -373,18 +621,20 @@ export class Car {
     splitter.position.set(0, 0.21, -1.96);
     this.chassisGroup.add(splitter);
 
-    const skirtGeo = new THREE.BoxGeometry(1.96, 0.08, 2.55);
-    const skirts = new THREE.Mesh(skirtGeo, this.carbonMat);
+    const skirts = new THREE.Mesh(
+      new THREE.BoxGeometry(1.96, 0.08, 2.55),
+      this.carbonMat,
+    );
     skirts.position.set(0, 0.22, 0.05);
     this.chassisGroup.add(skirts);
 
-    // Cyan Aero Pin-Stripes along side skirts
-    const stripeGeo = new THREE.BoxGeometry(1.98, 0.025, 2.45);
-    const sideStripes = new THREE.Mesh(stripeGeo, this.accentTrimMat);
+    const sideStripes = new THREE.Mesh(
+      new THREE.BoxGeometry(1.98, 0.025, 2.45),
+      this.accentTrimMat,
+    );
     sideStripes.position.set(0, 0.255, 0.05);
     this.chassisGroup.add(sideStripes);
 
-    // 4. Rear Diffuser + Twin Titanium Exhausts
     const diffuser = new THREE.Mesh(
       new THREE.BoxGeometry(1.78, 0.22, 0.34),
       this.carbonMat,
@@ -392,21 +642,8 @@ export class Car {
     diffuser.position.set(0, 0.28, 2.04);
     this.chassisGroup.add(diffuser);
 
-    const exhaustGeo = new THREE.CylinderGeometry(0.075, 0.085, 0.24, 14);
-    exhaustGeo.rotateX(Math.PI / 2);
-    const glowGeo = new THREE.CircleGeometry(0.062, 12);
+    this._addExhaustPair([-0.42, 0.42], 0.29, 2.16);
 
-    for (const side of [-0.42, 0.42]) {
-      const pipe = new THREE.Mesh(exhaustGeo, this.rimMat);
-      pipe.position.set(side, 0.29, 2.16);
-      this.chassisGroup.add(pipe);
-
-      const flame = new THREE.Mesh(glowGeo, this.exhaustGlowMat);
-      flame.position.set(side, 0.29, 2.285);
-      this.chassisGroup.add(flame);
-    }
-
-    // 5. Elevated GT Rear Wing (Pylons + Airfoil + Endplates)
     const wingGroup = new THREE.Group();
     const pylonGeo = new THREE.BoxGeometry(0.05, 0.28, 0.26);
     for (const px of [-0.52, 0.52]) {
@@ -431,7 +668,6 @@ export class Car {
     }
     this.chassisGroup.add(wingGroup);
 
-    // 6. Dual Matrix Headlights (-Z front)
     const hlGeo = new THREE.BoxGeometry(0.38, 0.07, 0.12);
     for (const hx of [-0.64, 0.64]) {
       const hl = new THREE.Mesh(hlGeo, this.headlightMat);
@@ -440,7 +676,6 @@ export class Car {
       this.chassisGroup.add(hl);
     }
 
-    // 7. Horizon LED Taillight Bar + Brake Segments (+Z rear facing camera)
     const tailBar = new THREE.Mesh(
       new THREE.BoxGeometry(1.68, 0.075, 0.08),
       this.taillightMat,
@@ -457,7 +692,6 @@ export class Car {
       this.chassisGroup.add(pod);
     }
 
-    // 8. Side Mirrors
     const mirrorGeo = new THREE.BoxGeometry(0.22, 0.07, 0.12);
     for (const mx of [-0.96, 0.96]) {
       const mirror = new THREE.Mesh(mirrorGeo, this.bodyPaintMat);
@@ -466,21 +700,382 @@ export class Car {
     }
   }
 
-  _buildWheels() {
+  /**
+   * Model 2: Vortex F1-X (Open-Wheel Formula / Track Hyper-Prototype)
+   */
+  _buildFormulaBody() {
+    // Central tapered monocoque fuselage + needle nose
+    const mono = new THREE.Mesh(
+      new THREE.BoxGeometry(0.64, 0.38, 3.85),
+      this.bodyPaintMat,
+    );
+    mono.position.set(0, 0.42, -0.1);
+    mono.castShadow = !this.isSoftwareGl;
+    this.chassisGroup.add(mono);
+
+    const noseCone = new THREE.Mesh(
+      new THREE.BoxGeometry(0.42, 0.22, 1.15),
+      this.bodyPaintMat,
+    );
+    noseCone.position.set(0, 0.31, -1.78);
+    noseCone.rotation.x = 0.08;
+    this.chassisGroup.add(noseCone);
+
+    // Wide Multi-Element Front Aero Wing
+    const frontWingMain = new THREE.Mesh(
+      new THREE.BoxGeometry(1.96, 0.05, 0.42),
+      this.carbonMat,
+    );
+    frontWingMain.position.set(0, 0.2, -2.14);
+    this.chassisGroup.add(frontWingMain);
+
+    const frontFlap = new THREE.Mesh(
+      new THREE.BoxGeometry(1.9, 0.035, 0.22),
+      this.accentTrimMat,
+    );
+    frontFlap.position.set(0, 0.25, -2.02);
+    frontFlap.rotation.x = -0.14;
+    this.chassisGroup.add(frontFlap);
+
+    for (const fwx of [-0.98, 0.98]) {
+      const fwEnd = new THREE.Mesh(
+        new THREE.BoxGeometry(0.04, 0.18, 0.5),
+        this.bodyPaintMat,
+      );
+      fwEnd.position.set(fwx, 0.27, -2.12);
+      this.chassisGroup.add(fwEnd);
+    }
+
+    // Sculpted Sidepods + Carbon Floor Plank
+    const floorPlank = new THREE.Mesh(
+      new THREE.BoxGeometry(1.68, 0.05, 2.75),
+      this.carbonMat,
+    );
+    floorPlank.position.set(0, 0.2, 0.12);
+    this.chassisGroup.add(floorPlank);
+
+    for (const spx of [-0.58, 0.58]) {
+      const pod = new THREE.Mesh(
+        new THREE.BoxGeometry(0.56, 0.36, 1.95),
+        this.bodyPaintMat,
+      );
+      pod.position.set(spx, 0.42, 0.22);
+      pod.castShadow = !this.isSoftwareGl;
+      this.chassisGroup.add(pod);
+
+      const stripe = new THREE.Mesh(
+        new THREE.BoxGeometry(0.58, 0.04, 1.88),
+        this.accentTrimMat,
+      );
+      stripe.position.set(spx, 0.58, 0.22);
+      this.chassisGroup.add(stripe);
+
+      // Suspension wishbone arms connecting open wheels
+      for (const wz of [-1.42, 1.38]) {
+        const arm = new THREE.Mesh(
+          new THREE.BoxGeometry(0.68, 0.035, 0.08),
+          this.carbonMat,
+        );
+        arm.position.set(spx * 1.05, 0.36, wz);
+        this.chassisGroup.add(arm);
+      }
+    }
+
+    // Airbox Shark-Fin + Cockpit Halo + Driver Helmet
+    const airbox = new THREE.Mesh(
+      new THREE.BoxGeometry(0.32, 0.42, 1.25),
+      this.bodyPaintMat,
+    );
+    airbox.position.set(0, 0.78, 0.65);
+    this.chassisGroup.add(airbox);
+
+    const sharkFin = new THREE.Mesh(
+      new THREE.BoxGeometry(0.04, 0.34, 1.15),
+      this.accentTrimMat,
+    );
+    sharkFin.position.set(0, 0.94, 1.25);
+    this.chassisGroup.add(sharkFin);
+
+    const helmet = new THREE.Mesh(
+      new THREE.SphereGeometry(0.19, 14, 12),
+      this.accentTrimMat,
+    );
+    helmet.position.set(0, 0.72, -0.05);
+    this.chassisGroup.add(helmet);
+
+    const haloArch = new THREE.Mesh(
+      new THREE.TorusGeometry(0.31, 0.032, 8, 18, Math.PI),
+      this.carbonMat,
+    );
+    haloArch.rotation.x = Math.PI / 2 - 0.18;
+    haloArch.rotation.z = Math.PI;
+    haloArch.position.set(0, 0.78, -0.08);
+    this.chassisGroup.add(haloArch);
+
+    // Tall F1 Dual-Element Rear Wing + Rain FIA Strobe Light
+    const rearWingMain = new THREE.Mesh(
+      new THREE.BoxGeometry(1.62, 0.055, 0.36),
+      this.bodyPaintMat,
+    );
+    rearWingMain.position.set(0, 1.04, 1.98);
+    rearWingMain.rotation.x = 0.14;
+    this.chassisGroup.add(rearWingMain);
+
+    for (const rwx of [-0.82, 0.82]) {
+      const rwEnd = new THREE.Mesh(
+        new THREE.BoxGeometry(0.04, 0.44, 0.44),
+        this.carbonMat,
+      );
+      rwEnd.position.set(rwx, 0.9, 1.98);
+      this.chassisGroup.add(rwEnd);
+
+      const rwLed = new THREE.Mesh(
+        new THREE.BoxGeometry(0.05, 0.28, 0.06),
+        this.taillightMat,
+      );
+      rwLed.position.set(rwx, 0.92, 2.2);
+      this.chassisGroup.add(rwLed);
+    }
+
+    const fiaLight = new THREE.Mesh(
+      new THREE.BoxGeometry(0.16, 0.16, 0.08),
+      this.taillightMat,
+    );
+    fiaLight.position.set(0, 0.38, 2.12);
+    this.chassisGroup.add(fiaLight);
+
+    for (const hx of [-0.42, 0.42]) {
+      const hl = new THREE.Mesh(
+        new THREE.BoxGeometry(0.24, 0.06, 0.1),
+        this.headlightMat,
+      );
+      hl.position.set(hx, 0.34, -1.95);
+      this.chassisGroup.add(hl);
+    }
+
+    this._addExhaustPair([-0.14, 0.14], 0.52, 2.02);
+  }
+
+  /**
+   * Model 3: Titan V8 (Aggressive Street Muscle Interceptor)
+   */
+  _buildMuscleBody() {
+    // Broad chiseled muscle lower body
+    const lowerHull = new THREE.Mesh(
+      new THREE.BoxGeometry(1.94, 0.54, 4.32),
+      this.bodyPaintMat,
+    );
+    lowerHull.position.set(0, 0.52, 0);
+    lowerHull.castShadow = !this.isSoftwareGl;
+    lowerHull.receiveShadow = !this.isSoftwareGl;
+    this.chassisGroup.add(lowerHull);
+
+    // Muscular rear fender haunches
+    for (const fx of [-0.96, 0.96]) {
+      const haunch = new THREE.Mesh(
+        new THREE.BoxGeometry(0.14, 0.42, 1.65),
+        this.bodyPaintMat,
+      );
+      haunch.position.set(fx, 0.58, 1.12);
+      this.chassisGroup.add(haunch);
+    }
+
+    // Twin racing hood & roof stripes
+    for (const sx of [-0.22, 0.22]) {
+      const hoodStripe = new THREE.Mesh(
+        new THREE.BoxGeometry(0.18, 0.02, 4.26),
+        this.accentTrimMat,
+      );
+      hoodStripe.position.set(sx, 0.8, 0);
+      this.chassisGroup.add(hoodStripe);
+    }
+
+    // Supercharger V8 Hood Blower Intake Scoop
+    const blowerBase = new THREE.Mesh(
+      new THREE.BoxGeometry(0.58, 0.16, 0.88),
+      this.carbonMat,
+    );
+    blowerBase.position.set(0, 0.86, -1.05);
+    this.chassisGroup.add(blowerBase);
+
+    const blowerIntake = new THREE.Mesh(
+      new THREE.BoxGeometry(0.46, 0.1, 0.24),
+      this.rimMat,
+    );
+    blowerIntake.position.set(0, 0.92, -1.46);
+    this.chassisGroup.add(blowerIntake);
+
+    // Fastback Muscle Cabin
+    const cabin = new THREE.Mesh(
+      new THREE.BoxGeometry(1.52, 0.42, 1.98),
+      this.glassMat,
+    );
+    cabin.position.set(0, 0.96, 0.28);
+    this.chassisGroup.add(cabin);
+
+    const roof = new THREE.Mesh(
+      new THREE.BoxGeometry(1.46, 0.06, 1.45),
+      this.bodyPaintMat,
+    );
+    roof.position.set(0, 1.18, 0.2);
+    this.chassisGroup.add(roof);
+
+    // Aggressive Ducktail Spoiler
+    const ducktail = new THREE.Mesh(
+      new THREE.BoxGeometry(1.9, 0.18, 0.22),
+      this.carbonMat,
+    );
+    ducktail.position.set(0, 0.86, 2.08);
+    ducktail.rotation.x = -0.28;
+    this.chassisGroup.add(ducktail);
+
+    // Deep Muscle Front Chin & Grille + Quad Halo Headlights
+    const chin = new THREE.Mesh(
+      new THREE.BoxGeometry(1.98, 0.1, 0.36),
+      this.carbonMat,
+    );
+    chin.position.set(0, 0.23, -2.08);
+    this.chassisGroup.add(chin);
+
+    for (const hx of [-0.72, -0.46, 0.46, 0.72]) {
+      const hl = new THREE.Mesh(
+        new THREE.BoxGeometry(0.18, 0.12, 0.1),
+        this.headlightMat,
+      );
+      hl.position.set(hx, 0.56, -2.15);
+      this.chassisGroup.add(hl);
+    }
+
+    // Classic Triple-Bar Muscle Taillights
+    for (const tx of [-0.74, -0.52, -0.3, 0.3, 0.52, 0.74]) {
+      const bar = new THREE.Mesh(
+        new THREE.BoxGeometry(0.14, 0.2, 0.09),
+        this.taillightMat,
+      );
+      bar.position.set(tx, 0.58, 2.15);
+      this.chassisGroup.add(bar);
+    }
+
+    this._addExhaustPair([-0.62, -0.44, 0.44, 0.62], 0.28, 2.14);
+  }
+
+  /**
+   * Model 4: Nomad Cyber-X (Armored Cyber-Rally Performance SUV)
+   */
+  _buildRallySuvBody() {
+    // High-clearance faceted armored lower body
+    const lowerBody = new THREE.Mesh(
+      new THREE.BoxGeometry(1.98, 0.64, 4.24),
+      this.bodyPaintMat,
+    );
+    lowerBody.position.set(0, 0.66, 0);
+    lowerBody.castShadow = !this.isSoftwareGl;
+    lowerBody.receiveShadow = !this.isSoftwareGl;
+    this.chassisGroup.add(lowerBody);
+
+    // Matte Carbon Fender Arches & Armored Rocker Panels
+    const rockers = new THREE.Mesh(
+      new THREE.BoxGeometry(2.04, 0.18, 3.65),
+      this.carbonMat,
+    );
+    rockers.position.set(0, 0.38, 0);
+    this.chassisGroup.add(rockers);
+
+    // Angular Armored Cabin Canopy
+    const cabin = new THREE.Mesh(
+      new THREE.BoxGeometry(1.68, 0.52, 2.38),
+      this.glassMat,
+    );
+    cabin.position.set(0, 1.18, 0.18);
+    this.chassisGroup.add(cabin);
+
+    const roof = new THREE.Mesh(
+      new THREE.BoxGeometry(1.62, 0.08, 2.18),
+      this.bodyPaintMat,
+    );
+    roof.position.set(0, 1.46, 0.2);
+    this.chassisGroup.add(roof);
+
+    // Roof Expedition Rack + Quad Rally LED Light Bar
+    const lightBarPod = new THREE.Mesh(
+      new THREE.BoxGeometry(1.36, 0.1, 0.16),
+      this.carbonMat,
+    );
+    lightBarPod.position.set(0, 1.55, -0.78);
+    this.chassisGroup.add(lightBarPod);
+
+    const roofLed = new THREE.Mesh(
+      new THREE.BoxGeometry(1.26, 0.065, 0.08),
+      this.headlightMat,
+    );
+    roofLed.position.set(0, 1.55, -0.85);
+    this.chassisGroup.add(roofLed);
+
+    for (const rx of [-0.74, 0.74]) {
+      const rail = new THREE.Mesh(
+        new THREE.BoxGeometry(0.06, 0.07, 1.95),
+        this.accentTrimMat,
+      );
+      rail.position.set(rx, 1.53, 0.24);
+      this.chassisGroup.add(rail);
+    }
+
+    // Front Bull-Bar + Full-Width Cyber LED Visor
+    const bullBar = new THREE.Mesh(
+      new THREE.BoxGeometry(1.82, 0.32, 0.24),
+      this.carbonMat,
+    );
+    bullBar.position.set(0, 0.48, -2.14);
+    this.chassisGroup.add(bullBar);
+
+    const frontVisor = new THREE.Mesh(
+      new THREE.BoxGeometry(1.86, 0.09, 0.08),
+      this.headlightMat,
+    );
+    frontVisor.position.set(0, 0.82, -2.12);
+    this.chassisGroup.add(frontVisor);
+
+    // Full-Width Cyber Rear Taillight Strip + Rear Skid Plate
+    const rearStrip = new THREE.Mesh(
+      new THREE.BoxGeometry(1.88, 0.11, 0.09),
+      this.taillightMat,
+    );
+    rearStrip.position.set(0, 0.88, 2.12);
+    this.chassisGroup.add(rearStrip);
+
+    const skidPlate = new THREE.Mesh(
+      new THREE.BoxGeometry(1.62, 0.24, 0.22),
+      this.rimMat,
+    );
+    skidPlate.position.set(0, 0.38, 2.08);
+    this.chassisGroup.add(skidPlate);
+
+    this._addExhaustPair([-0.55, 0.55], 0.36, 2.14);
+  }
+
+  _buildWheels({
+    radius = 0.34,
+    width = 0.28,
+    frontX = 0.92,
+    rearX = 0.94,
+    frontZ = -1.32,
+    rearZ = 1.32,
+  } = {}) {
+    this.wheelRadius = radius;
     const wheelConfigs = [
-      { x: -0.92, y: 0.34, z: -1.32, isFront: true, side: -1 },
-      { x: 0.92, y: 0.34, z: -1.32, isFront: true, side: 1 },
-      { x: -0.94, y: 0.36, z: 1.32, isFront: false, side: -1 },
-      { x: 0.94, y: 0.36, z: 1.32, isFront: false, side: 1 },
+      { x: -frontX, y: radius, z: frontZ, isFront: true, side: -1 },
+      { x: frontX, y: radius, z: frontZ, isFront: true, side: 1 },
+      { x: -rearX, y: radius + 0.01, z: rearZ, isFront: false, side: -1 },
+      { x: rearX, y: radius + 0.01, z: rearZ, isFront: false, side: 1 },
     ];
 
-    const tireGeo = new THREE.CylinderGeometry(0.34, 0.34, 0.28, 22);
+    const tireGeo = new THREE.CylinderGeometry(radius, radius, width, 22);
     tireGeo.rotateZ(Math.PI / 2);
 
-    const rimHubGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.29, 16);
+    const rimHubGeo = new THREE.CylinderGeometry(radius * 0.64, radius * 0.64, width + 0.01, 16);
     rimHubGeo.rotateZ(Math.PI / 2);
 
-    const spokeGeo = new THREE.BoxGeometry(0.3, 0.045, 0.41);
+    const spokeGeo = new THREE.BoxGeometry(width + 0.02, 0.045, radius * 1.2);
     const caliperGeo = new THREE.BoxGeometry(0.14, 0.16, 0.12);
 
     for (const cfg of wheelConfigs) {
@@ -501,25 +1096,23 @@ export class Car {
         spinGroup.add(spoke);
       }
 
-      // Non-spinning brake caliper attached to steering knuckle
       const caliper = new THREE.Mesh(caliperGeo, this.caliperMat);
       caliper.position.set(cfg.side * 0.08, 0.05, 0.12);
       steerPivot.add(caliper);
 
       steerPivot.add(spinGroup);
       if (!cfg.isFront) {
-        steerPivot.scale.set(1.06, 1.05, 1.05);
+        steerPivot.scale.set(1.06, 1.04, 1.04);
       } else {
         this.frontWheelPivots.push(steerPivot);
       }
 
       this.wheelSpinGroups.push(spinGroup);
-      this.root.add(steerPivot);
+      this.wheelsContainer.add(steerPivot);
     }
   }
 
   _buildGroundEffects() {
-    // Contact shadow grounded right under the car so it never looks floating
     const shadowTex = createContactShadowTexture();
     const shadowMat = new THREE.MeshBasicMaterial({
       map: shadowTex,
@@ -536,7 +1129,6 @@ export class Car {
     shadowPlane.position.set(0, 0.02, 0.05);
     this.root.add(shadowPlane);
 
-    // Projected headlight road glow cones ahead of the car
     const hlTex = createHeadlightPoolTexture();
     if (hlTex) {
       const beamMat = new THREE.MeshBasicMaterial({
@@ -627,6 +1219,7 @@ export class Car {
     this.chassisGroup.position.set(0, 0, 0);
     this.chassisGroup.rotation.set(0, 0, 0);
     this.chassisGroup.visible = true;
+    if (this.nitroFlameMat) this.nitroFlameMat.opacity = 0;
 
     for (let i = 0; i < this.sparks.length; i++) {
       this.sparks[i].active = false;
@@ -640,16 +1233,25 @@ export class Car {
 
   /**
    * Updates car lateral position, road clamping, wheel spin, front steering knuckles,
-   * body roll/pitch, brake light intensity, and collision sparks.
+   * body roll/pitch, brake light intensity, Nitro exhaust plasma, and collision sparks.
    */
-  update(dt, { steer = 0, speedMps = 0, isAccelerating = false, isBraking = false } = {}) {
+  update(
+    dt,
+    {
+      steer = 0,
+      speedMps = 0,
+      isAccelerating = false,
+      isBraking = false,
+      isBoosting = false,
+    } = {},
+  ) {
     const safeDt = Math.min(0.1, Math.max(0.001, dt));
     const clampedSteer = Math.max(-1, Math.min(1, steer));
     this.steerInput = clampedSteer;
+    const model = this.getActiveModelPreset();
 
     if (this.invulnerableTimer > 0) {
       this.invulnerableTimer = Math.max(0, this.invulnerableTimer - safeDt);
-      // Subtle hull flicker during recovery window
       this.chassisGroup.visible = Math.floor(this.invulnerableTimer * 18) % 2 === 0;
     } else {
       this.chassisGroup.visible = true;
@@ -663,16 +1265,17 @@ export class Car {
       this.x = Math.max(-PLAYER_MAX_X, Math.min(PLAYER_MAX_X, this.x + this.lateralVelocity * safeDt));
       this.lateralVelocity *= decay;
       this.root.position.x = this.x;
+      if (this.nitroFlameMat) this.nitroFlameMat.opacity = 0;
       this._updateSparks(safeDt);
       return;
     }
 
-    // Smooth, progressive lateral velocity with soft highway-edge cushion
+    // Smooth, progressive lateral velocity scaled by chosen car model's handlingFactor
     const speedFactor = Math.min(1.16, 0.56 + speedMps / 56);
-    const maxLateralSpeed = 14.2 * speedFactor;
+    const maxLateralSpeed = 14.2 * speedFactor * (model.handlingFactor || 1.0);
     let targetVx = clampedSteer * maxLateralSpeed;
 
-    // Gently cushion outward speed in the final 0.45m near barriers so it never slams harshly
+    // Gently cushion outward speed in the final 0.45m near barriers
     const edgeDistLeft = this.x - -PLAYER_MAX_X;
     const edgeDistRight = PLAYER_MAX_X - this.x;
     if (targetVx < 0 && edgeDistLeft < 0.45) {
@@ -681,10 +1284,9 @@ export class Car {
       targetVx *= Math.max(0, edgeDistRight / 0.45);
     }
 
-    this.lateralVelocity = THREE.MathUtils.damp(this.lateralVelocity, targetVx, 13.5, safeDt);
+    this.lateralVelocity = THREE.MathUtils.damp(this.lateralVelocity, targetVx, 13.8, safeDt);
     this.x += this.lateralVelocity * safeDt;
 
-    // Enforce strict road boundaries so the car can never leave the highway
     if (this.x < -PLAYER_MAX_X) {
       this.x = -PLAYER_MAX_X;
       if (this.lateralVelocity < 0) this.lateralVelocity = 0;
@@ -698,8 +1300,8 @@ export class Car {
     // Smooth yaw into turns + chassis body roll & pitch squat/dive
     const normalizedVx = this.lateralVelocity / 14.2;
     const targetYaw = -normalizedVx * 0.145;
-    const targetRoll = -normalizedVx * 0.075;
-    const targetPitch = isBraking ? -0.028 : isAccelerating ? 0.015 : 0;
+    const targetRoll = -normalizedVx * 0.072;
+    const targetPitch = isBraking ? -0.028 : isBoosting ? 0.024 : isAccelerating ? 0.015 : 0;
 
     this.root.rotation.y = THREE.MathUtils.damp(this.root.rotation.y, targetYaw, 11.5, safeDt);
     this.chassisGroup.rotation.z = THREE.MathUtils.damp(
@@ -715,14 +1317,14 @@ export class Car {
       safeDt,
     );
 
-    // Subtle high-frequency road suspension micro-bump proportional to speed
+    // Subtle high-frequency road suspension micro-bump
     this.suspensionPhase += safeDt * (8 + speedMps * 0.45);
     const bumpAmplitude = Math.min(0.014, speedMps * 0.00028);
     this.chassisGroup.position.y =
       Math.sin(this.suspensionPhase) * bumpAmplitude +
       Math.cos(this.suspensionPhase * 2.3) * (bumpAmplitude * 0.4);
 
-    // Rotate front wheel knuckles & spin all 4 wheels according to forward speed
+    // Rotate front wheel knuckles & spin all 4 wheels
     const targetWheelSteer = -clampedSteer * 0.42;
     for (let i = 0; i < this.frontWheelPivots.length; i++) {
       this.frontWheelPivots[i].rotation.y = THREE.MathUtils.damp(
@@ -733,15 +1335,28 @@ export class Car {
       );
     }
 
-    const wheelRadius = 0.34;
+    const wheelRadius = this.wheelRadius || 0.34;
     this.wheelSpinAngle -= (speedMps * safeDt) / wheelRadius;
     for (let i = 0; i < this.wheelSpinGroups.length; i++) {
       this.wheelSpinGroups[i].rotation.x = this.wheelSpinAngle;
     }
 
-    // Dynamic brake light & exhaust glow response
+    // Dynamic brake light, exhaust glow & Nitro plasma afterburners
     this.taillightMat.emissiveIntensity = isBraking ? 4.4 : 1.75;
-    this.exhaustGlowMat.opacity = isAccelerating && speedMps > 24 ? 0.72 : 0.0;
+    this.exhaustGlowMat.opacity =
+      isBoosting ? 0.95 : isAccelerating && speedMps > 24 ? 0.72 : 0.0;
+
+    if (this.nitroFlameMat) {
+      if (isBoosting) {
+        const flicker = 0.78 + Math.sin(this.suspensionPhase * 3.8) * 0.18;
+        this.nitroFlameMat.opacity = flicker;
+        for (let p = 0; p < this.nitroPlumes.length; p++) {
+          this.nitroPlumes[p].scale.set(1, 0.85 + Math.random() * 0.45, 1);
+        }
+      } else {
+        this.nitroFlameMat.opacity = 0;
+      }
+    }
 
     this._updateSparks(safeDt);
   }

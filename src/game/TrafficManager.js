@@ -1,45 +1,96 @@
 /**
  * TrafficManager.js
  *
- * Spawns, animates, and recycles multi-part 3D highway traffic vehicles
- * across 4 lanes with guaranteed fair navigable gaps and progressive difficulty.
+ * Spawns, animates, and recycles 5 distinct 3D highway rival & traffic vehicle models
+ * with vibrant custom colours and floating random racer nameplates across 4 lanes,
+ * guaranteeing fair navigable gaps and progressive difficulty.
  */
 
 import * as THREE from 'three';
 import { LANE_CENTERS } from './Road.js';
+import {
+  createNameplateSprite,
+  updateNameplateSprite,
+  pickRandomRivalName,
+} from './Nameplate.js';
 
 const VEHICLE_ARCHETYPES = [
   {
-    type: 'sedan',
-    halfWidth: 0.92,
+    type: 'sportster',
+    badge: 'GT',
+    halfWidth: 0.94,
     halfLength: 2.08,
-    baseSpeedMps: 20,
-    colors: [0x334155, 0x94a3b8, 0x1e3a5f, 0x3f3f46],
+    baseSpeedMps: 27,
+    nameplateY: 1.72,
+    colors: [
+      { hex: 0xe11d48, accent: '#fb7185' },
+      { hex: 0x0284c7, accent: '#38bdf8' },
+      { hex: 0x7c3aed, accent: '#c084fc' },
+      { hex: 0x10b981, accent: '#34d399' },
+      { hex: 0xf59e0b, accent: '#fbbf24' },
+    ],
   },
   {
     type: 'coupe',
+    badge: 'RS',
     halfWidth: 0.94,
     halfLength: 2.02,
-    baseSpeedMps: 25,
-    colors: [0xd97706, 0x0284c7, 0xe11d48, 0x0d9488],
+    baseSpeedMps: 24,
+    nameplateY: 1.76,
+    colors: [
+      { hex: 0xd97706, accent: '#fbbf24' },
+      { hex: 0x0891b2, accent: '#22d3ee' },
+      { hex: 0xdb2777, accent: '#f472b6' },
+      { hex: 0x059669, accent: '#34d399' },
+      { hex: 0xe2e8f0, accent: '#94a3b8' },
+    ],
+  },
+  {
+    type: 'sedan',
+    badge: 'PRO',
+    halfWidth: 0.92,
+    halfLength: 2.1,
+    baseSpeedMps: 20,
+    nameplateY: 1.82,
+    colors: [
+      { hex: 0x2563eb, accent: '#60a5fa' },
+      { hex: 0x94a3b8, accent: '#cbd5e1' },
+      { hex: 0xdc2626, accent: '#f87171' },
+      { hex: 0x334155, accent: '#94a3b8' },
+      { hex: 0xca8a04, accent: '#facc15' },
+    ],
   },
   {
     type: 'suv',
+    badge: '4X4',
     halfWidth: 1.0,
     halfLength: 2.22,
     baseSpeedMps: 18,
-    colors: [0x1f2937, 0x475569, 0xcbd5e1, 0x27272a],
+    nameplateY: 1.98,
+    colors: [
+      { hex: 0x0f766e, accent: '#2dd4bf' },
+      { hex: 0x475569, accent: '#94a3b8' },
+      { hex: 0xcbd5e1, accent: '#e2e8f0' },
+      { hex: 0xb45309, accent: '#fbbf24' },
+      { hex: 0x1d4ed8, accent: '#60a5fa' },
+    ],
   },
   {
     type: 'truck',
+    badge: 'RIG',
     halfWidth: 1.12,
     halfLength: 3.35,
     baseSpeedMps: 14,
-    colors: [0xdbeafe, 0x64748b, 0xf59e0b],
+    nameplateY: 3.15,
+    colors: [
+      { hex: 0xf59e0b, accent: '#fbbf24' },
+      { hex: 0x0284c7, accent: '#38bdf8' },
+      { hex: 0xdbeafe, accent: '#93c5fd' },
+      { hex: 0xdc2626, accent: '#f87171' },
+    ],
   },
 ];
 
-// Shared geometries/materials across pooled traffic vehicles for draw-call & memory efficiency
 let _sharedAssets = null;
 function getSharedTrafficAssets() {
   if (_sharedAssets) return _sharedAssets;
@@ -50,15 +101,21 @@ function getSharedTrafficAssets() {
   _sharedAssets = {
     wheelGeo,
     tireMat: new THREE.MeshStandardMaterial({ color: 0x111318, roughness: 0.86 }),
+    rimMat: new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.8, roughness: 0.28 }),
     glassMat: new THREE.MeshStandardMaterial({
-      color: 0x090f1a,
-      roughness: 0.14,
-      metalness: 0.45,
+      color: 0x080e1a,
+      roughness: 0.12,
+      metalness: 0.5,
     }),
     trimMat: new THREE.MeshStandardMaterial({
-      color: 0x181f2c,
-      roughness: 0.7,
-      metalness: 0.2,
+      color: 0x151c28,
+      roughness: 0.68,
+      metalness: 0.25,
+    }),
+    stripeMat: new THREE.MeshStandardMaterial({
+      color: 0xf8fafc,
+      roughness: 0.3,
+      metalness: 0.4,
     }),
     tailLightMat: new THREE.MeshBasicMaterial({ color: 0xff2e3d }),
     headLightMat: new THREE.MeshBasicMaterial({ color: 0xfef3c7 }),
@@ -67,19 +124,18 @@ function getSharedTrafficAssets() {
   return _sharedAssets;
 }
 
-function buildTrafficVehicleMesh(archetype, paintHex, isSoftwareGl) {
+function buildTrafficVehicleMesh(archetype, colorObj, initialName, isSoftwareGl) {
   const shared = getSharedTrafficAssets();
   const group = new THREE.Group();
   const wheels = [];
 
   const bodyMat = new THREE.MeshStandardMaterial({
-    color: paintHex,
-    metalness: archetype.type === 'truck' ? 0.35 : 0.72,
-    roughness: archetype.type === 'truck' ? 0.48 : 0.24,
+    color: colorObj.hex,
+    metalness: archetype.type === 'truck' ? 0.42 : 0.76,
+    roughness: archetype.type === 'truck' ? 0.42 : 0.2,
   });
 
   if (archetype.type === 'truck') {
-    // Cab (-Z front) + Elevated Cargo Box (+Z rear) + Underride Bumper + 6 Wheels
     const cab = new THREE.Mesh(new THREE.BoxGeometry(2.1, 1.65, 1.85), bodyMat);
     cab.position.set(0, 1.05, -2.25);
     cab.castShadow = !isSoftwareGl;
@@ -91,17 +147,21 @@ function buildTrafficVehicleMesh(archetype, paintHex, isSoftwareGl) {
 
     const cargoBox = new THREE.Mesh(
       new THREE.BoxGeometry(2.22, 2.35, 4.55),
-      new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.58, metalness: 0.25 }),
+      new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.55, metalness: 0.28 }),
     );
     cargoBox.position.set(0, 1.52, 1.05);
     cargoBox.castShadow = !isSoftwareGl;
     group.add(cargoBox);
 
+    // Side accent stripe along cargo trailer
+    const sideBand = new THREE.Mesh(new THREE.BoxGeometry(2.25, 0.22, 4.4), bodyMat);
+    sideBand.position.set(0, 1.35, 1.05);
+    group.add(sideBand);
+
     const chassisRail = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.28, 6.2), shared.trimMat);
     chassisRail.position.set(0, 0.38, 0);
     group.add(chassisRail);
 
-    // Rear taillights & top amber clearance markers facing player (+Z)
     for (const tx of [-0.82, 0.82]) {
       const tl = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.16, 0.08), shared.tailLightMat);
       tl.position.set(tx, 0.58, 3.34);
@@ -116,6 +176,64 @@ function buildTrafficVehicleMesh(archetype, paintHex, isSoftwareGl) {
       for (const wx of [-1.02, 1.02]) {
         const w = new THREE.Mesh(shared.wheelGeo, shared.tireMat);
         w.position.set(wx, 0.33, wz);
+        wheels.push(w);
+        group.add(w);
+      }
+    }
+  } else if (archetype.type === 'sportster') {
+    // Low-slung Rival GT Supercar with center racing stripe + elevated GT wing
+    const length = archetype.halfLength * 2;
+    const width = archetype.halfWidth * 2;
+
+    const lowerBody = new THREE.Mesh(new THREE.BoxGeometry(width, 0.44, length), bodyMat);
+    lowerBody.position.set(0, 0.48, 0);
+    lowerBody.castShadow = !isSoftwareGl;
+    group.add(lowerBody);
+
+    const centerStripe = new THREE.Mesh(
+      new THREE.BoxGeometry(0.24, 0.02, length * 0.96),
+      shared.stripeMat,
+    );
+    centerStripe.position.set(0, 0.71, 0);
+    group.add(centerStripe);
+
+    const canopy = new THREE.Mesh(
+      new THREE.BoxGeometry(width * 0.76, 0.36, 1.72),
+      shared.glassMat,
+    );
+    canopy.position.set(0, 0.84, 0.08);
+    group.add(canopy);
+
+    // Elevated Rival GT Rear Wing
+    for (const px of [-0.48, 0.48]) {
+      const pylon = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.24, 0.2), shared.trimMat);
+      pylon.position.set(px, 0.82, archetype.halfLength - 0.22);
+      group.add(pylon);
+    }
+    const wing = new THREE.Mesh(
+      new THREE.BoxGeometry(width * 0.96, 0.05, 0.28),
+      bodyMat,
+    );
+    wing.position.set(0, 0.95, archetype.halfLength - 0.2);
+    group.add(wing);
+
+    const fullTailBar = new THREE.Mesh(
+      new THREE.BoxGeometry(width * 0.88, 0.09, 0.08),
+      shared.tailLightMat,
+    );
+    fullTailBar.position.set(0, 0.58, archetype.halfLength + 0.02);
+    group.add(fullTailBar);
+
+    for (const side of [-1, 1]) {
+      const hl = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.08, 0.08), shared.headLightMat);
+      hl.position.set(side * (archetype.halfWidth - 0.26), 0.52, -archetype.halfLength - 0.02);
+      group.add(hl);
+    }
+
+    for (const wz of [-archetype.halfLength * 0.62, archetype.halfLength * 0.62]) {
+      for (const wx of [-archetype.halfWidth + 0.05, archetype.halfWidth - 0.05]) {
+        const w = new THREE.Mesh(shared.wheelGeo, shared.tireMat);
+        w.position.set(wx, 0.32, wz);
         wheels.push(w);
         group.add(w);
       }
@@ -152,13 +270,23 @@ function buildTrafficVehicleMesh(archetype, paintHex, isSoftwareGl) {
     roofCap.position.set(0, 0.32 + hullHeight + cabinHeight * 0.94, isSuv ? 0.25 : 0.12);
     group.add(roofCap);
 
+    if (isSuv) {
+      for (const rx of [-0.66, 0.66]) {
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.06, 2.0), shared.trimMat);
+        rail.position.set(rx, 1.62, 0.25);
+        group.add(rail);
+      }
+    }
+
     if (isCoupe) {
-      const spoiler = new THREE.Mesh(new THREE.BoxGeometry(width * 0.9, 0.06, 0.24), shared.trimMat);
+      const spoiler = new THREE.Mesh(
+        new THREE.BoxGeometry(width * 0.9, 0.07, 0.24),
+        shared.trimMat,
+      );
       spoiler.position.set(0, 0.96, archetype.halfLength - 0.18);
       group.add(spoiler);
     }
 
-    // Rear bumper & crisp red taillights (+Z facing camera)
     const bumper = new THREE.Mesh(new THREE.BoxGeometry(width * 0.98, 0.18, 0.15), shared.trimMat);
     bumper.position.set(0, 0.36, archetype.halfLength);
     group.add(bumper);
@@ -189,7 +317,17 @@ function buildTrafficVehicleMesh(archetype, paintHex, isSoftwareGl) {
     }
   }
 
-  return { group, wheels };
+  // Floating 3D Rival Nameplate above roof
+  const nameplate = createNameplateSprite({
+    name: initialName,
+    badge: archetype.badge,
+    accentColor: colorObj.accent,
+    isPlayer: false,
+  });
+  nameplate.position.set(0, archetype.nameplateY, 0);
+  group.add(nameplate);
+
+  return { group, wheels, bodyMat, nameplate };
 }
 
 export class TrafficManager {
@@ -203,14 +341,15 @@ export class TrafficManager {
     this.difficultyLevel = 1;
     this.nextId = 1;
 
-    this._prewarmPool(18);
+    this._prewarmPool(20);
   }
 
   _prewarmPool(count) {
     for (let i = 0; i < count; i++) {
       const arch = VEHICLE_ARCHETYPES[i % VEHICLE_ARCHETYPES.length];
-      const color = arch.colors[i % arch.colors.length];
-      const built = buildTrafficVehicleMesh(arch, color, this.isSoftwareGl);
+      const colorObj = arch.colors[i % arch.colors.length];
+      const driverName = pickRandomRivalName();
+      const built = buildTrafficVehicleMesh(arch, colorObj, driverName, this.isSoftwareGl);
       built.group.visible = false;
       this.root.add(built.group);
       this.pool.push({
@@ -218,6 +357,9 @@ export class TrafficManager {
         archetype: arch,
         mesh: built.group,
         wheels: built.wheels,
+        bodyMat: built.bodyMat,
+        nameplate: built.nameplate,
+        driverName,
         laneIndex: 0,
         x: 0,
         z: -200,
@@ -225,6 +367,7 @@ export class TrafficManager {
         halfWidth: arch.halfWidth,
         halfLength: arch.halfLength,
         nearMissAwarded: false,
+        overtakenAwarded: false,
         collided: false,
       });
     }
@@ -269,7 +412,6 @@ export class TrafficManager {
    */
   spawnWave(difficulty = 1) {
     const laneIndices = [0, 1, 2, 3];
-    // Shuffle lanes
     for (let i = laneIndices.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       const tmp = laneIndices[i];
@@ -277,7 +419,6 @@ export class TrafficManager {
       laneIndices[j] = tmp;
     }
 
-    // Choose wave count: 1, 2, or up to 3 (always leaving >= 1 lane open!)
     const roll = Math.random();
     let desiredCount = 1;
     if (difficulty >= 4 && roll > 0.55) {
@@ -288,13 +429,12 @@ export class TrafficManager {
       desiredCount = 2;
     }
 
-    // Reserve laneIndices[0] as guaranteed open lane; spawn in remaining lanes with staggered Z
+    const activeNames = new Set(this.activeVehicles.map((v) => v.driverName));
     const candidateLanes = laneIndices.slice(1, 1 + desiredCount);
     const baseSpawnZ = -182;
 
     for (let i = 0; i < candidateLanes.length; i++) {
       const laneIdx = candidateLanes[i];
-      // Stagger multi-car waves longitudinally so patterns feel organic and readable
       const staggerZ = i * -11.5 - Math.random() * 5;
       const z = baseSpawnZ + staggerZ;
 
@@ -303,16 +443,38 @@ export class TrafficManager {
       const vehicle = this._acquireVehicle();
       if (!vehicle) break;
 
+      // Pick fresh vibrant paint + unique random racer name on each spawn
+      const palette = vehicle.archetype.colors;
+      const pickedColor = palette[Math.floor(Math.random() * palette.length)];
+      if (vehicle.bodyMat) {
+        vehicle.bodyMat.color.setHex(pickedColor.hex);
+      }
+
+      const freshName = pickRandomRivalName(activeNames);
+      activeNames.add(freshName);
+      vehicle.driverName = freshName;
+      updateNameplateSprite(vehicle.nameplate, {
+        name: freshName,
+        badge: vehicle.archetype.badge,
+        accentColor: pickedColor.accent,
+        isPlayer: false,
+      });
+
       const speedBoost = (difficulty - 1) * 1.4;
       vehicle.laneIndex = laneIdx;
       vehicle.x = LANE_CENTERS[laneIdx];
       vehicle.z = z;
-      vehicle.speedMps = vehicle.archetype.baseSpeedMps + speedBoost + (Math.random() - 0.5) * 2.5;
+      vehicle.speedMps =
+        vehicle.archetype.baseSpeedMps + speedBoost + (Math.random() - 0.5) * 2.5;
       vehicle.nearMissAwarded = false;
+      vehicle.overtakenAwarded = false;
       vehicle.collided = false;
 
       vehicle.mesh.position.set(vehicle.x, 0, vehicle.z);
       vehicle.mesh.visible = true;
+      if (vehicle.nameplate) {
+        vehicle.nameplate.visible = false; // Shown smoothly once within ~95m
+      }
       this.activeVehicles.push(vehicle);
     }
   }
@@ -320,10 +482,8 @@ export class TrafficManager {
   update(dt, playerSpeedMps, distanceMeters = 0) {
     const safeDt = Math.min(0.1, Math.max(0.001, dt));
 
-    // Smoothly ramp difficulty tier every 650m (up to Tier 8)
     this.difficultyLevel = Math.min(8, 1 + Math.floor(distanceMeters / 650));
 
-    // Advance spawn timer faster as player drives faster & difficulty climbs
     if (playerSpeedMps > 8) {
       this.spawnTimer -= safeDt * (0.75 + playerSpeedMps / 42);
       if (this.spawnTimer <= 0) {
@@ -335,18 +495,20 @@ export class TrafficManager {
 
     for (let i = this.activeVehicles.length - 1; i >= 0; i--) {
       const v = this.activeVehicles[i];
-      // Traffic drives forward (-Z) at v.speedMps while world scrolls toward player (+Z) at playerSpeedMps
       const relativeSpeed = playerSpeedMps - v.speedMps;
       v.z += relativeSpeed * safeDt;
       v.mesh.position.set(v.x, 0, v.z);
 
-      // Spin traffic wheels proportional to their own forward speed
+      // Show rival gamer-tag nameplate cleanly when within readable racing range (-95m..+8m)
+      if (v.nameplate) {
+        v.nameplate.visible = v.z > -95 && v.z < 8;
+      }
+
       const spinDelta = -(v.speedMps * safeDt) / 0.32;
       for (let w = 0; w < v.wheels.length; w++) {
         v.wheels[w].rotation.x += spinDelta;
       }
 
-      // Recycle once well behind camera (+28m) or pushed too far ahead (-230m)
       if (v.z > 28 || v.z < -230) {
         v.mesh.visible = false;
         this.activeVehicles.splice(i, 1);

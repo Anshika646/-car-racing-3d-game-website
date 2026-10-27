@@ -2,20 +2,25 @@
  * Game.js
  *
  * Core orchestrator for MOTION DRIVE 3D:
- * - Three.js WebGLRenderer, RoomEnvironment PBR reflections, 3-point + hemisphere lighting
- * - Software-WebGL detection & frame pacing + WebGL context loss/restore safety
- * - Game state machine: TITLE -> CALIBRATING -> COUNTDOWN -> RACING -> PAUSED -> CRASHING -> GAMEOVER
- * - Real-time MediaPipe camera steering + Keyboard fallback integration
- * - Speed/acceleration/braking physics, score & personal-best persistence
+ * - Three.js WebGLRenderer, RoomEnvironment PBR reflections, dynamic atmosphere lighting
+ * - 4 selectable 3D Car Models + 8 Paint Finishes + Live Editable 3D Floating Driver Nameplate
+ * - Named Highway Rival Traffic with random gamer tags, Overtake Combo Streaks & Hyper Nitro Boost
+ * - 3 Camera Views (Chase / Action Close / Hood)
+ * - Real-time MediaPipe webcam hand-wheel steering + smooth Keyboard fallback
  */
 
 import * as THREE from 'three';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
-import { Car, CAR_PAINT_PRESETS } from './Car.js';
-import { Road } from './Road.js';
+import { Car, CAR_MODEL_PRESETS, CAR_PAINT_PRESETS } from './Car.js';
+import { Road, ATMOSPHERE_PRESETS } from './Road.js';
 import { TrafficManager } from './TrafficManager.js';
 import { CollisionSystem } from './CollisionSystem.js';
 import { AudioSystem } from './AudioSystem.js';
+import {
+  sanitizeDriverName,
+  DEFAULT_DRIVER_NAME,
+  RANDOM_RIVAL_NAMES,
+} from './Nameplate.js';
 import { CameraController } from '../controls/CameraController.js';
 import { HandTracker } from '../controls/HandTracker.js';
 import { SteeringCalibration, GESTURE_STATUS } from '../controls/SteeringCalibration.js';
@@ -27,6 +32,11 @@ import { GameOver } from '../ui/GameOver.js';
 export const BEST_SCORE_STORAGE_KEY = 'motion_drive_3d_best_score_v1';
 export const QUALITY_STORAGE_KEY = 'motion_drive_3d_quality_v1';
 export const CAR_PAINT_STORAGE_KEY = 'motion_drive_3d_car_paint_v1';
+export const CAR_MODEL_STORAGE_KEY = 'motion_drive_3d_car_model_v1';
+export const DRIVER_NAME_STORAGE_KEY = 'motion_drive_3d_driver_name_v1';
+export const ATMOSPHERE_STORAGE_KEY = 'motion_drive_3d_atmosphere_v1';
+
+export const CAMERA_VIEWS = ['chase', 'close', 'hood'];
 
 export const GAME_STATE = {
   TITLE: 'TITLE',
@@ -66,16 +76,27 @@ export class Game {
 
     this.state = GAME_STATE.TITLE;
     this.controlMode = 'keyboard'; // 'camera' | 'keyboard'
+    this.cameraView = 'chase'; // 'chase' | 'close' | 'hood'
     this.quality = this._loadQuality();
+    this.carModel = this._loadCarModel();
     this.carPaint = this._loadCarPaint();
+    this.driverName = this._loadDriverName();
+    this.atmosphere = this._loadAtmosphere();
     this.bestScore = this._loadBestScore();
 
     // Gameplay metrics
     this.score = 0;
     this.distanceMeters = 0;
-    this.speedMps = 22; // Showcase cruise on title screen
+    this.speedMps = 22;
     this.topSpeedKmh = 0;
     this.nearMisses = 0;
+    this.overtakes = 0;
+    this.combo = 1;
+    this.maxCombo = 1;
+    this.comboDecayTimer = 0;
+    this.nitroCharge = 100;
+    this.isBoosting = false;
+    this.hudNitroPressed = false;
     this.countdownTimer = 0;
     this.lastCountdownDigit = -1;
     this.cameraShake = 0;
@@ -96,16 +117,20 @@ export class Game {
           this.hud?.toggleDock();
         }
       },
+      onCycleCamera: () => {
+        if (this.state === GAME_STATE.RACING || this.state === GAME_STATE.COUNTDOWN) {
+          this.cycleCameraView();
+        }
+      },
     });
 
     this.frameId = 0;
     this.isDisposed = false;
     this.isSoftwareGl = false;
-    this.lastTimestamp = 0;
 
     // Camera rig smoothing state
-    this.camPos = new THREE.Vector3(3.4, 2.35, 6.2);
-    this.camLook = new THREE.Vector3(0, 0.75, -8);
+    this.camPos = new THREE.Vector3(-2.4, 2.2, 5.8);
+    this.camLook = new THREE.Vector3(-1.2, 0.85, -5.5);
     this.camBank = 0;
     this.smoothedDt = 1 / 60;
 
@@ -113,9 +138,14 @@ export class Game {
       this._initUI();
       this._initThree();
     } else {
-      // Lightweight simulation setup for unit/integration tests without WebGL
-      this.car = new Car({ isSoftwareGl: true, paintPresetId: this.carPaint });
+      this.car = new Car({
+        isSoftwareGl: true,
+        modelPresetId: this.carModel,
+        paintPresetId: this.carPaint,
+        driverName: this.driverName,
+      });
       this.road = new Road({ isSoftwareGl: true, quality: 'low' });
+      this.road.setAtmosphere(this.atmosphere);
       this.traffic = new TrafficManager({ isSoftwareGl: true });
     }
   }
@@ -181,6 +211,31 @@ export class Game {
     this.menu?.setQualityState(quality);
   }
 
+  _loadCarModel() {
+    if (!this.storage) return CAR_MODEL_PRESETS[0].id;
+    try {
+      const saved = this.storage.getItem(CAR_MODEL_STORAGE_KEY);
+      if (saved && CAR_MODEL_PRESETS.some((m) => m.id === saved)) return saved;
+    } catch {
+      // Ignore
+    }
+    return CAR_MODEL_PRESETS[0].id;
+  }
+
+  setCarModel(modelId) {
+    const valid = CAR_MODEL_PRESETS.find((m) => m.id === modelId) || CAR_MODEL_PRESETS[0];
+    this.carModel = valid.id;
+    if (this.storage) {
+      try {
+        this.storage.setItem(CAR_MODEL_STORAGE_KEY, valid.id);
+      } catch {
+        // Ignore
+      }
+    }
+    this.car?.setModelPreset(valid.id);
+    this.menu?.setCarModelState(valid.id);
+  }
+
   _loadCarPaint() {
     if (!this.storage) return CAR_PAINT_PRESETS[0].id;
     try {
@@ -208,11 +263,104 @@ export class Game {
     this.menu?.setCarPaintState(valid.id);
   }
 
+  _loadDriverName() {
+    if (!this.storage) return DEFAULT_DRIVER_NAME;
+    try {
+      const saved = this.storage.getItem(DRIVER_NAME_STORAGE_KEY);
+      if (saved) return sanitizeDriverName(saved, DEFAULT_DRIVER_NAME);
+    } catch {
+      // Ignore
+    }
+    return DEFAULT_DRIVER_NAME;
+  }
+
+  setDriverName(rawName, source = null) {
+    const cleaned = sanitizeDriverName(rawName, DEFAULT_DRIVER_NAME);
+    this.driverName = cleaned;
+    if (this.storage) {
+      try {
+        this.storage.setItem(DRIVER_NAME_STORAGE_KEY, cleaned);
+      } catch {
+        // Ignore
+      }
+    }
+    this.car?.setDriverName(cleaned);
+    this.menu?.setDriverNameState(cleaned, source);
+    return cleaned;
+  }
+
+  randomizeDriverName() {
+    const pick =
+      RANDOM_RIVAL_NAMES[Math.floor(Math.random() * RANDOM_RIVAL_NAMES.length)].toUpperCase();
+    return this.setDriverName(pick, null);
+  }
+
+  _loadAtmosphere() {
+    if (!this.storage) return ATMOSPHERE_PRESETS[0].id;
+    try {
+      const saved = this.storage.getItem(ATMOSPHERE_STORAGE_KEY);
+      if (saved && ATMOSPHERE_PRESETS.some((t) => t.id === saved)) return saved;
+    } catch {
+      // Ignore
+    }
+    return ATMOSPHERE_PRESETS[0].id;
+  }
+
+  setAtmosphere(themeId) {
+    const preset =
+      ATMOSPHERE_PRESETS.find((t) => t.id === themeId) || ATMOSPHERE_PRESETS[0];
+    this.atmosphere = preset.id;
+    if (this.storage) {
+      try {
+        this.storage.setItem(ATMOSPHERE_STORAGE_KEY, preset.id);
+      } catch {
+        // Ignore
+      }
+    }
+
+    this.road?.setAtmosphere(preset.id);
+    if (this.scene) {
+      this.scene.background = new THREE.Color(preset.skyHex);
+      if (this.scene.fog) {
+        this.scene.fog.color.setHex(preset.skyHex);
+      }
+    }
+    if (this.hemiLight) {
+      this.hemiLight.color.setHex(preset.hemiSkyHex);
+      this.hemiLight.groundColor.setHex(preset.hemiGroundHex);
+    }
+    if (this.keyLight) {
+      this.keyLight.color.setHex(preset.keyLightHex);
+    }
+    if (this.rimLight) {
+      this.rimLight.color.setHex(preset.rimLightHex);
+    }
+    this.menu?.setAtmosphereState(preset.id);
+  }
+
+  cycleCameraView() {
+    const idx = CAMERA_VIEWS.indexOf(this.cameraView);
+    this.cameraView = CAMERA_VIEWS[(idx + 1) % CAMERA_VIEWS.length];
+    this.car?.setNameplateVisible(this.cameraView !== 'hood');
+    this.hud?.setCameraViewLabel(this.cameraView);
+    const labelMap = {
+      chase: 'CAMERA · CHASE VIEW',
+      close: 'CAMERA · ACTION CLOSE',
+      hood: 'CAMERA · PRO HOOD VIEW',
+    };
+    this.hud?.showBonusToast(labelMap[this.cameraView]);
+  }
+
   _initUI() {
     this.hud = new HUD({
       onPause: () => this.pauseRace(),
       onToggleMute: () => this.toggleMute(),
       onRecalibrate: () => this.openCalibrationDuringRace(),
+      onCycleCamera: () => this.cycleCameraView(),
+      onTriggerNitro: (active) => {
+        this.audio.unlock();
+        this.hudNitroPressed = Boolean(active);
+      },
     });
 
     this.menu = new Menu({
@@ -276,9 +424,26 @@ export class Game {
         this.setQuality(next);
       },
       onSelectQuality: (q) => this.setQuality(q),
+      onChangeDriverName: (val, source) => {
+        this.setDriverName(val, source);
+      },
+      onRandomizeDriverName: () => {
+        this.audio.unlock();
+        this.randomizeDriverName();
+        this.audio.playOvertakeChime(2);
+      },
+      onSelectCarModel: (modelId) => {
+        this.audio.unlock();
+        this.setCarModel(modelId);
+        this.audio.playOvertakeChime(3);
+      },
       onSelectCarPaint: (presetId) => {
         this.audio.unlock();
         this.setCarPaint(presetId);
+      },
+      onSelectAtmosphere: (themeId) => {
+        this.audio.unlock();
+        this.setAtmosphere(themeId);
       },
       onToggleMute: () => this.toggleMute(),
       onResumeRace: () => this.resumeRace(),
@@ -334,9 +499,13 @@ export class Game {
     this.menu.updateBestScore(this.bestScore);
     this.menu.setMutedState(this.audio.isMuted);
     this.menu.setQualityState(this.quality);
+    this.menu.setDriverNameState(this.driverName);
+    this.menu.setCarModelState(this.carModel);
     this.menu.setCarPaintState(this.carPaint);
+    this.menu.setAtmosphereState(this.atmosphere);
     this.menu.syncSettingsControls(this.calibration.settings);
     this.hud.setMutedState(this.audio.isMuted);
+    this.hud.setCameraViewLabel(this.cameraView);
   }
 
   _initThree() {
@@ -370,7 +539,6 @@ export class Game {
       this.container.appendChild(this.renderer.domElement);
     }
 
-    // WebGL context loss / restoration resilience
     this._onContextLost = (e) => {
       e.preventDefault();
       if (this.state === GAME_STATE.RACING) {
@@ -383,28 +551,30 @@ export class Game {
     this.renderer.domElement.addEventListener('webglcontextlost', this._onContextLost);
     this.renderer.domElement.addEventListener('webglcontextrestored', this._onContextRestored);
 
-    // Scene, Fog, Camera
     this.scene = new THREE.Scene();
-    const horizonHex = 0x070b14;
-    this.scene.background = new THREE.Color(horizonHex);
-    this.scene.fog = new THREE.FogExp2(horizonHex, 0.0102);
+    const initialAtmo =
+      ATMOSPHERE_PRESETS.find((t) => t.id === this.atmosphere) || ATMOSPHERE_PRESETS[0];
+    this.scene.background = new THREE.Color(initialAtmo.skyHex);
+    this.scene.fog = new THREE.FogExp2(initialAtmo.skyHex, 0.0102);
 
     this.camera = new THREE.PerspectiveCamera(60, width / height, 0.2, 260);
     this.camera.position.copy(this.camPos);
     this.camera.lookAt(this.camLook);
 
-    // Studio Environment Reflection Map (RoomEnvironment + PMREMGenerator)
     const pmremGenerator = new THREE.PMREMGenerator(this.renderer);
     this.envRT = pmremGenerator.fromScene(new RoomEnvironment(), 0.04);
     this.scene.environment = this.envRT.texture;
     pmremGenerator.dispose();
 
-    // 3-Point + Warm/Cool Hemisphere Lighting Rig
-    const hemiLight = new THREE.HemisphereLight(0x38bdf8, 0x0f172a, 0.85);
-    hemiLight.position.set(0, 40, 0);
-    this.scene.add(hemiLight);
+    this.hemiLight = new THREE.HemisphereLight(
+      initialAtmo.hemiSkyHex,
+      initialAtmo.hemiGroundHex,
+      0.88,
+    );
+    this.hemiLight.position.set(0, 40, 0);
+    this.scene.add(this.hemiLight);
 
-    this.keyLight = new THREE.DirectionalLight(0xfef3c7, 1.65);
+    this.keyLight = new THREE.DirectionalLight(initialAtmo.keyLightHex, 1.65);
     this.keyLight.position.set(12, 22, 14);
     this.keyLight.castShadow = !this.isSoftwareGl && this.quality === 'high';
     this.keyLight.shadow.mapSize.set(1024, 1024);
@@ -419,22 +589,24 @@ export class Game {
     this.keyLight.shadow.normalBias = 0.02;
     this.scene.add(this.keyLight);
 
-    const rimLight = new THREE.DirectionalLight(0x22d3ee, 0.9);
-    rimLight.position.set(-10, 8, -18);
-    this.scene.add(rimLight);
+    this.rimLight = new THREE.DirectionalLight(initialAtmo.rimLightHex, 0.92);
+    this.rimLight.position.set(-10, 8, -18);
+    this.scene.add(this.rimLight);
 
-    // Build World, Player Car, and Traffic Pool
     const maxAniso = this.renderer.capabilities.getMaxAnisotropy();
     this.road = new Road({
       isSoftwareGl: this.isSoftwareGl,
       maxAnisotropy: maxAniso,
       quality: this.quality,
     });
+    this.road.setAtmosphere(this.atmosphere);
     this.scene.add(this.road.group);
 
     this.car = new Car({
       isSoftwareGl: this.isSoftwareGl,
+      modelPresetId: this.carModel,
       paintPresetId: this.carPaint,
+      driverName: this.driverName,
     });
     this.scene.add(this.car.root);
     this.car.attachSparksToScene(this.scene);
@@ -449,7 +621,6 @@ export class Game {
     this._onResize = this.handleResize.bind(this);
     window.addEventListener('resize', this._onResize);
 
-    // Start frame loop
     this.clock = new THREE.Clock();
     this._scheduleNextTick();
   }
@@ -500,7 +671,6 @@ export class Game {
       this.state = GAME_STATE.CALIBRATING;
       this.menu?.openCalibrationScreen(this.calibration.settings);
     } catch (err) {
-      // Stop any opened camera stream if MediaPipe failed afterward
       this.cameraController.stopCamera();
       this.menu?.showConsentError(
         err?.title || 'Camera Setup Issue',
@@ -560,10 +730,18 @@ export class Game {
     this.speedMps = 15.0; // Rolling highway launch (~54 km/h)
     this.topSpeedKmh = 54;
     this.nearMisses = 0;
+    this.overtakes = 0;
+    this.combo = 1;
+    this.maxCombo = 1;
+    this.comboDecayTimer = 0;
+    this.nitroCharge = 100;
+    this.isBoosting = false;
+    this.hudNitroPressed = false;
     this.cameraShake = 0;
 
     this.collisionSystem.reset();
     this.car?.reset();
+    this.car?.setNameplateVisible(this.cameraView !== 'hood');
     this.traffic?.reset();
     this.keyboard?.reset();
   }
@@ -571,7 +749,9 @@ export class Game {
   pauseRace() {
     if (this.state !== GAME_STATE.RACING && this.state !== GAME_STATE.COUNTDOWN) return;
     this.state = GAME_STATE.PAUSED;
-    this.audio.updateEngine(0, false, false);
+    this.isBoosting = false;
+    this.hudNitroPressed = false;
+    this.audio.updateEngine(0, false, false, false);
     this.menu?.openPauseModal({
       context: 'race',
       controlMode: this.controlMode,
@@ -591,9 +771,12 @@ export class Game {
     this.handTracker.resetFrameCache();
     this.controlMode = 'keyboard';
     this.state = GAME_STATE.TITLE;
-    this.audio.updateEngine(0, false, false);
+    this.isBoosting = false;
+    this.hudNitroPressed = false;
+    this.audio.updateEngine(0, false, false, false);
 
     this.car?.reset();
+    this.car?.setNameplateVisible(true);
     this.traffic?.reset();
     this.speedMps = 22;
 
@@ -641,10 +824,12 @@ export class Game {
     const safeDt = Math.min(0.08, Math.max(0.001, dt));
 
     if (this.state === GAME_STATE.TITLE) {
-      // Gently cruise player car on empty/light highway for showcase background
-      this.road?.update(safeDt, 22);
-      const demoSteer = Math.sin(performance.now() * 0.0007) * 0.14;
-      this.car?.update(safeDt, { steer: demoSteer, speedMps: 22 });
+      // Showcase cruise in right lane so car + floating driver nameplate sit unobstructed beside Garage UI
+      this.road?.update(safeDt, 24, false);
+      const targetLaneX = 1.7 + Math.sin(performance.now() * 0.0008) * 0.35;
+      const gentleSteer = Math.max(-0.35, Math.min(0.35, (targetLaneX - (this.car?.x || 0)) * 0.5));
+      this.car?.setNameplateVisible(true);
+      this.car?.update(safeDt, { steer: gentleSteer, speedMps: 24, isAccelerating: true });
       this._updateCameraRig(safeDt, 'showcase');
       return;
     }
@@ -670,8 +855,7 @@ export class Game {
         neutralAngleDeg: this.calibration.settings.neutralAngleDeg,
       });
 
-      // Live preview steering on background 3D car too
-      this.road?.update(safeDt, 16);
+      this.road?.update(safeDt, 16, false);
       this.car?.update(safeDt, { steer: evalState.steer, speedMps: 16 });
       this._updateCameraRig(safeDt, 'race');
       return;
@@ -682,12 +866,13 @@ export class Game {
       return;
     }
 
-    // Gather active steering + pedal inputs
+    // Gather active steering + pedal + nitro inputs
     const kbInput = this.keyboard.update(safeDt, this.calibration.settings.sensitivity);
     let steer = kbInput.steer;
     let wheelAngleDeg = kbInput.wheelAngleDeg;
     let isAccelerating = kbInput.accelerate;
     let isBraking = kbInput.brake;
+    let wantsBoost = kbInput.boost || this.hudNitroPressed;
     let gestureStatus = GESTURE_STATUS.HANDS_DETECTED;
     let confidence = 0;
     let handCount = 0;
@@ -697,6 +882,7 @@ export class Game {
       wheelAngleDeg = externalControlOverride.wheelAngleDeg ?? steer * 38;
       isAccelerating = Boolean(externalControlOverride.accelerate);
       isBraking = Boolean(externalControlOverride.brake);
+      wantsBoost = Boolean(externalControlOverride.boost);
     } else if (this.controlMode === 'camera') {
       const hudVideo =
         typeof document !== 'undefined' ? document.getElementById('hud-video-preview') : null;
@@ -707,7 +893,6 @@ export class Game {
       const camEval = this.calibration.evaluate(geo, safeDt);
       this.handTracker.renderOverlay(hudCanvas, this.calibration.settings.neutralAngleDeg);
 
-      // Camera is primary; keyboard arrows can still assist if player presses them
       steer = kbInput.hasSteerInput ? kbInput.steer : camEval.steer;
       wheelAngleDeg = kbInput.hasSteerInput ? kbInput.wheelAngleDeg : camEval.wheelAngleDeg;
       isAccelerating = camEval.throttle || kbInput.accelerate;
@@ -737,7 +922,7 @@ export class Game {
         this.state = GAME_STATE.RACING;
       }
 
-      this.road?.update(safeDt, this.speedMps);
+      this.road?.update(safeDt, this.speedMps, false);
       this.car?.update(safeDt, { steer, speedMps: this.speedMps });
       this._updateCameraRig(safeDt, 'race');
       this._syncHud(steer, wheelAngleDeg, gestureStatus, confidence, handCount, false, false);
@@ -746,12 +931,13 @@ export class Game {
 
     // CRASHING TRANSITION STATE
     if (this.state === GAME_STATE.CRASHING) {
+      this.isBoosting = false;
       this.speedMps = Math.max(0, this.speedMps - 42 * safeDt);
-      this.road?.update(safeDt, this.speedMps);
+      this.road?.update(safeDt, this.speedMps, false);
       this.traffic?.update(safeDt, this.speedMps, this.distanceMeters);
       this.car?.update(safeDt, { steer: 0, speedMps: this.speedMps });
       this._updateCameraRig(safeDt, 'crash');
-      this.audio.updateEngine(0, false, false);
+      this.audio.updateEngine(0, false, false, false);
 
       if (this.car.crashTimer >= 1.15) {
         this._finalizeGameOver();
@@ -759,14 +945,44 @@ export class Game {
       return;
     }
 
-    // ACTIVE RACING STATE
+    // ACTIVE RACING STATE: Evaluate Nitro Boost charge & drain
+    const modelPreset = this.car?.getActiveModelPreset?.() || CAR_MODEL_PRESETS[0];
+    const wasBoosting = this.isBoosting;
+    if (wantsBoost && !isBraking && (this.nitroCharge > 1.5 || (wasBoosting && this.nitroCharge > 0.2))) {
+      if (!wasBoosting && this.nitroCharge < 18) {
+        this.isBoosting = false;
+      } else {
+        this.isBoosting = true;
+        this.nitroCharge = Math.max(0, this.nitroCharge - 30 * safeDt);
+        if (!wasBoosting) {
+          this.audio.playNitroBoost();
+          this.hud?.showBonusToast('HYPER NITRO · 2X SCORE');
+        }
+      }
+    } else {
+      this.isBoosting = false;
+      this.nitroCharge = Math.min(100, this.nitroCharge + 5.8 * safeDt);
+    }
+
+    // Combo decay window
+    if (this.combo > 1) {
+      this.comboDecayTimer -= safeDt;
+      if (this.comboDecayTimer <= 0) {
+        this.combo = 1;
+      }
+    }
+
     const difficultyBonusMaxSpeed = (this.traffic.difficultyLevel - 1) * 2.4;
-    const cruiseTargetMps = 41 + difficultyBonusMaxSpeed; // ~148 km/h base cruise, scaling up
-    const maxBoostMps = 66 + difficultyBonusMaxSpeed * 0.8; // ~238+ km/h top end
-    const minSpeedMps = 16; // ~58 km/h minimum highway floor
+    const modelSpeedScale = modelPreset.topSpeedFactor || 1.0;
+    const cruiseTargetMps = (41 + difficultyBonusMaxSpeed) * modelSpeedScale;
+    const maxBoostMps = (66 + difficultyBonusMaxSpeed * 0.8) * modelSpeedScale;
+    const nitroTopMps = maxBoostMps + 15 * (modelPreset.nitroPower || 1.0);
+    const minSpeedMps = 16;
 
     if (isBraking) {
       this.speedMps = Math.max(minSpeedMps, this.speedMps - 32 * safeDt);
+    } else if (this.isBoosting) {
+      this.speedMps = THREE.MathUtils.damp(this.speedMps, nitroTopMps, 2.8, safeDt);
     } else if (isAccelerating) {
       const target =
         this.controlMode === 'camera' && !kbInput.accelerate
@@ -774,7 +990,6 @@ export class Game {
           : maxBoostMps;
       this.speedMps = THREE.MathUtils.damp(this.speedMps, target, 1.55, safeDt);
     } else {
-      // Gentle natural highway cruise acceleration so keyboard players also move smoothly
       this.speedMps = THREE.MathUtils.damp(this.speedMps, cruiseTargetMps, 1.15, safeDt);
     }
 
@@ -783,23 +998,23 @@ export class Game {
       this.topSpeedKmh = speedKmh;
     }
 
-    // Update world, car, traffic
     const deltaDist = this.speedMps * safeDt;
     this.distanceMeters += deltaDist;
-    // Score rewards high speed + distance survived
     const speedMultiplier = 1 + (this.speedMps / 45) * 1.4;
-    this.score += deltaDist * 0.85 * speedMultiplier;
+    const nitroScoreMult = this.isBoosting ? 2.0 : 1.0;
+    this.score += deltaDist * 0.85 * speedMultiplier * nitroScoreMult;
 
-    this.road?.update(safeDt, this.speedMps);
+    this.road?.update(safeDt, this.speedMps, this.isBoosting);
     this.car?.update(safeDt, {
       steer,
       speedMps: this.speedMps,
       isAccelerating,
       isBraking,
+      isBoosting: this.isBoosting,
     });
     this.traffic?.update(safeDt, this.speedMps, this.distanceMeters);
 
-    // Evaluate collisions & near-misses
+    // Evaluate collisions, near-misses & clean named rival overtakes
     const colResult = this.collisionSystem.evaluate(
       this.car.getBounds(),
       this.traffic.activeVehicles,
@@ -809,13 +1024,38 @@ export class Game {
 
     if (colResult.nearMissCount > 0) {
       this.nearMisses += colResult.nearMissCount;
-      const bonus = colResult.nearMissCount * 50;
+      this.combo = Math.min(5, this.combo + colResult.nearMissCount);
+      this.maxCombo = Math.max(this.maxCombo, this.combo);
+      this.comboDecayTimer = 5.5;
+      this.nitroCharge = Math.min(100, this.nitroCharge + colResult.nearMissCount * 28);
+
+      const bonus = colResult.nearMissCount * 50 * this.combo;
       this.score += bonus;
-      this.hud?.showBonusToast(`NEAR MISS +${bonus}`);
+      const rivalTag = colResult.nearMissNames?.[0]
+        ? ` · ${colResult.nearMissNames[0].toUpperCase()}`
+        : '';
+      this.hud?.showBonusToast(`NEAR MISS${rivalTag} +${bonus}`);
       this.audio.playNearMiss();
+    } else if (colResult.overtakeCount > 0) {
+      this.overtakes += colResult.overtakeCount;
+      this.combo = Math.min(5, this.combo + 1);
+      this.maxCombo = Math.max(this.maxCombo, this.combo);
+      this.comboDecayTimer = 5.0;
+      this.nitroCharge = Math.min(100, this.nitroCharge + colResult.overtakeCount * 8);
+
+      const bonus = colResult.overtakeCount * 25 * this.combo;
+      this.score += bonus;
+      const rivalTag = colResult.overtakeNames?.[0]
+        ? ` ${colResult.overtakeNames[0].toUpperCase()}`
+        : '';
+      this.hud?.showBonusToast(`PASSED${rivalTag} +${bonus}`);
+      this.audio.playOvertakeChime(this.combo);
     }
 
     if (colResult.hitVehicle) {
+      this.combo = 1;
+      this.comboDecayTimer = 0;
+      this.isBoosting = false;
       this.cameraShake = colResult.fatalCrash ? 0.65 : 0.36;
       if (colResult.fatalCrash) {
         this.audio.playCrash(true);
@@ -825,11 +1065,13 @@ export class Game {
       } else {
         this.audio.playCrash(false);
         this.speedMps = Math.max(minSpeedMps, this.speedMps * 0.66);
-        // Nudge car slightly away from struck lane
         const pushDir = this.car.x >= colResult.hitVehicle.x ? 1 : -1;
         this.car.lateralVelocity = pushDir * 6.5;
         this.car.triggerDamageShield(1.4);
-        this.hud?.showBonusToast('HULL IMPACT — SHIELD ACTIVE');
+        const hitName = colResult.hitVehicle.driverName
+          ? ` WITH ${colResult.hitVehicle.driverName.toUpperCase()}`
+          : '';
+        this.hud?.showBonusToast(`IMPACT${hitName} — SHIELD ACTIVE`);
       }
     }
 
@@ -837,14 +1079,23 @@ export class Game {
       this._saveBestScore(this.score);
     }
 
-    this.audio.updateEngine(speedKmh, true, isBraking);
+    this.audio.updateEngine(speedKmh, true, isBraking, this.isBoosting);
     this._updateCameraRig(safeDt, 'race');
-    this._syncHud(steer, wheelAngleDeg, gestureStatus, confidence, handCount, isAccelerating, isBraking);
+    this._syncHud(
+      steer,
+      wheelAngleDeg,
+      gestureStatus,
+      confidence,
+      handCount,
+      isAccelerating,
+      isBraking,
+    );
   }
 
   _finalizeGameOver() {
     this.state = GAME_STATE.GAMEOVER;
     const isNewBest = this._saveBestScore(this.score);
+    const activeModel = this.car?.getActiveModelPreset?.() || CAR_MODEL_PRESETS[0];
     this.menu?.updateBestScore(this.bestScore);
     this.hud?.hide();
     this.gameOverUI?.show({
@@ -854,6 +1105,10 @@ export class Game {
       distanceMeters: this.distanceMeters,
       topSpeedKmh: this.topSpeedKmh,
       nearMisses: this.nearMisses,
+      overtakes: this.overtakes,
+      maxCombo: this.maxCombo,
+      driverName: this.driverName,
+      carModelName: activeModel.name,
       controlMode: this.controlMode,
     });
   }
@@ -864,7 +1119,7 @@ export class Game {
       bestScore: Math.max(this.bestScore, Math.floor(this.score)),
       distanceMeters: this.distanceMeters,
       speedKmh: this.speedMps * 3.6,
-      maxSpeedKmh: 250,
+      maxSpeedKmh: 285,
       health: this.collisionSystem.health,
       maxHealth: this.collisionSystem.maxHealth,
       steer,
@@ -875,6 +1130,9 @@ export class Game {
       handCount,
       isAccelerating,
       isBraking,
+      isBoosting: this.isBoosting,
+      nitroCharge: this.nitroCharge,
+      combo: this.combo,
       difficultyTier: this.traffic?.difficultyLevel || 1,
     });
   }
@@ -883,31 +1141,53 @@ export class Game {
     if (!this.camera || !this.car) return;
 
     if (mode === 'showcase') {
-      const t = performance.now() * 0.00025;
-      const targetX = Math.sin(t) * 2.8 + 1.8;
-      this.camPos.x = THREE.MathUtils.damp(this.camPos.x, targetX, 3.0, dt);
-      this.camPos.y = THREE.MathUtils.damp(this.camPos.y, 2.15, 3.0, dt);
-      this.camPos.z = THREE.MathUtils.damp(this.camPos.z, 5.8, 3.0, dt);
+      const t = performance.now() * 0.00032;
+      // Frame the car + floating nameplate cleanly in the right half of the Title Screen
+      const targetX = -1.6 + Math.sin(t) * 0.85;
+      this.camPos.x = THREE.MathUtils.damp(this.camPos.x, targetX, 3.2, dt);
+      this.camPos.y = THREE.MathUtils.damp(this.camPos.y, 2.25, 3.2, dt);
+      this.camPos.z = THREE.MathUtils.damp(this.camPos.z, 5.65, 3.2, dt);
 
-      _lookTarget.set(this.car.x * 0.5, 0.72, -6.5);
-      this.camLook.lerp(_lookTarget, 1 - Math.exp(-5 * dt));
+      _lookTarget.set(this.car.x - 1.15, 0.92, -3.2);
+      this.camLook.lerp(_lookTarget, 1 - Math.exp(-5.5 * dt));
 
       this.camera.position.copy(this.camPos);
       this.camera.lookAt(this.camLook);
+      this.camera.rotation.z = 0;
       return;
     }
 
-    // Smooth third-person chase camera following lateral car position with subtle lag
-    const followX = this.car.x * 0.66;
-    const speedRatio = Math.min(1, Math.max(0, (this.speedMps - 15) / 52));
-    const targetZ = 6.75 + speedRatio * 0.55;
-    const targetY = 2.68 + speedRatio * 0.14;
+    const speedRatio = Math.min(1.25, Math.max(0, (this.speedMps - 15) / 52));
+    const nitroPullback = this.isBoosting ? 0.55 : 0;
 
-    this.camPos.x = THREE.MathUtils.damp(this.camPos.x, followX, 8.5, dt);
-    this.camPos.y = THREE.MathUtils.damp(this.camPos.y, targetY, 7.0, dt);
-    this.camPos.z = THREE.MathUtils.damp(this.camPos.z, targetZ, 7.0, dt);
+    let followX = this.car.x * 0.66;
+    let targetY = 2.68 + speedRatio * 0.14;
+    let targetZ = 6.75 + speedRatio * 0.5 + nitroPullback;
+    let lookY = 0.85;
+    let lookZ = -14.5;
+    let lookXFactor = 0.8;
 
-    // Subtle impact camera shake decay
+    if (this.cameraView === 'close' && mode !== 'crash') {
+      followX = this.car.x * 0.82;
+      targetY = 1.92 + speedRatio * 0.08;
+      targetZ = 4.65 + speedRatio * 0.35 + nitroPullback * 0.6;
+      lookY = 0.78;
+      lookZ = -18.0;
+      lookXFactor = 0.92;
+    } else if (this.cameraView === 'hood' && mode !== 'crash') {
+      followX = this.car.x;
+      targetY = 1.24;
+      targetZ = -0.35;
+      lookY = 0.96;
+      lookZ = -26.0;
+      lookXFactor = 1.0;
+    }
+
+    const posDamp = this.cameraView === 'hood' ? 22.0 : 8.5;
+    this.camPos.x = THREE.MathUtils.damp(this.camPos.x, followX, posDamp, dt);
+    this.camPos.y = THREE.MathUtils.damp(this.camPos.y, targetY, posDamp, dt);
+    this.camPos.z = THREE.MathUtils.damp(this.camPos.z, targetZ, posDamp, dt);
+
     let shakeX = 0;
     let shakeY = 0;
     if (this.cameraShake > 0.005) {
@@ -918,26 +1198,23 @@ export class Game {
 
     this.camera.position.set(this.camPos.x + shakeX, this.camPos.y + shakeY, this.camPos.z);
 
-    _lookTarget.set(this.car.x * 0.8, 0.85, -14.5);
-    this.camLook.lerp(_lookTarget, 1 - Math.exp(-11 * dt));
+    _lookTarget.set(this.car.x * lookXFactor, lookY, lookZ);
+    this.camLook.lerp(_lookTarget, 1 - Math.exp(-13 * dt));
     this.camera.lookAt(this.camLook);
 
-    // Persist banked roll across frames AFTER lookAt() so frame-delta variation never jitters roll
-    const targetBank = -this.car.steerInput * 0.02;
+    const targetBank = -this.car.steerInput * (this.cameraView === 'hood' ? 0.032 : 0.02);
     this.camBank = THREE.MathUtils.damp(this.camBank, targetBank, 8.5, dt);
     this.camera.rotation.z = this.camBank;
 
-    const targetFov = 58 + speedRatio * 10;
+    const nitroFov = this.isBoosting ? 7.5 : 0;
+    const baseFov = this.cameraView === 'hood' ? 64 : 58;
+    const targetFov = baseFov + speedRatio * 9 + nitroFov;
     if (Math.abs(this.camera.fov - targetFov) > 0.05) {
-      this.camera.fov = THREE.MathUtils.damp(this.camera.fov, targetFov, 5.5, dt);
+      this.camera.fov = THREE.MathUtils.damp(this.camera.fov, targetFov, 6.0, dt);
       this.camera.updateProjectionMatrix();
     }
   }
 
-  /**
-   * Software-WebGL GPU sync helper per Three.js performance guidelines:
-   * prevents CPU software rasterizer starvation on GPU-less environments.
-   */
   _afterSoftwareDraw(cb) {
     if (this.isDisposed || !this.renderer) return;
     const gl = this.renderer.getContext();
@@ -966,7 +1243,6 @@ export class Game {
       if (this.isDisposed) return;
       const rawDt = this.clock ? this.clock.getDelta() : 0.016;
       const clampedDt = Math.min(0.05, Math.max(0.001, rawDt));
-      // Smooth inter-frame delta spikes (e.g. when 30fps webcam inference runs on alternate frames)
       this.smoothedDt += (clampedDt - this.smoothedDt) * 0.35;
       this.stepSimulation(this.smoothedDt);
       if (this.renderer && this.scene && this.camera) {

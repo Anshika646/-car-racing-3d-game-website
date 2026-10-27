@@ -14,6 +14,48 @@ import * as THREE from 'three';
 
 export const LANE_CENTERS = [-5.1, -1.7, 1.7, 5.1];
 
+export const ATMOSPHERE_PRESETS = [
+  {
+    id: 'midnight',
+    name: 'Midnight Express',
+    skyHex: 0x060b14,
+    hemiSkyHex: 0x38bdf8,
+    hemiGroundHex: 0x0b101d,
+    keyLightHex: 0xfff3db,
+    rimLightHex: 0x06b6d4,
+    terrainHex: 0x070c14,
+    glowHex: 0x0b2538,
+    bulbHex: 0xfde68a,
+    studHex: 0x22d3ee,
+  },
+  {
+    id: 'sunset',
+    name: 'Golden Sunset',
+    skyHex: 0x1c0f1b,
+    hemiSkyHex: 0xfb923c,
+    hemiGroundHex: 0x180d14,
+    keyLightHex: 0xffedd5,
+    rimLightHex: 0xf43f5e,
+    terrainHex: 0x160c14,
+    glowHex: 0x7c2d12,
+    bulbHex: 0xfef08a,
+    studHex: 0xf59e0b,
+  },
+  {
+    id: 'cyber_dusk',
+    name: 'Cyber Horizon',
+    skyHex: 0x09061a,
+    hemiSkyHex: 0xc084fc,
+    hemiGroundHex: 0x090718,
+    keyLightHex: 0xe0e7ff,
+    rimLightHex: 0xe879f9,
+    terrainHex: 0x090719,
+    glowHex: 0x3b0764,
+    bulbHex: 0x67e8f9,
+    studHex: 0xe879f9,
+  },
+];
+
 const _dummy = new THREE.Object3D();
 const _color = new THREE.Color();
 
@@ -115,18 +157,19 @@ export class Road {
     this._buildStreetlights();
     this._buildSceneryTreesAndRocks();
     this._buildDistantHorizon();
+    this._buildSpeedStreaks();
   }
 
   _buildTerrainAndRoad() {
     // Extended outdoor terrain ground so scene never looks boxed-in
     const terrainGeo = new THREE.PlaneGeometry(240, this.roadLength);
     terrainGeo.rotateX(-Math.PI / 2);
-    const terrainMat = new THREE.MeshStandardMaterial({
+    this.terrainMat = new THREE.MeshStandardMaterial({
       color: 0x070c14,
       roughness: 0.96,
       metalness: 0.04,
     });
-    const terrain = new THREE.Mesh(terrainGeo, terrainMat);
+    const terrain = new THREE.Mesh(terrainGeo, this.terrainMat);
     terrain.position.set(0, -0.04, -80);
     terrain.receiveShadow = !this.isSoftwareGl;
     this.group.add(terrain);
@@ -171,8 +214,8 @@ export class Road {
 
     // Reflective cat's-eye studs between dashes
     const studGeo = new THREE.BoxGeometry(0.14, 0.04, 0.18);
-    const studMat = new THREE.MeshBasicMaterial({ color: 0x22d3ee });
-    this.studMesh = new THREE.InstancedMesh(studGeo, studMat, totalDashes);
+    this.studMat = new THREE.MeshBasicMaterial({ color: 0x22d3ee });
+    this.studMesh = new THREE.InstancedMesh(studGeo, this.studMat, totalDashes);
     this.studMesh.frustumCulled = false;
 
     this._updateLaneMarkings(0);
@@ -240,13 +283,13 @@ export class Road {
       metalness: 0.75,
       roughness: 0.32,
     });
-    const bulbMat = new THREE.MeshBasicMaterial({
+    this.bulbMat = new THREE.MeshBasicMaterial({
       color: 0xfde68a,
     });
 
     this.poleInst = new THREE.InstancedMesh(poleGeo, poleMat, count);
     this.armInst = new THREE.InstancedMesh(armGeo, poleMat, count);
-    this.bulbInst = new THREE.InstancedMesh(bulbGeo, bulbMat, count);
+    this.bulbInst = new THREE.InstancedMesh(bulbGeo, this.bulbMat, count);
     this.poleInst.frustumCulled = false;
     this.armInst.frustumCulled = false;
     this.bulbInst.frustumCulled = false;
@@ -363,17 +406,50 @@ export class Road {
     this.group.add(skylineInst);
 
     // Subtle twilight horizon glow band behind skyline
-    const glowPlane = new THREE.Mesh(
-      new THREE.PlaneGeometry(340, 46),
-      new THREE.MeshBasicMaterial({
-        color: 0x0b2538,
-        transparent: true,
-        opacity: 0.5,
-        fog: false,
-      }),
-    );
+    this.glowMat = new THREE.MeshBasicMaterial({
+      color: 0x0b2538,
+      transparent: true,
+      opacity: 0.55,
+      fog: false,
+    });
+    const glowPlane = new THREE.Mesh(new THREE.PlaneGeometry(340, 46), this.glowMat);
     glowPlane.position.set(0, 16, -205);
     this.group.add(glowPlane);
+  }
+
+  _buildSpeedStreaks() {
+    this.streakCount = 36;
+    this.streakItems = [];
+    const streakGeo = new THREE.BoxGeometry(0.035, 0.035, 5.8);
+    this.streakMat = new THREE.MeshBasicMaterial({
+      color: 0x67e8f9,
+      transparent: true,
+      opacity: 0,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+    });
+    this.speedStreaksInst = new THREE.InstancedMesh(streakGeo, this.streakMat, this.streakCount);
+    this.speedStreaksInst.frustumCulled = false;
+    this.speedStreaksInst.visible = false;
+
+    for (let i = 0; i < this.streakCount; i++) {
+      const side = i % 2 === 0 ? -1 : 1;
+      const x = side * (6.2 + (i % 5) * 0.95);
+      const y = 0.8 + (i % 6) * 0.65;
+      const baseZ = (i / this.streakCount) * 90;
+      this.streakItems.push({ x, y, baseZ, lenScale: 0.75 + (i % 4) * 0.3 });
+    }
+    this.group.add(this.speedStreaksInst);
+  }
+
+  setAtmosphere(themeId) {
+    const preset =
+      ATMOSPHERE_PRESETS.find((t) => t.id === themeId) || ATMOSPHERE_PRESETS[0];
+    this.atmosphere = preset.id;
+    this.terrainMat?.color.setHex(preset.terrainHex);
+    this.glowMat?.color.setHex(preset.glowHex);
+    this.bulbMat?.color.setHex(preset.bulbHex);
+    this.studMat?.color.setHex(preset.studHex);
   }
 
   setQuality(quality) {
@@ -497,7 +573,40 @@ export class Road {
     }
   }
 
-  update(dt, speedMps = 0) {
+  _updateSpeedStreaks(scroll, speedMps, isBoosting) {
+    if (!this.speedStreaksInst || this.quality === 'low') {
+      if (this.speedStreaksInst) this.speedStreaksInst.visible = false;
+      return;
+    }
+    const speedRatio = THREE.MathUtils.clamp((speedMps - 44) / 28, 0, 1);
+    const targetOpacity = isBoosting ? 0.52 : speedRatio * 0.22;
+    if (targetOpacity < 0.02) {
+      this.speedStreaksInst.visible = false;
+      return;
+    }
+
+    this.speedStreaksInst.visible = true;
+    this.streakMat.opacity = targetOpacity;
+    this.streakMat.color.setHex(isBoosting ? 0xe879f9 : 0x67e8f9);
+
+    const streakSpan = 90;
+    const fastScroll = (scroll * 2.2) % streakSpan;
+    const stretch = isBoosting ? 1.85 : 1.0 + speedRatio * 0.5;
+
+    for (let i = 0; i < this.streakItems.length; i++) {
+      const st = this.streakItems[i];
+      const wrapped = (st.baseZ + fastScroll) % streakSpan;
+      const z = -72 + (wrapped < 0 ? wrapped + streakSpan : wrapped);
+      _dummy.position.set(st.x, st.y, z);
+      _dummy.rotation.set(0, 0, 0);
+      _dummy.scale.set(1, 1, st.lenScale * stretch);
+      _dummy.updateMatrix();
+      this.speedStreaksInst.setMatrixAt(i, _dummy.matrix);
+    }
+    this.speedStreaksInst.instanceMatrix.needsUpdate = true;
+  }
+
+  update(dt, speedMps = 0, isBoosting = false) {
     const safeDt = Math.min(0.1, Math.max(0.001, dt));
     const deltaDist = speedMps * safeDt;
     this.scrollOffset = (this.scrollOffset + deltaDist) % this.roadLength;
@@ -511,5 +620,6 @@ export class Road {
     this._updateReflectors(this.scrollOffset);
     this._updateStreetlights(this.scrollOffset);
     this._updateScenery(this.scrollOffset);
+    this._updateSpeedStreaks(this.scrollOffset, speedMps, isBoosting);
   }
 }

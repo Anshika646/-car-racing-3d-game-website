@@ -101,7 +101,7 @@ export class AudioSystem {
     }
   }
 
-  updateEngine(speedKmh = 0, isRacing = false, isBraking = false) {
+  updateEngine(speedKmh = 0, isRacing = false, isBraking = false, isBoosting = false) {
     if (!this.ctx || !this.engineGain || !this.isUnlocked) return;
     const now = this.ctx.currentTime;
 
@@ -110,19 +110,57 @@ export class AudioSystem {
       return;
     }
 
-    // Simulate 5-gear sports car cadence
-    const normalized = Math.min(1, Math.max(0, speedKmh / 240));
+    // Simulate 5-gear sports car cadence + Nitro turbine lift
+    const normalized = Math.min(1.2, Math.max(0, speedKmh / 240));
     const gearMod = (speedKmh % 52) / 52;
-    const baseFreq = 46 + normalized * 88 + gearMod * 24;
+    const boostLift = isBoosting ? 36 : 0;
+    const baseFreq = 46 + normalized * 88 + gearMod * 24 + boostLift;
 
     this.engineOsc.frequency.setTargetAtTime(baseFreq, now, 0.06);
     this.engineSubOsc.frequency.setTargetAtTime(baseFreq * 0.5, now, 0.06);
     this.engineFilter.frequency.setTargetAtTime(
-      isBraking ? 150 : 190 + normalized * 460,
+      isBraking ? 150 : isBoosting ? 880 : 190 + normalized * 460,
       now,
       0.08,
     );
-    this.engineGain.gain.setTargetAtTime(0.08 + normalized * 0.07, now, 0.08);
+    this.engineGain.gain.setTargetAtTime(
+      (isBoosting ? 0.12 : 0.08) + normalized * 0.07,
+      now,
+      0.08,
+    );
+  }
+
+  playNitroBoost() {
+    if (!this.ctx || !this.isUnlocked || this.isMuted) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(180, now);
+    osc.frequency.exponentialRampToValueAtTime(640, now + 0.34);
+    gain.gain.setValueAtTime(0.16, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.42);
+  }
+
+  playOvertakeChime(combo = 1) {
+    if (!this.ctx || !this.isUnlocked || this.isMuted) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    const base = 580 + Math.min(5, combo) * 65;
+    osc.frequency.setValueAtTime(base, now);
+    osc.frequency.exponentialRampToValueAtTime(base * 1.22, now + 0.09);
+    gain.gain.setValueAtTime(0.09, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+    osc.connect(gain);
+    gain.connect(this.masterGain);
+    osc.start(now);
+    osc.stop(now + 0.15);
   }
 
   playCountdownBeep(isGo = false) {

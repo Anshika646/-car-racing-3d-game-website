@@ -1,8 +1,8 @@
 /**
  * GameOver.js
  *
- * Manages the post-crash summary screen, personal-best comparison,
- * replay action, control-mode switching, and return to Title Screen.
+ * Manages the post-crash summary screen, driver & car model badge,
+ * personal-best comparison, near-misses/overtakes, max combo, and replay actions.
  */
 
 import gsap from 'gsap';
@@ -13,12 +13,14 @@ export class GameOver {
 
     this.els = {
       root: document.getElementById('gameover-screen'),
+      driverSummary: document.getElementById('go-driver-summary'),
       newBestBanner: document.getElementById('gameover-new-best'),
       score: document.getElementById('go-score'),
       best: document.getElementById('go-best'),
       distance: document.getElementById('go-distance'),
       topSpeed: document.getElementById('go-topspeed'),
       nearMisses: document.getElementById('go-nearmisses'),
+      maxCombo: document.getElementById('go-maxcombo'),
       btnReplay: document.getElementById('btn-gameover-replay'),
       btnSwitch: document.getElementById('btn-gameover-switch'),
       btnMenu: document.getElementById('btn-gameover-menu'),
@@ -36,10 +38,17 @@ export class GameOver {
     distanceMeters = 0,
     topSpeedKmh = 0,
     nearMisses = 0,
+    overtakes = 0,
+    maxCombo = 1,
+    driverName = 'ANSHIKA',
+    carModelName = 'Apex GT-R',
     controlMode = 'keyboard',
   }) {
     if (!this.els.root) return;
 
+    if (this.els.driverSummary) {
+      this.els.driverSummary.textContent = `${driverName} · ${carModelName}`;
+    }
     if (this.els.score) this.els.score.textContent = Math.floor(score).toLocaleString();
     if (this.els.best) this.els.best.textContent = Math.floor(bestScore).toLocaleString();
     if (this.els.distance) {
@@ -49,7 +58,10 @@ export class GameOver {
       this.els.topSpeed.textContent = `${Math.round(topSpeedKmh)} km/h`;
     }
     if (this.els.nearMisses) {
-      this.els.nearMisses.textContent = String(nearMisses);
+      this.els.nearMisses.textContent = `${nearMisses} Near · ${overtakes + nearMisses} Passed`;
+    }
+    if (this.els.maxCombo) {
+      this.els.maxCombo.textContent = `x${maxCombo}`;
     }
     if (this.els.newBestBanner) {
       this.els.newBestBanner.classList.toggle('hidden', !isNewBest);

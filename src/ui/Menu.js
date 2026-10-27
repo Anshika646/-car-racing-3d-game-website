@@ -1,12 +1,13 @@
 /**
  * Menu.js
  *
- * Manages Title Screen, Camera Consent Modal, Steering Calibration Studio,
- * Pause/Settings Dialog, and Controls Help Modal with GSAP transitions.
+ * Manages Title Screen Garage (Driver Name, 4 Car Models, 8 Paint Colours, 3 Track Atmospheres),
+ * Camera Consent Modal, Steering Calibration Studio, Pause/Settings Dialog, and Help Modal.
  */
 
 import gsap from 'gsap';
-import { CAR_PAINT_PRESETS } from '../game/Car.js';
+import { CAR_MODEL_PRESETS, CAR_PAINT_PRESETS } from '../game/Car.js';
+import { ATMOSPHERE_PRESETS } from '../game/Road.js';
 
 const PEDAL_MODE_HINTS = {
   auto_palm_brake:
@@ -32,8 +33,18 @@ export class Menu {
       navMuteBtn: document.getElementById('nav-mute-btn'),
       btnPlayCamera: document.getElementById('btn-play-camera'),
       btnPlayKeyboard: document.getElementById('btn-play-keyboard'),
+
+      // Garage Controls (Driver Name, Car Model, Paint Colour, Atmosphere)
+      inputDriverName: document.getElementById('input-driver-name'),
+      btnRandomDriverName: document.getElementById('btn-random-driver-name'),
+      titleModelStats: document.getElementById('title-model-stats'),
       titlePaintLabel: document.getElementById('title-paint-label'),
+
+      // Pause / Settings Equivalents
+      pauseDriverName: document.getElementById('pause-driver-name'),
+      pauseModelSelect: document.getElementById('pause-model-select'),
       pausePaintSelect: document.getElementById('pause-paint-select'),
+      pauseAtmosphereSelect: document.getElementById('pause-atmosphere-select'),
 
       // Consent Modal
       consentModal: document.getElementById('camera-consent-modal'),
@@ -116,6 +127,32 @@ export class Menu {
     document.querySelectorAll('[data-action="toggle-mute"]').forEach((btn) => {
       btn.addEventListener('click', () => this.callbacks.onToggleMute?.());
     });
+
+    // Driver Name live editing
+    this.els.inputDriverName?.addEventListener('input', (e) => {
+      this.callbacks.onChangeDriverName?.(e.target.value, 'title');
+    });
+    this.els.pauseDriverName?.addEventListener('input', (e) => {
+      this.callbacks.onChangeDriverName?.(e.target.value, 'pause');
+    });
+    this.els.btnRandomDriverName?.addEventListener('click', () => {
+      this.callbacks.onRandomizeDriverName?.();
+    });
+
+    // Car Model Selection
+    document.querySelectorAll('[data-car-model]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const modelId = btn.getAttribute('data-car-model');
+        if (modelId) {
+          this.callbacks.onSelectCarModel?.(modelId);
+        }
+      });
+    });
+    this.els.pauseModelSelect?.addEventListener('change', (e) => {
+      this.callbacks.onSelectCarModel?.(e.target.value);
+    });
+
+    // Car Paint Colour & Finish Selection
     document.querySelectorAll('[data-car-paint]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const presetId = btn.getAttribute('data-car-paint');
@@ -126,6 +163,19 @@ export class Menu {
     });
     this.els.pausePaintSelect?.addEventListener('change', (e) => {
       this.callbacks.onSelectCarPaint?.(e.target.value);
+    });
+
+    // Track Atmosphere Selection
+    document.querySelectorAll('[data-atmosphere]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const themeId = btn.getAttribute('data-atmosphere');
+        if (themeId) {
+          this.callbacks.onSelectAtmosphere?.(themeId);
+        }
+      });
+    });
+    this.els.pauseAtmosphereSelect?.addEventListener('change', (e) => {
+      this.callbacks.onSelectAtmosphere?.(e.target.value);
     });
 
     // Consent modal actions
@@ -257,6 +307,38 @@ export class Menu {
     }
   }
 
+  setDriverNameState(name, skipInputSource = null) {
+    if (this.els.inputDriverName && skipInputSource !== 'title') {
+      this.els.inputDriverName.value = name;
+    }
+    if (this.els.pauseDriverName && skipInputSource !== 'pause') {
+      this.els.pauseDriverName.value = name;
+    }
+  }
+
+  setCarModelState(modelId) {
+    const activeModel =
+      CAR_MODEL_PRESETS.find((m) => m.id === modelId) || CAR_MODEL_PRESETS[0];
+
+    if (this.els.titleModelStats) {
+      this.els.titleModelStats.textContent = `${activeModel.name} · SPD ${activeModel.speedRating} · HND ${activeModel.handlingRating} · N2O ${activeModel.nitroRating}`;
+    }
+    if (this.els.pauseModelSelect) {
+      this.els.pauseModelSelect.value = activeModel.id;
+    }
+
+    document.querySelectorAll('[data-car-model]').forEach((btn) => {
+      const isSelected = btn.getAttribute('data-car-model') === activeModel.id;
+      btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+      btn.classList.toggle('border-[#22d3ee]', isSelected);
+      btn.classList.toggle('bg-[#132033]', isSelected);
+      btn.classList.toggle('text-white', isSelected);
+      btn.classList.toggle('border-white/12', !isSelected);
+      btn.classList.toggle('bg-[#0d1422]/90', !isSelected);
+      btn.classList.toggle('text-slate-300', !isSelected);
+    });
+  }
+
   setCarPaintState(presetId) {
     const activePreset =
       CAR_PAINT_PRESETS.find((p) => p.id === presetId) || CAR_PAINT_PRESETS[0];
@@ -270,6 +352,26 @@ export class Menu {
 
     document.querySelectorAll('[data-car-paint]').forEach((btn) => {
       const isSelected = btn.getAttribute('data-car-paint') === activePreset.id;
+      btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+      btn.classList.toggle('border-[#22d3ee]', isSelected);
+      btn.classList.toggle('bg-[#132033]', isSelected);
+      btn.classList.toggle('text-white', isSelected);
+      btn.classList.toggle('border-white/12', !isSelected);
+      btn.classList.toggle('bg-[#0d1422]/90', !isSelected);
+      btn.classList.toggle('text-slate-300', !isSelected);
+    });
+  }
+
+  setAtmosphereState(themeId) {
+    const activeTheme =
+      ATMOSPHERE_PRESETS.find((t) => t.id === themeId) || ATMOSPHERE_PRESETS[0];
+
+    if (this.els.pauseAtmosphereSelect) {
+      this.els.pauseAtmosphereSelect.value = activeTheme.id;
+    }
+
+    document.querySelectorAll('[data-atmosphere]').forEach((btn) => {
+      const isSelected = btn.getAttribute('data-atmosphere') === activeTheme.id;
       btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
       btn.classList.toggle('border-[#22d3ee]', isSelected);
       btn.classList.toggle('bg-[#132033]', isSelected);
@@ -297,7 +399,6 @@ export class Menu {
     if (typeof settings.smoothingRate === 'number') {
       if (this.els.inputSmoothing) this.els.inputSmoothing.value = String(settings.smoothingRate);
       if (this.els.valSmoothing) {
-        // Lower smoothingRate = heavier filtering, higher = faster raw response
         const desc =
           settings.smoothingRate <= 8
             ? 'Smooth'
@@ -455,7 +556,7 @@ export class Menu {
     const isCamera = controlMode === 'camera';
 
     if (this.els.pauseTitle) {
-      this.els.pauseTitle.textContent = isTitleSettings ? 'Game Settings' : 'Race Paused';
+      this.els.pauseTitle.textContent = isTitleSettings ? 'Garage & Game Settings' : 'Race Paused';
     }
     if (this.els.pauseModeLabel) {
       this.els.pauseModeLabel.textContent = isTitleSettings

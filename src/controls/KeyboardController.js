@@ -13,6 +13,7 @@ export class KeyboardController {
       right: false,
       up: false,
       down: false,
+      boost: false,
     };
     this.steerValue = 0;
 
@@ -31,7 +32,7 @@ export class KeyboardController {
     // Ignore shortcuts if focus is inside an input/select control
     const tag = event.target?.tagName;
     if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') {
-      if (event.code === 'Escape') {
+      if (event.code === 'Escape' || event.code === 'Enter') {
         event.target.blur();
       }
       return;
@@ -58,6 +59,12 @@ export class KeyboardController {
         this.keys.down = true;
         event.preventDefault();
         break;
+      case 'Space':
+      case 'ShiftLeft':
+      case 'ShiftRight':
+        this.keys.boost = true;
+        event.preventDefault();
+        break;
       case 'Escape':
         event.preventDefault();
         this.callbacks.onEscape?.();
@@ -69,6 +76,10 @@ export class KeyboardController {
       case 'KeyH':
         event.preventDefault();
         this.callbacks.onToggleHud?.();
+        break;
+      case 'KeyC':
+        event.preventDefault();
+        this.callbacks.onCycleCamera?.();
         break;
       default:
         break;
@@ -93,6 +104,11 @@ export class KeyboardController {
       case 'KeyS':
         this.keys.down = false;
         break;
+      case 'Space':
+      case 'ShiftLeft':
+      case 'ShiftRight':
+        this.keys.boost = false;
+        break;
       default:
         break;
     }
@@ -107,6 +123,7 @@ export class KeyboardController {
     this.keys.right = false;
     this.keys.up = false;
     this.keys.down = false;
+    this.keys.boost = false;
     this.steerValue = 0;
   }
 
@@ -117,7 +134,10 @@ export class KeyboardController {
     const safeDt = Math.min(0.1, Math.max(0.001, dt));
     const rawDir = (this.keys.right ? 1 : 0) - (this.keys.left ? 1 : 0);
     const target = rawDir;
-    const isReversing = rawDir !== 0 && Math.sign(rawDir) !== Math.sign(this.steerValue) && Math.abs(this.steerValue) > 0.05;
+    const isReversing =
+      rawDir !== 0 &&
+      Math.sign(rawDir) !== Math.sign(this.steerValue) &&
+      Math.abs(this.steerValue) > 0.05;
     const rate =
       rawDir === 0
         ? 14.5
@@ -135,6 +155,7 @@ export class KeyboardController {
       wheelAngleDeg: this.steerValue * 42,
       accelerate: this.keys.up,
       brake: this.keys.down,
+      boost: this.keys.boost,
       hasSteerInput: rawDir !== 0,
     };
   }

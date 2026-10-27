@@ -1,9 +1,12 @@
 /**
  * HUD.js
  *
- * Manages the active racing Heads-Up Display, live virtual steering wheel gauge,
- * gesture tracking status banner, countdown sequence, near-miss toast,
- * collapsible bottom gauge dock, and unobtrusive mirrored webcam PiP panel.
+ * Manages the active racing Heads-Up Display:
+ * - Score, Personal Best, Distance & Live Combo Multiplier Badge
+ * - Speedometer + Interactive Nitro Boost Gauge ([Space] or click/hold)
+ * - Camera View Switcher ([C]: Chase / Action Close / Hood)
+ * - Virtual Steering Wheel & Gesture Tracking Status Banner
+ * - Collapsible Bottom Gauge Dock & Mirrored Webcam PiP Panel
  */
 
 import gsap from 'gsap';
@@ -21,6 +24,7 @@ export class HUD {
       score: document.getElementById('hud-score'),
       distance: document.getElementById('hud-distance'),
       best: document.getElementById('hud-best'),
+      comboBadge: document.getElementById('hud-combo-badge'),
       gestureBanner: document.getElementById('hud-gesture-banner'),
       gestureStatus: document.getElementById('hud-gesture-status'),
       bonusToast: document.getElementById('hud-bonus-toast'),
@@ -31,6 +35,7 @@ export class HUD {
       ],
       hullText: document.getElementById('hud-hull-text'),
       controlMode: document.getElementById('hud-control-mode'),
+      btnCameraView: document.getElementById('btn-hud-camera-view'),
       btnRecalibrate: document.getElementById('btn-hud-recalibrate'),
       btnMute: document.getElementById('btn-hud-mute'),
       btnPause: document.getElementById('btn-hud-pause'),
@@ -39,6 +44,9 @@ export class HUD {
       speedBar: document.getElementById('hud-speed-bar'),
       pedalState: document.getElementById('hud-pedal-state'),
       difficultyTier: document.getElementById('hud-difficulty-tier'),
+      nitroBar: document.getElementById('hud-nitro-bar'),
+      nitroPct: document.getElementById('hud-nitro-pct'),
+      btnNitro: document.getElementById('btn-hud-nitro'),
       btnToggleDock: document.getElementById('btn-toggle-hud-dock'),
       steeringDock: document.getElementById('hud-steering-dock'),
       dirLeft: document.getElementById('hud-dir-left'),
@@ -64,8 +72,23 @@ export class HUD {
     this.els.btnPause?.addEventListener('click', () => this.callbacks.onPause?.());
     this.els.btnMute?.addEventListener('click', () => this.callbacks.onToggleMute?.());
     this.els.btnRecalibrate?.addEventListener('click', () => this.callbacks.onRecalibrate?.());
+    this.els.btnCameraView?.addEventListener('click', () => this.callbacks.onCycleCamera?.());
     this.els.btnToggleDock?.addEventListener('click', () => this.toggleDock());
     this.els.btnTogglePipSize?.addEventListener('click', () => this.togglePipMinimize());
+
+    if (this.els.btnNitro) {
+      const startNitro = (e) => {
+        e.preventDefault();
+        this.callbacks.onTriggerNitro?.(true);
+      };
+      const stopNitro = () => {
+        this.callbacks.onTriggerNitro?.(false);
+      };
+      this.els.btnNitro.addEventListener('pointerdown', startNitro);
+      this.els.btnNitro.addEventListener('pointerup', stopNitro);
+      this.els.btnNitro.addEventListener('pointerleave', stopNitro);
+      this.els.btnNitro.addEventListener('pointercancel', stopNitro);
+    }
   }
 
   show(controlMode = 'keyboard') {
@@ -96,6 +119,16 @@ export class HUD {
     if (this.els.btnRecalibrate) {
       this.els.btnRecalibrate.classList.toggle('hidden', !isCamera);
     }
+  }
+
+  setCameraViewLabel(viewId = 'chase') {
+    if (!this.els.btnCameraView) return;
+    const labels = {
+      chase: 'Cam: Chase [C]',
+      close: 'Cam: Action [C]',
+      hood: 'Cam: Hood [C]',
+    };
+    this.els.btnCameraView.textContent = labels[viewId] || 'Cam: Chase [C]';
   }
 
   setMutedState(isMuted) {
@@ -163,7 +196,7 @@ export class HUD {
         this.els.bonusToast.style.opacity = '0';
         this.els.bonusToast.style.transform = 'translateY(-4px)';
       }
-    }, 1050);
+    }, 1200);
   }
 
   update(state) {
@@ -172,7 +205,7 @@ export class HUD {
       bestScore = 0,
       distanceMeters = 0,
       speedKmh = 0,
-      maxSpeedKmh = 240,
+      maxSpeedKmh = 285,
       health = 3,
       maxHealth = 3,
       steer = 0,
@@ -183,6 +216,9 @@ export class HUD {
       handCount = 0,
       isAccelerating = false,
       isBraking = false,
+      isBoosting = false,
+      nitroCharge = 100,
+      combo = 1,
       difficultyTier = 1,
     } = state;
 
@@ -195,31 +231,63 @@ export class HUD {
     if (this.els.distance) {
       this.els.distance.textContent = `${(distanceMeters / 1000).toFixed(2)} km`;
     }
+    if (this.els.comboBadge) {
+      if (combo > 1) {
+        this.els.comboBadge.classList.remove('hidden');
+        this.els.comboBadge.textContent = `COMBO x${combo}`;
+      } else {
+        this.els.comboBadge.classList.add('hidden');
+      }
+    }
+
     if (this.els.speed) {
       this.els.speed.textContent = String(Math.round(speedKmh));
     }
     if (this.els.speedBar) {
       const pct = Math.min(100, Math.max(0, (speedKmh / maxSpeedKmh) * 100));
       this.els.speedBar.style.width = `${pct.toFixed(1)}%`;
-      this.els.speedBar.style.backgroundColor = isBraking ? '#f59e0b' : '#06b6d4';
+      this.els.speedBar.style.backgroundColor = isBoosting
+        ? '#e879f9'
+        : isBraking
+          ? '#f59e0b'
+          : '#06b6d4';
     }
     if (this.els.pedalState) {
-      this.els.pedalState.textContent = isBraking
-        ? 'Braking'
-        : isAccelerating
-          ? 'Accelerating'
-          : 'Cruising';
-      this.els.pedalState.style.color = isBraking
-        ? '#fbbf24'
-        : isAccelerating
-          ? '#67e8f9'
-          : '#94a3b8';
+      this.els.pedalState.textContent = isBoosting
+        ? 'HYPER NITRO'
+        : isBraking
+          ? 'Braking'
+          : isAccelerating
+            ? 'Accelerating'
+            : 'Cruising';
+      this.els.pedalState.style.color = isBoosting
+        ? '#e879f9'
+        : isBraking
+          ? '#fbbf24'
+          : isAccelerating
+            ? '#67e8f9'
+            : '#94a3b8';
     }
     if (this.els.difficultyTier) {
       this.els.difficultyTier.textContent = `Tier ${difficultyTier}`;
     }
 
-    // Hull integrity bars (paired with explicit numeric label for accessibility)
+    // Nitro Boost Bar & Button
+    const clampedNitro = Math.min(100, Math.max(0, nitroCharge));
+    if (this.els.nitroBar) {
+      this.els.nitroBar.style.width = `${clampedNitro.toFixed(0)}%`;
+      this.els.nitroBar.style.backgroundColor = isBoosting ? '#e879f9' : '#38bdf8';
+    }
+    if (this.els.nitroPct) {
+      this.els.nitroPct.textContent = `${Math.round(clampedNitro)}%`;
+    }
+    if (this.els.btnNitro) {
+      const ready = clampedNitro >= 18;
+      this.els.btnNitro.style.opacity = ready || isBoosting ? '1' : '0.45';
+      this.els.btnNitro.textContent = isBoosting ? 'BOOSTING!' : 'NITRO [Space]';
+    }
+
+    // Hull integrity bars
     if (this.els.hullText) {
       this.els.hullText.textContent = `${health}/${maxHealth}`;
     }
@@ -227,7 +295,8 @@ export class HUD {
       const bar = this.els.hullBars[i];
       if (!bar) continue;
       if (i < health) {
-        bar.style.backgroundColor = health === 1 ? '#ef4444' : health === 2 ? '#f59e0b' : '#10b981';
+        bar.style.backgroundColor =
+          health === 1 ? '#ef4444' : health === 2 ? '#f59e0b' : '#10b981';
       } else {
         bar.style.backgroundColor = 'rgba(255, 255, 255, 0.14)';
       }
@@ -290,14 +359,18 @@ export class HUD {
           }
         }
       } else {
-        const kbStatus = isLeft
-          ? 'KEYBOARD · STEER LEFT'
-          : isRight
-            ? 'KEYBOARD · STEER RIGHT'
-            : 'KEYBOARD CONTROLS ACTIVE';
+        const kbStatus = isBoosting
+          ? 'HYPER NITRO ENGAGED'
+          : isLeft
+            ? 'KEYBOARD · STEER LEFT'
+            : isRight
+              ? 'KEYBOARD · STEER RIGHT'
+              : 'KEYBOARD CONTROLS ACTIVE';
         this.els.gestureStatus.textContent = kbStatus;
-        this.els.gestureBanner.style.borderColor = 'rgba(255, 255, 255, 0.12)';
-        this.els.gestureStatus.style.color = '#e2e8f0';
+        this.els.gestureBanner.style.borderColor = isBoosting
+          ? 'rgba(232, 121, 249, 0.55)'
+          : 'rgba(255, 255, 255, 0.12)';
+        this.els.gestureStatus.style.color = isBoosting ? '#f0abfc' : '#e2e8f0';
       }
     }
   }
