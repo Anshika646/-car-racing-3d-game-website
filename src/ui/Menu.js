@@ -1,8 +1,8 @@
 /**
  * Menu.js
  *
- * Manages Title Screen Garage (Driver Name, 4 Car Models, 8 Paint Colours, 3 Track Atmospheres),
- * Camera Consent Modal, Steering Calibration Studio, Pause/Settings Dialog, and Help Modal.
+ * Manages Title Screen Garage (Driver Name, 4 Car Models, 8 Paint Colours, 5 Colorful World Arenas),
+ * Camera Permission Fallback Modal, Steering Tuning Studio, Pause/Settings Dialog, and Help Modal.
  */
 
 import gsap from 'gsap';
@@ -32,9 +32,10 @@ export class Menu {
       navQualityBtn: document.getElementById('nav-quality-btn'),
       navMuteBtn: document.getElementById('nav-mute-btn'),
       btnPlayCamera: document.getElementById('btn-play-camera'),
+      btnPlayCameraLabel: document.getElementById('btn-play-camera-label'),
       btnPlayKeyboard: document.getElementById('btn-play-keyboard'),
 
-      // Garage Controls (Driver Name + Custom Dropdowns for Model, Paint, Atmosphere)
+      // Garage Controls (Driver Name + Custom Dropdowns for Model, Paint, World Arena)
       inputDriverName: document.getElementById('input-driver-name'),
       btnRandomDriverName: document.getElementById('btn-random-driver-name'),
       titleModelStats: document.getElementById('title-model-stats'),
@@ -72,7 +73,7 @@ export class Menu {
       cameraLoadingBox: document.getElementById('camera-loading-box'),
       cameraLoadingText: document.getElementById('camera-loading-text'),
 
-      // Calibration Screen
+      // Calibration / Tuning Screen
       calibrationScreen: document.getElementById('calibration-screen'),
       btnCalCancel: document.getElementById('btn-cal-cancel'),
       calStatusBadge: document.getElementById('cal-status-badge'),
@@ -224,7 +225,7 @@ export class Menu {
       this.callbacks.onSelectCarPaint?.(e.target.value);
     });
 
-    // Track Atmosphere Selection
+    // World Arena Selection
     document.querySelectorAll('[data-atmosphere]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const themeId = btn.getAttribute('data-atmosphere');
@@ -325,7 +326,19 @@ export class Menu {
     this.els.btnDoneHelp?.addEventListener('click', () => this.closeHelp());
   }
 
+  setCameraPlayLoading(isLoading) {
+    if (this.els.btnPlayCamera) {
+      this.els.btnPlayCamera.disabled = Boolean(isLoading);
+    }
+    if (this.els.btnPlayCameraLabel) {
+      this.els.btnPlayCameraLabel.textContent = isLoading
+        ? 'STARTING CAMERA...'
+        : 'HAND STEER DRIVE';
+    }
+  }
+
   showTitleScreen(bestScore = 0) {
+    this.setCameraPlayLoading(false);
     this.updateBestScore(bestScore);
     if (!this.els.titleScreen) return;
     this.els.titleScreen.classList.remove('hidden');
@@ -337,6 +350,7 @@ export class Menu {
   }
 
   hideTitleScreen() {
+    this.setCameraPlayLoading(false);
     if (!this.els.titleScreen) return;
     this.els.titleScreen.classList.add('hidden');
   }
@@ -376,6 +390,16 @@ export class Menu {
     }
   }
 
+  _applyDropdownSelectionClasses(btn, isSelected) {
+    btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+    btn.classList.toggle('border-[#22e4ff]', isSelected);
+    btn.classList.toggle('bg-[#21194a]', isSelected);
+    btn.classList.toggle('text-white', isSelected);
+    btn.classList.toggle('border-white/12', !isSelected);
+    btn.classList.toggle('bg-[#151030]', !isSelected);
+    btn.classList.toggle('text-slate-200', !isSelected);
+  }
+
   setCarModelState(modelId) {
     const activeModel =
       CAR_MODEL_PRESETS.find((m) => m.id === modelId) || CAR_MODEL_PRESETS[0];
@@ -395,13 +419,7 @@ export class Menu {
 
     document.querySelectorAll('[data-car-model]').forEach((btn) => {
       const isSelected = btn.getAttribute('data-car-model') === activeModel.id;
-      btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
-      btn.classList.toggle('border-[#22d3ee]', isSelected);
-      btn.classList.toggle('bg-[#132033]', isSelected);
-      btn.classList.toggle('text-white', isSelected);
-      btn.classList.toggle('border-white/12', !isSelected);
-      btn.classList.toggle('bg-[#0d1422]/90', !isSelected);
-      btn.classList.toggle('text-slate-300', !isSelected);
+      this._applyDropdownSelectionClasses(btn, isSelected);
     });
   }
 
@@ -424,13 +442,7 @@ export class Menu {
 
     document.querySelectorAll('[data-car-paint]').forEach((btn) => {
       const isSelected = btn.getAttribute('data-car-paint') === activePreset.id;
-      btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
-      btn.classList.toggle('border-[#22d3ee]', isSelected);
-      btn.classList.toggle('bg-[#132033]', isSelected);
-      btn.classList.toggle('text-white', isSelected);
-      btn.classList.toggle('border-white/12', !isSelected);
-      btn.classList.toggle('bg-[#0d1422]/90', !isSelected);
-      btn.classList.toggle('text-slate-300', !isSelected);
+      this._applyDropdownSelectionClasses(btn, isSelected);
     });
   }
 
@@ -439,12 +451,15 @@ export class Menu {
       ATMOSPHERE_PRESETS.find((t) => t.id === themeId) || ATMOSPHERE_PRESETS[0];
 
     const swatchMap = {
-      midnight: '#38bdf8',
-      sunset: '#fb923c',
-      cyber_dusk: '#e879f9',
+      midnight: '#ff2eb6',
+      city: '#38bdf8',
+      track: '#a3ff2e',
+      sunset: '#ff8c1a',
+      cyber_dusk: '#c084fc',
     };
     if (this.els.ddAtmoSwatch) {
-      this.els.ddAtmoSwatch.style.backgroundColor = swatchMap[activeTheme.id] || '#38bdf8';
+      this.els.ddAtmoSwatch.style.backgroundColor =
+        activeTheme.swatch || swatchMap[activeTheme.id] || '#ff2eb6';
     }
     if (this.els.ddAtmoLabel) {
       this.els.ddAtmoLabel.textContent = activeTheme.name;
@@ -455,13 +470,7 @@ export class Menu {
 
     document.querySelectorAll('[data-atmosphere]').forEach((btn) => {
       const isSelected = btn.getAttribute('data-atmosphere') === activeTheme.id;
-      btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
-      btn.classList.toggle('border-[#22d3ee]', isSelected);
-      btn.classList.toggle('bg-[#132033]', isSelected);
-      btn.classList.toggle('text-white', isSelected);
-      btn.classList.toggle('border-white/12', !isSelected);
-      btn.classList.toggle('bg-[#0d1422]/90', !isSelected);
-      btn.classList.toggle('text-slate-300', !isSelected);
+      this._applyDropdownSelectionClasses(btn, isSelected);
     });
   }
 
@@ -483,7 +492,7 @@ export class Menu {
       if (this.els.inputSmoothing) this.els.inputSmoothing.value = String(settings.smoothingRate);
       if (this.els.valSmoothing) {
         const desc =
-          settings.smoothingRate <= 8
+          settings.smoothingRate <= 9
             ? 'Smooth'
             : settings.smoothingRate <= 15
               ? 'Balanced'
@@ -512,7 +521,7 @@ export class Menu {
     this.els.cameraLoadingBox?.classList.add('hidden');
     if (this.els.btnConfirmCamera) {
       this.els.btnConfirmCamera.disabled = false;
-      this.els.btnConfirmCamera.textContent = 'Allow Camera & Calibrate';
+      this.els.btnConfirmCamera.textContent = 'Allow Camera & Drive!';
     }
     this.els.consentModal.classList.remove('hidden');
     gsap.fromTo(
@@ -532,20 +541,23 @@ export class Menu {
     if (this.els.btnConfirmCamera) {
       this.els.btnConfirmCamera.disabled = isLoading;
       this.els.btnConfirmCamera.textContent = isLoading
-        ? 'Initializing Camera...'
-        : 'Allow Camera & Calibrate';
+        ? 'Starting Camera...'
+        : 'Allow Camera & Drive!';
     }
   }
 
   showConsentError(title, detail) {
     this.setConsentLoading(false);
+    if (this.els.consentModal?.classList.contains('hidden')) {
+      this.els.consentModal.classList.remove('hidden');
+    }
     if (this.els.cameraErrorBox) {
       this.els.cameraErrorBox.classList.remove('hidden');
     }
     if (this.els.cameraErrorTitle) this.els.cameraErrorTitle.textContent = title;
     if (this.els.cameraErrorDetail) this.els.cameraErrorDetail.textContent = detail;
     if (this.els.btnConfirmCamera) {
-      this.els.btnConfirmCamera.textContent = 'Retry Camera Access';
+      this.els.btnConfirmCamera.textContent = 'Retry Camera & Drive!';
     }
   }
 
@@ -576,7 +588,6 @@ export class Menu {
   }) {
     const {
       steer = 0,
-      wheelAngleDeg = 0,
       handCount = 0,
       confidence = 0,
       status = 'CALIBRATE STEERING',
@@ -585,7 +596,7 @@ export class Menu {
     if (this.els.calStatusBadge) {
       this.els.calStatusBadge.textContent = status;
       this.els.calStatusBadge.style.color =
-        handCount === 0 ? '#fbbf24' : '#22d3ee';
+        handCount === 0 ? '#ffe224' : '#22e4ff';
     }
     if (this.els.calConfidenceText) {
       const confStr = handCount > 0 ? `${Math.round(confidence * 100)}%` : '--';
@@ -595,28 +606,28 @@ export class Menu {
     if (this.els.calInstructionText) {
       if (handCount === 0) {
         this.els.calInstructionText.textContent =
-          'Raise 1 or 2 hands clearly into camera view to calibrate steering.';
+          'Raise 1 or 2 hands into camera view — horizontal = straight ahead!';
       } else if (!isCalibrated) {
         this.els.calInstructionText.textContent =
           handCount >= 2
-            ? '2 hands detected! Hold steady for a moment to lock center...'
-            : '1 hand detected! Hold steady (or raise second hand) to lock center...';
+            ? '2 hands tracked! Hold steady to auto-lock, or click DRIVE NOW!'
+            : '1 hand tracked! Hold steady to auto-lock, or click DRIVE NOW!';
       } else {
         this.els.calInstructionText.textContent =
           handCount >= 2
-            ? '2-Hand Wheel Locked! Rotate left/right to test, then click Start Race.'
-            : '1-Hand Steer Locked! Tilt or move hand left/right, or raise both hands.';
+            ? '2-Hand Wheel Ready! Rotate left/right to test, then click DRIVE NOW!'
+            : '1-Hand Steer Ready! Move left/right to test, then click DRIVE NOW!';
       }
     }
 
     if (this.els.calProgressPct) {
       this.els.calProgressPct.textContent = isCalibrated
-        ? 'READY'
+        ? 'READY ✓'
         : `${Math.round(progress * 100)}%`;
     }
 
     if (this.els.calWheelSvg) {
-      const deg = Math.max(-85, Math.min(85, wheelAngleDeg * 1.55));
+      const deg = Math.max(-115, Math.min(115, steer * 115));
       this.els.calWheelSvg.style.transform = `rotate(${deg.toFixed(1)}deg)`;
     }
 
@@ -627,7 +638,7 @@ export class Menu {
     if (this.els.calAngleReadout) {
       const pct = Math.round(steer * 100);
       const sign = pct > 0 ? '+' : '';
-      this.els.calAngleReadout.textContent = `Steer: ${sign}${pct}% · Neutral: ${neutralAngleDeg.toFixed(1)}°`;
+      this.els.calAngleReadout.textContent = `Steer: ${sign}${pct}% · Center: ${neutralAngleDeg.toFixed(1)}°`;
     }
   }
 
@@ -640,12 +651,12 @@ export class Menu {
     const isCamera = controlMode === 'camera';
 
     if (this.els.pauseTitle) {
-      this.els.pauseTitle.textContent = isTitleSettings ? 'Garage & Game Settings' : 'Race Paused';
+      this.els.pauseTitle.textContent = isTitleSettings ? 'Garage & World Settings' : 'Race Paused';
     }
     if (this.els.pauseModeLabel) {
       this.els.pauseModeLabel.textContent = isTitleSettings
         ? 'Preferences'
-        : `Mode: ${isCamera ? 'Camera' : 'Keyboard'}`;
+        : `Mode: ${isCamera ? 'Hand Wheel' : 'Keys / Touch'}`;
     }
     if (this.els.btnResumeRace) {
       this.els.btnResumeRace.textContent = isTitleSettings ? 'Save & Close' : 'Resume Race [Esc]';
@@ -659,8 +670,8 @@ export class Menu {
     if (this.els.btnPauseSwitchMode) {
       this.els.btnPauseSwitchMode.classList.toggle('hidden', isTitleSettings);
       this.els.btnPauseSwitchMode.textContent = isCamera
-        ? 'Switch to Keyboard'
-        : 'Switch to Camera';
+        ? 'Switch to Keys/Touch'
+        : 'Switch to Hand Wheel';
     }
     if (this.els.btnPauseQuit) {
       this.els.btnPauseQuit.classList.toggle('hidden', isTitleSettings);

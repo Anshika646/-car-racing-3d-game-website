@@ -2,11 +2,11 @@
  * HandTracker.js
  *
  * High-reliability browser-local MediaPipe HandLandmarker engine:
- * - Tuned low-threshold palm/fist/tilted-hand detection (0.26 / 0.26 / 0.22)
+ * - Per-landmark 1-Euro velocity-adaptive smoothing (zero jitter at rest, zero lag on turns)
+ * - Tuned high-recall palm/fist/tilted-hand detection (0.28 / 0.28 / 0.24)
  * - Strictly monotonic timestamp guard so MediaPipe WASM never drops frames
  * - Automatic dim-room / low-light brightness & contrast boost fallback
- * - Short-term temporal continuity buffer to eliminate single-frame flicker
- * - Pixel-accurate object-cover aspect-ratio skeleton & wheel-axle overlay
+ * - Vibrant Chroma Confetti multi-color skeleton & rainbow virtual steering wheel overlay
  */
 
 import { computeWheelGeometry } from './SteeringCalibration.js';
@@ -25,6 +25,13 @@ const HAND_CONNECTIONS = [
   [13, 17], [17, 18], [18, 19], [19, 20], // Pinky
   [0, 17],                                // Palm base
 ];
+
+const SKELETON_NEON_PALETTE = ['#22e4ff', '#ff8c1a', '#a3ff2e', '#ff2eb6'];
+
+function oneEuroAlpha(cutoffHz, dt) {
+  const tau = 1 / (2 * Math.PI * Math.max(0.05, cutoffHz));
+  return 1 / (1 + tau / Math.max(0.004, dt));
+}
 
 export class HandTracker {
   constructor(options = {}) {
@@ -47,7 +54,11 @@ export class HandTracker {
     this._enhanceCanvas = null;
     this._enhanceCtx = null;
 
+    // Per-hand 1-Euro landmark filter tracks
+    this._trackedHands = [];
+
     this.latestGeometry = computeWheelGeometry([], []);
+    this.latestSmoothedLandmarks = [];
     this.latestRawResult = null;
   }
 
@@ -81,10 +92,9 @@ export class HandTracker {
       const detectorConfig = {
         runningMode: 'VIDEO',
         numHands: 2,
-        // Lower thresholds ensure closed fists, sideways grips & dim indoor rooms stay locked
-        minHandDetectionConfidence: 0.26,
-        minHandPresenceConfidence: 0.26,
-        minTrackingConfidence: 0.22,
+        minHandDetectionConfidence: 0.28,
+        minHandPresenceConfidence: 0.28,
+        minTrackingConfidence: 0.24,
       };
 
       try {
@@ -96,7 +106,6 @@ export class HandTracker {
           ...detectorConfig,
         });
       } catch {
-        // Fallback to CPU delegate on systems where WebGL GPU delegate is restricted
         this.handLandmarker = await HandLandmarker.createFromOptions(visionFileset, {
           baseOptions: {
             modelAssetPath: HAND_MODEL_URL,
@@ -122,6 +131,76 @@ export class HandTracker {
   }
 
   /**
+   * Applies velocity-adaptive 1-Euro filtering per landmark across frames so hand skeletons
+   * and palm centers stay silky-smooth with zero lag during quick turns.
+   */
+  _smoothLandmarksList(rawLandmarksList, timestampMs) {
+    if (!Array.isArray(rawLandmarksList) || rawLandmarksList.length === 0) {
+      this._trackedHands = [];
+      return [];
+    }
+
+    const usedPrev = new Set();
+    const nextTracks = [];
+    const smoothedList = [];
+
+    for (let h = 0; h < rawLandmarksList.length; h++) {
+      const lm = rawLandmarksList[h];
+      if (!Array.isArray(lm) || lm.length < 21) continue;
+
+      let bestTrack = null;
+      let bestDist = 0.26;
+      let bestIdx = -1;
+
+      for (let p = 0; p < this._trackedHands.length; p++) {
+        if (usedPrev.has(p)) continue;
+        const candidate = this._trackedHands[p];
+        const d = Math.hypot(lm[0].x - candidate.lm[0].x, lm[0].y - candidate.lm[0].y);
+        if (d < bestDist) {
+          bestDist = d;
+          bestTrack = candidate;
+          bestIdx = p;
+        }
+      }
+
+      if (bestTrack && bestIdx !== -1) {
+        usedPrev.add(bestIdx);
+        const dt = Math.min(0.1, Math.max(0.008, (timestampMs - bestTrack.t) / 1000));
+        const dAlpha = oneEuroAlpha(1.0, dt);
+        const minCutoff = 1.25;
+        const beta = 1.45;
+
+        const vel = bestTrack.vel;
+        const filteredLm = lm.map((pt, idx) => {
+          const prevPt = bestTrack.lm[idx];
+          const vx = (pt.x - prevPt.x) / dt;
+          const vy = (pt.y - prevPt.y) / dt;
+          vel[idx].dx += dAlpha * (vx - vel[idx].dx);
+          vel[idx].dy += dAlpha * (vy - vel[idx].dy);
+          const speed = Math.hypot(vel[idx].dx, vel[idx].dy);
+          const posAlpha = oneEuroAlpha(minCutoff + beta * speed, dt);
+          return {
+            x: prevPt.x + posAlpha * (pt.x - prevPt.x),
+            y: prevPt.y + posAlpha * (pt.y - prevPt.y),
+            z: pt.z ?? 0,
+          };
+        });
+
+        nextTracks.push({ lm: filteredLm, vel, t: timestampMs });
+        smoothedList.push(filteredLm);
+      } else {
+        const cloned = lm.map((pt) => ({ x: pt.x, y: pt.y, z: pt.z ?? 0 }));
+        const vel = lm.map(() => ({ dx: 0, dy: 0 }));
+        nextTracks.push({ lm: cloned, vel, t: timestampMs });
+        smoothedList.push(cloned);
+      }
+    }
+
+    this._trackedHands = nextTracks;
+    return smoothedList;
+  }
+
+  /**
    * Prepares an exposure/contrast-enhanced frame when operating in dim indoor lighting.
    */
   _prepareEnhancedInput(videoEl) {
@@ -144,7 +223,7 @@ export class HandTracker {
     }
 
     try {
-      this._enhanceCtx.filter = 'brightness(1.26) contrast(1.26) saturate(1.08)';
+      this._enhanceCtx.filter = 'brightness(1.25) contrast(1.25) saturate(1.08)';
       this._enhanceCtx.drawImage(videoEl, 0, 0, targetW, targetH);
       return this._enhanceCanvas;
     } catch {
@@ -166,7 +245,6 @@ export class HandTracker {
       return this.latestGeometry;
     }
 
-    // Ensure video continues playing if mobile browser momentarily paused it
     if (videoEl.paused && typeof videoEl.play === 'function') {
       const p = videoEl.play();
       if (p && typeof p.catch === 'function') p.catch(() => {});
@@ -175,11 +253,10 @@ export class HandTracker {
     this.sourceVideoWidth = videoEl.videoWidth || 640;
     this.sourceVideoHeight = videoEl.videoHeight || 480;
 
-    // Run whenever video time advances OR at least every 28ms (~35 Hz) for browsers with coarse currentTime
     const wallElapsed = timestampMs - this.lastDetectWallMs;
     if (
       videoEl.currentTime === this.lastVideoTime &&
-      wallElapsed < 28 &&
+      wallElapsed < 24 &&
       this.latestRawResult
     ) {
       return this.latestGeometry;
@@ -187,7 +264,6 @@ export class HandTracker {
     this.lastVideoTime = videoEl.currentTime;
     this.lastDetectWallMs = timestampMs;
 
-    // MediaPipe VIDEO mode strictly requires monotonically increasing timestamps
     const safeTimestampMs = Math.max(this.lastTimestampMs + 1, Math.round(timestampMs));
     this.lastTimestampMs = safeTimestampMs;
 
@@ -197,36 +273,38 @@ export class HandTracker {
         : videoEl;
 
       const result = this.handLandmarker.detectForVideo(inputSource, safeTimestampMs);
-      const landmarks = result?.landmarks || [];
+      const rawLandmarks = result?.landmarks || [];
       const handednesses = result?.handednesses || [];
 
-      if (landmarks.length > 0) {
+      if (rawLandmarks.length > 0) {
         this.zeroHandStreak = 0;
         this.lastValidDetectMs = timestampMs;
         this.latestRawResult = result;
-        this.latestGeometry = computeWheelGeometry(landmarks, handednesses);
+        const smoothedLandmarks = this._smoothLandmarksList(rawLandmarks, timestampMs);
+        this.latestSmoothedLandmarks = smoothedLandmarks;
+        this.latestGeometry = computeWheelGeometry(smoothedLandmarks, handednesses);
       } else {
         this.zeroHandStreak++;
-        // Toggle low-light contrast boost automatically if raw stream sees 0 hands for ~16 frames
         if (this.zeroHandStreak === 16 && !this.useLowLightBoost) {
           this.useLowLightBoost = true;
         } else if (this.zeroHandStreak === 48 && this.useLowLightBoost) {
-          // Periodically alternate back to raw stream in case lighting is already bright
           this.useLowLightBoost = false;
           this.zeroHandStreak = 0;
         }
 
-        // Hold last valid hand pose for up to 95ms to bridge single-frame motion blur
-        if (this.latestRawResult && timestampMs - this.lastValidDetectMs <= 95) {
+        // Hold last valid hand pose for up to 110ms to bridge single-frame motion blur
+        if (this.latestRawResult && timestampMs - this.lastValidDetectMs <= 110) {
           return this.latestGeometry;
         }
 
+        this._trackedHands = [];
+        this.latestSmoothedLandmarks = [];
         this.latestRawResult = result;
         this.latestGeometry = computeWheelGeometry([], []);
       }
     } catch {
-      // Preserve last valid pose briefly on transient WebGL/WASM hiccup instead of hard drop
-      if (timestampMs - this.lastValidDetectMs > 150) {
+      if (timestampMs - this.lastValidDetectMs > 160) {
+        this.latestSmoothedLandmarks = [];
         this.latestGeometry = computeWheelGeometry([], []);
       }
     }
@@ -248,12 +326,10 @@ export class HandTracker {
     let offsetY = 0;
 
     if (vidAspect > boxAspect) {
-      // Video is wider than box -> cropped horizontally
       renderH = canvasHeight;
       renderW = canvasHeight * vidAspect;
       offsetX = (canvasWidth - renderW) * 0.5;
     } else {
-      // Video is taller than box (e.g., portrait phone camera) -> cropped vertically
       renderW = canvasWidth;
       renderH = canvasWidth / vidAspect;
       offsetY = (canvasHeight - renderH) * 0.5;
@@ -266,8 +342,8 @@ export class HandTracker {
   }
 
   /**
-   * Draws mirrored 21-point hand skeletons, grip hubs, neutral horizon reference,
-   * and the virtual steering wheel axle onto an overlay <canvas>.
+   * Draws colorful mirrored 21-point hand skeletons, grip hubs, and a rainbow virtual steering wheel
+   * onto an overlay <canvas>.
    */
   renderOverlay(canvas, neutralAngleDeg = 0) {
     if (!canvas) return;
@@ -283,7 +359,10 @@ export class HandTracker {
 
     ctx.clearRect(0, 0, width, height);
 
-    const landmarksList = this.latestRawResult?.landmarks || [];
+    const landmarksList =
+      this.latestSmoothedLandmarks.length > 0
+        ? this.latestSmoothedLandmarks
+        : this.latestRawResult?.landmarks || [];
     const geo = this.latestGeometry;
 
     // Subtle center steering wheel target guide
@@ -292,8 +371,8 @@ export class HandTracker {
     const guideRadius = Math.min(width, height) * 0.28;
 
     ctx.save();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
-    ctx.lineWidth = 1.25;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 1.3;
     ctx.setLineDash([4, 4]);
     ctx.beginPath();
     ctx.arc(cx, cy, guideRadius, 0, Math.PI * 2);
@@ -312,15 +391,22 @@ export class HandTracker {
     ctx.stroke();
     ctx.restore();
 
-    // Draw each detected hand skeleton with object-cover aspect compensation
+    // Draw each detected hand skeleton in vibrant Chroma Confetti neon colors
     for (let h = 0; h < landmarksList.length; h++) {
       const lm = landmarksList[h];
       const mirroredX0 = 1.0 - lm[0].x;
       const isLeftScreenSide = mirroredX0 < 0.5;
-      const boneColor = isLeftScreenSide ? '#22d3ee' : '#f59e0b';
+      const boneColor = isLeftScreenSide
+        ? SKELETON_NEON_PALETTE[0]
+        : SKELETON_NEON_PALETTE[1];
+      const tipAccent = isLeftScreenSide
+        ? SKELETON_NEON_PALETTE[2]
+        : SKELETON_NEON_PALETTE[3];
 
+      ctx.save();
       ctx.strokeStyle = boneColor;
-      ctx.lineWidth = 2.4;
+      ctx.lineWidth = 2.6;
+      ctx.lineCap = 'round';
       ctx.beginPath();
       for (let c = 0; c < HAND_CONNECTIONS.length; c++) {
         const [a, b] = HAND_CONNECTIONS[c];
@@ -331,17 +417,18 @@ export class HandTracker {
       }
       ctx.stroke();
 
-      // Draw joints
-      ctx.fillStyle = '#ffffff';
       for (let j = 0; j < lm.length; j++) {
         const pj = this._projectMirroredPoint(1.0 - lm[j].x, lm[j].y, width, height);
+        const isTip = j === 4 || j === 8 || j === 12 || j === 16 || j === 20;
+        ctx.fillStyle = isTip ? tipAccent : '#ffffff';
         ctx.beginPath();
-        ctx.arc(pj.x, pj.y, j === 0 ? 3.8 : 2.3, 0, Math.PI * 2);
+        ctx.arc(pj.x, pj.y, j === 0 ? 4.2 : isTip ? 3.2 : 2.3, 0, Math.PI * 2);
         ctx.fill();
       }
+      ctx.restore();
     }
 
-    // Draw virtual steering axle connecting both palm hubs when both hands are visible
+    // Draw rainbow virtual steering wheel connecting both palm hubs when 2 hands are visible
     if (geo && geo.hasBothHands && geo.leftHub && geo.rightHub) {
       const pl = this._projectMirroredPoint(geo.leftHub.x, geo.leftHub.y, width, height);
       const pr = this._projectMirroredPoint(geo.rightHub.x, geo.rightHub.y, width, height);
@@ -350,40 +437,52 @@ export class HandTracker {
       const wheelRadius = Math.max(22, Math.hypot(pr.x - pl.x, pr.y - pl.y) * 0.5);
 
       ctx.save();
-      ctx.strokeStyle = 'rgba(34, 211, 238, 0.9)';
-      ctx.lineWidth = 2.8;
+      const grad = ctx.createLinearGradient(pl.x, pl.y, pr.x, pr.y);
+      grad.addColorStop(0, '#ff8c1a');
+      grad.addColorStop(0.5, '#ff2eb6');
+      grad.addColorStop(1, '#22e4ff');
+
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 3.2;
       ctx.beginPath();
       ctx.moveTo(pl.x, pl.y);
       ctx.lineTo(pr.x, pr.y);
       ctx.stroke();
 
-      ctx.strokeStyle = 'rgba(34, 211, 238, 0.5)';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.6;
       ctx.beginPath();
       ctx.arc(mx, my, wheelRadius, 0, Math.PI * 2);
       ctx.stroke();
 
-      ctx.fillStyle = '#22d3ee';
+      // Top 12-o'clock yellow wheel marker perpendicular to hand axle
+      const axleAngle = Math.atan2(pr.y - pl.y, pr.x - pl.x);
+      const topX = mx + Math.sin(axleAngle) * wheelRadius;
+      const topY = my - Math.cos(axleAngle) * wheelRadius;
+      ctx.fillStyle = '#ffe224';
+      ctx.beginPath();
+      ctx.arc(topX, topY, 4.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#22e4ff';
       ctx.beginPath();
       ctx.arc(pl.x, pl.y, 6.5, 0, Math.PI * 2);
       ctx.fill();
 
-      ctx.fillStyle = '#f59e0b';
+      ctx.fillStyle = '#ff8c1a';
       ctx.beginPath();
       ctx.arc(pr.x, pr.y, 6.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     } else if (geo && geo.handCount === 1 && geo.leftHub) {
-      // Active 1-hand steering ring indicator
       const ph = this._projectMirroredPoint(geo.leftHub.x, geo.leftHub.y, width, height);
       ctx.save();
-      ctx.strokeStyle = 'rgba(34, 211, 238, 0.85)';
-      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = '#a3ff2e';
+      ctx.lineWidth = 2.8;
       ctx.beginPath();
-      ctx.arc(ph.x, ph.y, 18, 0, Math.PI * 2);
+      ctx.arc(ph.x, ph.y, 19, 0, Math.PI * 2);
       ctx.stroke();
 
-      ctx.fillStyle = '#22d3ee';
+      ctx.fillStyle = '#ffe224';
       ctx.beginPath();
       ctx.arc(ph.x, ph.y, 6, 0, Math.PI * 2);
       ctx.fill();
@@ -396,6 +495,8 @@ export class HandTracker {
     this.lastDetectWallMs = 0;
     this.lastValidDetectMs = 0;
     this.zeroHandStreak = 0;
+    this._trackedHands = [];
+    this.latestSmoothedLandmarks = [];
     this.latestRawResult = null;
     this.latestGeometry = computeWheelGeometry([], []);
   }

@@ -323,17 +323,21 @@ export class Game {
       this.scene.background = new THREE.Color(preset.skyHex);
       if (this.scene.fog) {
         this.scene.fog.color.setHex(preset.skyHex);
+        this.scene.fog.density = preset.fogDensity ?? 0.0085;
       }
     }
     if (this.hemiLight) {
       this.hemiLight.color.setHex(preset.hemiSkyHex);
       this.hemiLight.groundColor.setHex(preset.hemiGroundHex);
+      this.hemiLight.intensity = preset.hemiIntensity ?? 1.0;
     }
     if (this.keyLight) {
       this.keyLight.color.setHex(preset.keyLightHex);
+      this.keyLight.intensity = preset.keyIntensity ?? 1.75;
     }
     if (this.rimLight) {
       this.rimLight.color.setHex(preset.rimLightHex);
+      this.rimLight.intensity = preset.rimIntensity ?? 1.05;
     }
     this.menu?.setAtmosphereState(preset.id);
   }
@@ -349,12 +353,19 @@ export class Game {
       hood: 'CAMERA · PRO HOOD VIEW',
     };
     this.hud?.showBonusToast(labelMap[this.cameraView]);
+    return this.cameraView;
   }
 
   _initUI() {
     this.hud = new HUD({
       onPause: () => this.pauseRace(),
       onToggleMute: () => this.toggleMute(),
+      onRecenterHands: () => {
+        this.audio.unlock();
+        this.calibration.captureNeutral();
+        this.audio.playCalibrationLock();
+        this.hud?.showBonusToast('HAND WHEEL RECENTERED ✓');
+      },
       onRecalibrate: () => this.openCalibrationDuringRace(),
       onCycleCamera: () => this.cycleCameraView(),
       onTriggerNitro: (active) => {
@@ -370,11 +381,11 @@ export class Game {
     this.menu = new Menu({
       onSelectCameraPlay: () => {
         this.audio.unlock();
-        this.menu.openConsentModal();
+        this.startDirectCameraRace();
       },
       onConfirmCameraPermission: () => {
         this.audio.unlock();
-        this.activateCameraAndOpenCalibration(GAME_STATE.TITLE);
+        this.startDirectCameraRace();
       },
       onSelectKeyboardPlay: () => {
         this.audio.unlock();
@@ -466,7 +477,7 @@ export class Game {
           this.handTracker.resetFrameCache();
           this.startKeyboardModeRace();
         } else {
-          this.menu.openConsentModal();
+          this.startDirectCameraRace();
         }
       },
       onQuitToTitle: () => {
@@ -487,7 +498,7 @@ export class Game {
           this.handTracker.resetFrameCache();
           this.startKeyboardModeRace();
         } else {
-          this.menu.openConsentModal();
+          this.startDirectCameraRace();
         }
       },
       onMainMenu: () => {
@@ -530,7 +541,7 @@ export class Game {
 
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.12;
+    this.renderer.toneMappingExposure = 1.18;
     this.renderer.setSize(width, height);
     this.renderer.setPixelRatio(
       this.isSoftwareGl ? 1 : Math.min(window.devicePixelRatio || 1, this.quality === 'low' ? 1 : 2),
@@ -559,7 +570,7 @@ export class Game {
     const initialAtmo =
       ATMOSPHERE_PRESETS.find((t) => t.id === this.atmosphere) || ATMOSPHERE_PRESETS[0];
     this.scene.background = new THREE.Color(initialAtmo.skyHex);
-    this.scene.fog = new THREE.FogExp2(initialAtmo.skyHex, 0.0102);
+    this.scene.fog = new THREE.FogExp2(initialAtmo.skyHex, initialAtmo.fogDensity ?? 0.0085);
 
     this.camera = new THREE.PerspectiveCamera(60, width / height, 0.2, 260);
     this.camera.position.copy(this.camPos);
@@ -573,12 +584,15 @@ export class Game {
     this.hemiLight = new THREE.HemisphereLight(
       initialAtmo.hemiSkyHex,
       initialAtmo.hemiGroundHex,
-      0.88,
+      initialAtmo.hemiIntensity ?? 1.0,
     );
     this.hemiLight.position.set(0, 40, 0);
     this.scene.add(this.hemiLight);
 
-    this.keyLight = new THREE.DirectionalLight(initialAtmo.keyLightHex, 1.65);
+    this.keyLight = new THREE.DirectionalLight(
+      initialAtmo.keyLightHex,
+      initialAtmo.keyIntensity ?? 1.75,
+    );
     this.keyLight.position.set(12, 22, 14);
     this.keyLight.castShadow = !this.isSoftwareGl && this.quality === 'high';
     this.keyLight.shadow.mapSize.set(1024, 1024);
@@ -593,7 +607,10 @@ export class Game {
     this.keyLight.shadow.normalBias = 0.02;
     this.scene.add(this.keyLight);
 
-    this.rimLight = new THREE.DirectionalLight(initialAtmo.rimLightHex, 0.92);
+    this.rimLight = new THREE.DirectionalLight(
+      initialAtmo.rimLightHex,
+      initialAtmo.rimIntensity ?? 1.05,
+    );
     this.rimLight.position.set(-10, 8, -18);
     this.scene.add(this.rimLight);
 
@@ -651,6 +668,41 @@ export class Game {
     );
   }
 
+  async startDirectCameraRace() {
+    this.menu?.setCameraPlayLoading(true);
+    this.menu?.setConsentLoading(
+      true,
+      'Starting camera and loading MediaPipe hand-wheel tracker...',
+    );
+
+    const calVideo = document.getElementById('cal-video-preview');
+    const hudVideo = document.getElementById('hud-video-preview');
+
+    try {
+      await this.cameraController.requestCamera([calVideo, hudVideo]);
+      await this.handTracker.initialize();
+      this.handTracker.resetFrameCache();
+      this.calibration.ensureDefaultNeutral();
+
+      this.menu?.setCameraPlayLoading(false);
+      this.menu?.setConsentLoading(false);
+      this.menu?.closeConsentModal();
+      this.menu?.closeCalibrationScreen();
+      this.menu?.hideTitleScreen();
+
+      this.controlMode = 'camera';
+      this.beginRaceCountdown();
+    } catch (err) {
+      this.cameraController.stopCamera();
+      this.menu?.setCameraPlayLoading(false);
+      this.menu?.showConsentError(
+        err?.title || 'Camera Setup Issue',
+        err?.message ||
+          'Unable to start webcam hand tracking. Allow camera permission or play with Touch / Keyboard Controls.',
+      );
+    }
+  }
+
   async activateCameraAndOpenCalibration(returnState = GAME_STATE.TITLE) {
     this.calibrationReturnState = returnState;
     this.menu?.setConsentLoading(
@@ -664,6 +716,7 @@ export class Game {
     try {
       await this.cameraController.requestCamera([calVideo, hudVideo]);
       await this.handTracker.initialize();
+      this.calibration.ensureDefaultNeutral();
 
       this.menu?.setConsentLoading(false);
       this.menu?.closeConsentModal();
@@ -674,7 +727,6 @@ export class Game {
       this.calibration.resetCalibrationProgress();
       this.state = GAME_STATE.CALIBRATING;
       this.menu?.openCalibrationScreen(this.calibration.settings);
-      // Re-trigger playback now that #calibration-screen is visible in the DOM
       await this.cameraController.attachToVideos([calVideo, hudVideo]);
     } catch (err) {
       this.cameraController.stopCamera();

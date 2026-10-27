@@ -81,129 +81,137 @@ export const CAR_PAINT_PRESETS = [
     id: 'cyan_metallic',
     name: 'Cyber Cyan',
     finishType: 'Liquid Metallic',
-    swatch: '#06b6d4',
-    bodyColor: 0x0d3550,
-    metalness: 0.85,
+    swatch: '#22e4ff',
+    bodyColor: 0x00b4d8,
+    metalness: 0.78,
     roughness: 0.16,
     clearcoat: 1.0,
     clearcoatRoughness: 0.06,
-    trimColor: 0x22d3ee,
-    trimEmissive: 0x0891b2,
-    caliperColor: 0xf59e0b,
-    rimColor: 0xdbeafe,
-    exhaustColor: 0x22d3ee,
+    trimColor: 0xa3ff2e,
+    trimEmissive: 0x22e4ff,
+    caliperColor: 0xffe224,
+    rimColor: 0xe0f2fe,
+    exhaustColor: 0x22e4ff,
+    underglowColor: 0x22e4ff,
   },
   {
     id: 'rosso_gloss',
     name: 'Crimson Rosso',
     finishType: 'Racing Gloss',
-    swatch: '#ef4444',
-    bodyColor: 0xb91c1c,
-    metalness: 0.52,
+    swatch: '#ff2442',
+    bodyColor: 0xe11d48,
+    metalness: 0.48,
     roughness: 0.13,
     clearcoat: 1.0,
     clearcoatRoughness: 0.04,
-    trimColor: 0xfbbf24,
-    trimEmissive: 0xd97706,
-    caliperColor: 0xfacc15,
-    rimColor: 0xf1f5f9,
-    exhaustColor: 0xf97316,
+    trimColor: 0xffe224,
+    trimEmissive: 0xff8c1a,
+    caliperColor: 0xffe224,
+    rimColor: 0xf8fafc,
+    exhaustColor: 0xff8c1a,
+    underglowColor: 0xff2eb6,
   },
   {
     id: 'solar_pearl',
-    name: 'Solar Papaya',
+    name: 'Solar Gold',
     finishType: 'Pearlescent',
-    swatch: '#f59e0b',
-    bodyColor: 0xd97706,
-    metalness: 0.72,
+    swatch: '#ff8c1a',
+    bodyColor: 0xff8c1a,
+    metalness: 0.65,
     roughness: 0.18,
     clearcoat: 1.0,
     clearcoatRoughness: 0.07,
-    trimColor: 0xfef08a,
-    trimEmissive: 0xf59e0b,
-    caliperColor: 0xef4444,
-    rimColor: 0x1e293b,
-    exhaustColor: 0xfbbf24,
+    trimColor: 0xffe224,
+    trimEmissive: 0xff8c1a,
+    caliperColor: 0xff2eb6,
+    rimColor: 0x1e1b4b,
+    exhaustColor: 0xffe224,
+    underglowColor: 0xffe224,
   },
   {
     id: 'emerald_satin',
-    name: 'Viper Emerald',
+    name: 'Neon Lime',
     finishType: 'Satin Metallic',
-    swatch: '#10b981',
-    bodyColor: 0x047857,
-    metalness: 0.78,
-    roughness: 0.28,
-    clearcoat: 0.65,
-    clearcoatRoughness: 0.2,
-    trimColor: 0x34d399,
-    trimEmissive: 0x059669,
-    caliperColor: 0xfbbf24,
-    rimColor: 0xd1fae5,
-    exhaustColor: 0x34d399,
+    swatch: '#a3ff2e',
+    bodyColor: 0x22c55e,
+    metalness: 0.68,
+    roughness: 0.24,
+    clearcoat: 0.75,
+    clearcoatRoughness: 0.16,
+    trimColor: 0xa3ff2e,
+    trimEmissive: 0x4ade80,
+    caliperColor: 0xffe224,
+    rimColor: 0xecfccb,
+    exhaustColor: 0xa3ff2e,
+    underglowColor: 0xa3ff2e,
   },
   {
     id: 'stealth_matte',
-    name: 'Phantom Stealth',
+    name: 'Matte Black',
     finishType: 'Matte Carbon',
     swatch: '#475569',
-    bodyColor: 0x111827,
+    bodyColor: 0x181828,
     metalness: 0.34,
     roughness: 0.54,
     clearcoat: 0.2,
     clearcoatRoughness: 0.42,
-    trimColor: 0x38bdf8,
-    trimEmissive: 0x0284c7,
-    caliperColor: 0x22d3ee,
-    rimColor: 0x334155,
-    exhaustColor: 0x38bdf8,
+    trimColor: 0x22e4ff,
+    trimEmissive: 0xff2eb6,
+    caliperColor: 0x22e4ff,
+    rimColor: 0x475569,
+    exhaustColor: 0xff2eb6,
+    underglowColor: 0x9d4edd,
   },
   {
     id: 'pearl_ceramic',
     name: 'Glacier White',
     finishType: 'Ceramic Gloss',
     swatch: '#f8fafc',
-    bodyColor: 0xe2e8f0,
-    metalness: 0.35,
+    bodyColor: 0xf1f5f9,
+    metalness: 0.3,
     roughness: 0.11,
     clearcoat: 1.0,
     clearcoatRoughness: 0.04,
-    trimColor: 0xf43f5e,
-    trimEmissive: 0xe11d48,
-    caliperColor: 0xf43f5e,
-    rimColor: 0x1e293b,
-    exhaustColor: 0x38bdf8,
+    trimColor: 0xff2eb6,
+    trimEmissive: 0xff2eb6,
+    caliperColor: 0xff2eb6,
+    rimColor: 0x1e1b4b,
+    exhaustColor: 0x22e4ff,
+    underglowColor: 0x22e4ff,
   },
   {
     id: 'ultraviolet_chrome',
     name: 'Ultraviolet',
     finishType: 'Mirror Chrome',
-    swatch: '#a855f7',
-    bodyColor: 0x581c87,
-    metalness: 0.92,
-    roughness: 0.11,
+    swatch: '#9d4edd',
+    bodyColor: 0x7c3aed,
+    metalness: 0.88,
+    roughness: 0.12,
     clearcoat: 1.0,
-    clearcoatRoughness: 0.03,
-    trimColor: 0xe879f9,
-    trimEmissive: 0xa21caf,
-    caliperColor: 0x22d3ee,
+    clearcoatRoughness: 0.04,
+    trimColor: 0x22e4ff,
+    trimEmissive: 0xc084fc,
+    caliperColor: 0xa3ff2e,
     rimColor: 0xf3e8ff,
-    exhaustColor: 0xe879f9,
+    exhaustColor: 0xff2eb6,
+    underglowColor: 0xc084fc,
   },
   {
     id: 'rosegold_pearl',
-    name: 'Rose Velvet',
+    name: 'Candy Pink',
     finishType: 'Satin Pearl',
-    swatch: '#fb7185',
-    bodyColor: 0xbe185d,
-    metalness: 0.76,
-    roughness: 0.2,
-    clearcoat: 0.95,
-    clearcoatRoughness: 0.08,
-    trimColor: 0xfda4af,
-    trimEmissive: 0xe11d48,
-    caliperColor: 0xfde047,
+    swatch: '#ff2eb6',
+    bodyColor: 0xec4899,
+    metalness: 0.68,
+    roughness: 0.18,
+    clearcoat: 0.96,
+    clearcoatRoughness: 0.07,
+    trimColor: 0xffe224,
+    trimEmissive: 0xff2eb6,
+    caliperColor: 0x22e4ff,
     rimColor: 0xfff1f2,
-    exhaustColor: 0xfb7185,
+    exhaustColor: 0xff2eb6,
+    underglowColor: 0xff2eb6,
   },
 ];
 
@@ -365,6 +373,12 @@ export class Car {
     }
     if (this.exhaustGlowMat) {
       this.exhaustGlowMat.color.setHex(preset.exhaustColor);
+    }
+    if (this.underglowMat) {
+      this.underglowMat.color.setHex(preset.underglowColor || preset.trimColor);
+    }
+    if (this.underglowLight) {
+      this.underglowLight.color.setHex(preset.underglowColor || preset.trimColor);
     }
     if (this.nameplate) {
       updateNameplateSprite(this.nameplate, {
@@ -1118,7 +1132,7 @@ export class Car {
       map: shadowTex,
       color: shadowTex ? 0xffffff : 0x000000,
       transparent: true,
-      opacity: shadowTex ? 0.9 : 0.45,
+      opacity: shadowTex ? 0.72 : 0.4,
       depthWrite: false,
       polygonOffset: true,
       polygonOffsetFactor: -1,
@@ -1128,6 +1142,27 @@ export class Car {
     shadowPlane.rotation.x = -Math.PI / 2;
     shadowPlane.position.set(0, 0.02, 0.05);
     this.root.add(shadowPlane);
+
+    // Neon Arcade Underglow beneath the chassis
+    this.underglowMat = new THREE.MeshBasicMaterial({
+      map: shadowTex,
+      color: 0x22e4ff,
+      transparent: true,
+      opacity: 0.62,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    const underglowPlane = new THREE.Mesh(new THREE.PlaneGeometry(2.65, 4.75), this.underglowMat);
+    underglowPlane.rotation.x = -Math.PI / 2;
+    underglowPlane.position.set(0, 0.032, 0.02);
+    this.root.add(underglowPlane);
+
+    if (!this.isSoftwareGl) {
+      this.underglowLight = new THREE.PointLight(0x22e4ff, 3.6, 5.2, 2);
+      this.underglowLight.position.set(0, 0.26, 0);
+      this.root.add(this.underglowLight);
+    }
 
     const hlTex = createHeadlightPoolTexture();
     if (hlTex) {
@@ -1141,7 +1176,7 @@ export class Car {
       for (const bx of [-0.62, 0.62]) {
         const beam = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 11.0), beamMat);
         beam.rotation.x = -Math.PI / 2;
-        beam.position.set(bx, 0.03, -7.6);
+        beam.position.set(bx, 0.035, -7.6);
         this.root.add(beam);
       }
     }
@@ -1270,21 +1305,21 @@ export class Car {
       return;
     }
 
-    // Smooth, progressive lateral velocity scaled by chosen car model's handlingFactor
-    const speedFactor = Math.min(1.16, 0.56 + speedMps / 56);
-    const maxLateralSpeed = 14.2 * speedFactor * (model.handlingFactor || 1.0);
+    // Crisp, immediate arcade lateral velocity scaled by chosen car model's handlingFactor
+    const speedFactor = Math.min(1.2, 0.64 + speedMps / 54);
+    const maxLateralSpeed = 16.5 * speedFactor * (model.handlingFactor || 1.0);
     let targetVx = clampedSteer * maxLateralSpeed;
 
-    // Gently cushion outward speed in the final 0.45m near barriers
+    // Gently cushion outward speed in the final 0.42m near barriers
     const edgeDistLeft = this.x - -PLAYER_MAX_X;
     const edgeDistRight = PLAYER_MAX_X - this.x;
-    if (targetVx < 0 && edgeDistLeft < 0.45) {
-      targetVx *= Math.max(0, edgeDistLeft / 0.45);
-    } else if (targetVx > 0 && edgeDistRight < 0.45) {
-      targetVx *= Math.max(0, edgeDistRight / 0.45);
+    if (targetVx < 0 && edgeDistLeft < 0.42) {
+      targetVx *= Math.max(0, edgeDistLeft / 0.42);
+    } else if (targetVx > 0 && edgeDistRight < 0.42) {
+      targetVx *= Math.max(0, edgeDistRight / 0.42);
     }
 
-    this.lateralVelocity = THREE.MathUtils.damp(this.lateralVelocity, targetVx, 13.8, safeDt);
+    this.lateralVelocity = THREE.MathUtils.damp(this.lateralVelocity, targetVx, 19.5, safeDt);
     this.x += this.lateralVelocity * safeDt;
 
     if (this.x < -PLAYER_MAX_X) {
@@ -1297,23 +1332,23 @@ export class Car {
 
     this.root.position.x = this.x;
 
-    // Smooth yaw into turns + chassis body roll & pitch squat/dive
-    const normalizedVx = this.lateralVelocity / 14.2;
-    const targetYaw = -normalizedVx * 0.145;
-    const targetRoll = -normalizedVx * 0.072;
-    const targetPitch = isBraking ? -0.028 : isBoosting ? 0.024 : isAccelerating ? 0.015 : 0;
+    // Responsive yaw into turns + chassis body roll & pitch squat/dive
+    const normalizedVx = this.lateralVelocity / 16.5;
+    const targetYaw = -normalizedVx * 0.165;
+    const targetRoll = -normalizedVx * 0.085;
+    const targetPitch = isBraking ? -0.028 : isBoosting ? 0.026 : isAccelerating ? 0.015 : 0;
 
-    this.root.rotation.y = THREE.MathUtils.damp(this.root.rotation.y, targetYaw, 11.5, safeDt);
+    this.root.rotation.y = THREE.MathUtils.damp(this.root.rotation.y, targetYaw, 15.0, safeDt);
     this.chassisGroup.rotation.z = THREE.MathUtils.damp(
       this.chassisGroup.rotation.z,
       targetRoll,
-      10.5,
+      13.5,
       safeDt,
     );
     this.chassisGroup.rotation.x = THREE.MathUtils.damp(
       this.chassisGroup.rotation.x,
       targetPitch,
-      9.0,
+      10.0,
       safeDt,
     );
 
