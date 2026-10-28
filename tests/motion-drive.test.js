@@ -9,7 +9,9 @@ import { CameraController } from '../src/controls/CameraController.js';
 import { HandTracker } from '../src/controls/HandTracker.js';
 import { KeyboardController } from '../src/controls/KeyboardController.js';
 import { Car, PLAYER_MAX_X, CAR_PAINT_PRESETS, CAR_MODEL_PRESETS } from '../src/game/Car.js';
-import { RANDOM_RIVAL_NAMES } from '../src/game/Nameplate.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import { DEFAULT_DRIVER_NAME, RANDOM_RIVAL_NAMES } from '../src/game/Nameplate.js';
 import { CollisionSystem } from '../src/game/CollisionSystem.js';
 import { TrafficManager } from '../src/game/TrafficManager.js';
 import {
@@ -19,6 +21,9 @@ import {
   CAR_PAINT_STORAGE_KEY,
   CAR_MODEL_STORAGE_KEY,
   DRIVER_NAME_STORAGE_KEY,
+  DRIVE_SETTINGS_STORAGE_KEY,
+  ACCEL_CONTROL_MODES,
+  SPEED_PRESETS,
 } from '../src/game/Game.js';
 
 /**
@@ -114,6 +119,11 @@ describe('MOTION DRIVE 3D — Automated Verification Suite', () => {
     kb.setTouchInput('brake', true);
     state = kb.update(0.016);
     expect(state.brake).toBe(true);
+
+    kb.setTouchInput('brake', false);
+    kb.setTouchInput('accelerate', true);
+    state = kb.update(0.016);
+    expect(state.accelerate).toBe(true);
 
     kb.dispose();
   });
@@ -392,12 +402,14 @@ describe('MOTION DRIVE 3D — Automated Verification Suite', () => {
 
   it('updates floating 3D driver nameplate above player car and assigns random names to highway rivals', () => {
     const game = new Game({ headless: true });
+    expect(DEFAULT_DRIVER_NAME).toBe('T56');
+    expect(game.driverName).toBe('T56');
 
-    game.setDriverName('Anshika_GT');
-    expect(game.driverName).toBe('Anshika_GT');
-    expect(game.car.driverName).toBe('Anshika_GT');
-    expect(game.car.nameplate.userData.driverName).toBe('Anshika_GT');
-    expect(window.localStorage.getItem(DRIVER_NAME_STORAGE_KEY)).toBe('Anshika_GT');
+    game.setDriverName('T56_GT');
+    expect(game.driverName).toBe('T56_GT');
+    expect(game.car.driverName).toBe('T56_GT');
+    expect(game.car.nameplate.userData.driverName).toBe('T56_GT');
+    expect(window.localStorage.getItem(DRIVER_NAME_STORAGE_KEY)).toBe('T56_GT');
 
     // Spawn highway rivals and verify random floating gamer names are assigned
     game.traffic.reset();
@@ -469,5 +481,80 @@ describe('MOTION DRIVE 3D — Automated Verification Suite', () => {
     expect(rightRes.trackingLost).toBe(false);
     expect(rightRes.steer).toBeGreaterThan(0.25);
     expect(rightRes.status).toBe(GESTURE_STATUS.STEER_RIGHT);
+  });
+
+  it('provides adjustable Acceleration Control modes, speed scale, acceleration response, presets, and keyboard shortcuts', () => {
+    const game = new Game({ headless: true });
+    expect(ACCEL_CONTROL_MODES.length).toBe(3);
+    expect(SPEED_PRESETS.length).toBe(4);
+
+    // Default cruise speed is calm and manageable (~88 km/h)
+    const defaultSummary = game.getDriveSpeedSummary();
+    expect(defaultSummary.accelMode).toBe('smooth_auto');
+    expect(defaultSummary.speedScale).toBeCloseTo(1.0, 2);
+    expect(defaultSummary.cruiseKmh).toBeGreaterThanOrEqual(75);
+    expect(defaultSummary.cruiseKmh).toBeLessThanOrEqual(105);
+
+    //Chill preset lowers vehicle speed pace and softens acceleration response
+    const chillSummary = game.applySpeedPreset('chill');
+    expect(chillSummary.speedScale).toBeCloseTo(0.65, 2);
+    expect(chillSummary.accelRate).toBeCloseTo(0.6, 2);
+    expect(chillSummary.cruiseKmh).toBeLessThan(defaultSummary.cruiseKmh);
+
+    // Persisted in localStorage
+    const stored = JSON.parse(window.localStorage.getItem(DRIVE_SETTINGS_STORAGE_KEY));
+    expect(stored.speedScale).toBeCloseTo(0.65, 2);
+    expect(stored.accelRate).toBeCloseTo(0.6, 2);
+
+    // Keyboard shortcuts [-] / [+] and [M] adjust speed scale and cycle throttle modes cleanly
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Equal' }));
+    expect(game.driveSettings.speedScale).toBeCloseTo(0.75, 2);
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Minus' }));
+    expect(game.driveSettings.speedScale).toBeCloseTo(0.65, 2);
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyM' }));
+    expect(game.driveSettings.accelMode).toBe('manual_throttle');
+
+    // Manual Gas Control: coasts gently when Gas is released, accelerates smoothly when Gas is held
+    game.setDriveSettings({ accelMode: 'manual_throttle', speedScale: 1.0, accelRate: 0.9 });
+    game.beginRaceCountdown();
+    game.state = GAME_STATE.RACING;
+    game.traffic.activeVehicles = [];
+    game.speedMps = 22;
+
+    for (let i = 0; i < 20; i++) {
+      game.traffic.activeVehicles = [];
+      game.stepSimulation(0.05, { steer: 0, accelerate: false, brake: false, boost: false });
+    }
+    const coastedSpeed = game.speedMps;
+    expect(coastedSpeed).toBeLessThan(20);
+
+    for (let i = 0; i < 30; i++) {
+      game.traffic.activeVehicles = [];
+      game.stepSimulation(0.05, { steer: 0, accelerate: true, brake: false, boost: false });
+    }
+    expect(game.speedMps).toBeGreaterThan(coastedSpeed + 8);
+
+    // Steady Speed Lock: holds target cruise speed even when holding W unless Nitro is pressed
+    game.setDriveSettings({ accelMode: 'constant_cruise', speedScale: 0.8, accelRate: 1.0 });
+    const steadySummary = game.getDriveSpeedSummary();
+    for (let i = 0; i < 50; i++) {
+      game.traffic.activeVehicles = [];
+      game.stepSimulation(0.05, { steer: 0, accelerate: true, brake: false, boost: false });
+    }
+    expect(Math.round(game.speedMps * 3.6)).toBeGreaterThanOrEqual(steadySummary.cruiseKmh - 4);
+    expect(Math.round(game.speedMps * 3.6)).toBeLessThanOrEqual(steadySummary.cruiseKmh + 8);
+
+    game.dispose();
+  });
+
+  it('uses exclusively T56 credits across index.html and README.md', () => {
+    const html = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf8');
+    const readme = fs.readFileSync(path.resolve(process.cwd(), 'README.md'), 'utf8');
+
+    expect(html).toContain('T56');
+    expect(html).toContain('Credits: <strong class="text-[#ffe224]">T56</strong>');
+    expect(html).not.toMatch(/Made by/i);
+    expect(readme).toContain('**Credits:** T56');
+    expect(readme).not.toMatch(/Made by/i);
   });
 });

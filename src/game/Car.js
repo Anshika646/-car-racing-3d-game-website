@@ -1305,9 +1305,9 @@ export class Car {
       return;
     }
 
-    // Crisp, immediate arcade lateral velocity scaled by chosen car model's handlingFactor
-    const speedFactor = Math.min(1.2, 0.64 + speedMps / 54);
-    const maxLateralSpeed = 16.5 * speedFactor * (model.handlingFactor || 1.0);
+    // Crisp, manageable lateral velocity scaled smoothly across both low and standard speeds
+    const speedFactor = Math.min(1.12, 0.62 + speedMps / 56);
+    const maxLateralSpeed = 14.8 * speedFactor * (model.handlingFactor || 1.0);
     let targetVx = clampedSteer * maxLateralSpeed;
 
     // Gently cushion outward speed in the final 0.42m near barriers
@@ -1379,7 +1379,7 @@ export class Car {
     // Dynamic brake light, exhaust glow & Nitro plasma afterburners
     this.taillightMat.emissiveIntensity = isBraking ? 4.4 : 1.75;
     this.exhaustGlowMat.opacity =
-      isBoosting ? 0.95 : isAccelerating && speedMps > 24 ? 0.72 : 0.0;
+      isBoosting ? 0.95 : isAccelerating && speedMps > 15 ? 0.72 : 0.0;
 
     if (this.nitroFlameMat) {
       if (isBoosting) {

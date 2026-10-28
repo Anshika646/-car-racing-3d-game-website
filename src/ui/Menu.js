@@ -56,11 +56,27 @@ export class Menu {
       ddAtmoSwatch: document.getElementById('dd-atmo-swatch'),
       ddAtmoLabel: document.getElementById('dd-atmo-label'),
 
+      // Field 5: Acceleration & Speed Control Dropdown + Sliders
+      btnDdAccel: document.getElementById('btn-dd-accel'),
+      menuDdAccel: document.getElementById('menu-dd-accel'),
+      ddAccelLabel: document.getElementById('dd-accel-label'),
+      titleAccelSummary: document.getElementById('title-accel-summary'),
+      titleSpeedScale: document.getElementById('title-speed-scale'),
+      titleSpeedVal: document.getElementById('title-speed-val'),
+      titleAccelRate: document.getElementById('title-accel-rate'),
+      titleAccelVal: document.getElementById('title-accel-val'),
+      titleAccelHint: document.getElementById('title-accel-hint'),
+
       // Pause / Settings Equivalents
       pauseDriverName: document.getElementById('pause-driver-name'),
       pauseModelSelect: document.getElementById('pause-model-select'),
       pausePaintSelect: document.getElementById('pause-paint-select'),
       pauseAtmosphereSelect: document.getElementById('pause-atmosphere-select'),
+      pauseAccelMode: document.getElementById('pause-accel-mode'),
+      pauseSpeedScale: document.getElementById('pause-speed-scale'),
+      pauseSpeedVal: document.getElementById('pause-speed-val'),
+      pauseAccelRate: document.getElementById('pause-accel-rate'),
+      pauseAccelVal: document.getElementById('pause-accel-val'),
 
       // Consent Modal
       consentModal: document.getElementById('camera-consent-modal'),
@@ -96,6 +112,10 @@ export class Menu {
       valMaxangle: document.getElementById('val-maxangle'),
       selectPedalMode: document.getElementById('select-pedal-mode'),
       pedalModeHint: document.getElementById('pedal-mode-hint'),
+      calSpeedScale: document.getElementById('cal-speed-scale'),
+      calSpeedVal: document.getElementById('cal-speed-val'),
+      calAccelRate: document.getElementById('cal-accel-rate'),
+      calAccelVal: document.getElementById('cal-accel-val'),
       btnStartCalibratedRace: document.getElementById('btn-start-calibrated-race'),
       btnResetDefaults: document.getElementById('btn-reset-calibration-defaults'),
 
@@ -155,11 +175,12 @@ export class Menu {
       this.callbacks.onRandomizeDriverName?.();
     });
 
-    // Custom Dropdown toggles (Model, Paint, Atmosphere)
+    // Custom Dropdown toggles (Model, Paint, Atmosphere, Acceleration Control)
     const dropdownPairs = [
       { key: 'model', btn: this.els.btnDdModel, menu: this.els.menuDdModel },
       { key: 'paint', btn: this.els.btnDdPaint, menu: this.els.menuDdPaint },
       { key: 'atmo', btn: this.els.btnDdAtmo, menu: this.els.menuDdAtmo },
+      { key: 'accel', btn: this.els.btnDdAccel, menu: this.els.menuDdAccel },
     ];
 
     this.closeAllDropdowns = () => {
@@ -238,6 +259,51 @@ export class Menu {
     this.els.pauseAtmosphereSelect?.addEventListener('change', (e) => {
       this.callbacks.onSelectAtmosphere?.(e.target.value);
     });
+
+    // Acceleration Control Mode, Speed Presets & Speed/Accel Sliders
+    document.querySelectorAll('[data-speed-preset]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const presetId = btn.getAttribute('data-speed-preset');
+        if (presetId) {
+          this.callbacks.onSelectSpeedPreset?.(presetId);
+        }
+      });
+    });
+
+    document.querySelectorAll('[data-accel-mode]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const modeId = btn.getAttribute('data-accel-mode');
+        if (modeId) {
+          this.callbacks.onUpdateDriveSettings?.({ accelMode: modeId });
+        }
+      });
+    });
+
+    this.els.pauseAccelMode?.addEventListener('change', (e) => {
+      this.callbacks.onUpdateDriveSettings?.({ accelMode: e.target.value });
+    });
+
+    for (const speedInput of [
+      this.els.titleSpeedScale,
+      this.els.pauseSpeedScale,
+      this.els.calSpeedScale,
+    ]) {
+      speedInput?.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        this.callbacks.onUpdateDriveSettings?.({ speedScale: val });
+      });
+    }
+
+    for (const accelInput of [
+      this.els.titleAccelRate,
+      this.els.pauseAccelRate,
+      this.els.calAccelRate,
+    ]) {
+      accelInput?.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        this.callbacks.onUpdateDriveSettings?.({ accelRate: val });
+      });
+    }
 
     // Consent modal actions
     this.els.btnCloseConsent?.addEventListener('click', () => this.closeConsentModal());
@@ -515,6 +581,66 @@ export class Menu {
     }
   }
 
+  syncDriveSettings(summary = {}) {
+    const {
+      accelMode = 'smooth_auto',
+      modeShortName = 'Auto Cruise',
+      modeDescription = '',
+      speedScale = 1.0,
+      accelRate = 0.85,
+      cruiseKmh = 88,
+      maxThrottleKmh = 131,
+      activePresetId = 'smooth',
+    } = summary;
+
+    const speedPct = Math.round(speedScale * 100);
+    const accelPct = Math.round(accelRate * 100);
+    const accelFeel =
+      accelRate <= 0.65 ? 'Gentle' : accelRate <= 0.98 ? 'Smooth' : 'Sport';
+    const targetKmh =
+      accelMode === 'manual_throttle' ? `Max ${maxThrottleKmh} km/h` : `${cruiseKmh} km/h`;
+
+    if (this.els.ddAccelLabel) {
+      this.els.ddAccelLabel.textContent = `${modeShortName} · ${speedPct}% Pace`;
+    }
+    if (this.els.titleAccelSummary) {
+      this.els.titleAccelSummary.textContent = `${targetKmh} · ${accelFeel}`;
+    }
+    if (this.els.titleAccelHint && modeDescription) {
+      this.els.titleAccelHint.textContent = modeDescription;
+    }
+
+    const speedReadout = `${speedPct}% (${targetKmh})`;
+    for (const el of [this.els.titleSpeedScale, this.els.pauseSpeedScale, this.els.calSpeedScale]) {
+      if (el) el.value = String(speedScale);
+    }
+    for (const el of [this.els.titleSpeedVal, this.els.pauseSpeedVal, this.els.calSpeedVal]) {
+      if (el) el.textContent = speedReadout;
+    }
+
+    const accelReadout = `${accelPct}% · ${accelFeel}`;
+    for (const el of [this.els.titleAccelRate, this.els.pauseAccelRate, this.els.calAccelRate]) {
+      if (el) el.value = String(accelRate);
+    }
+    for (const el of [this.els.titleAccelVal, this.els.pauseAccelVal, this.els.calAccelVal]) {
+      if (el) el.textContent = accelReadout;
+    }
+
+    if (this.els.pauseAccelMode) {
+      this.els.pauseAccelMode.value = accelMode;
+    }
+
+    document.querySelectorAll('[data-accel-mode]').forEach((btn) => {
+      const isSelected = btn.getAttribute('data-accel-mode') === accelMode;
+      this._applyDropdownSelectionClasses(btn, isSelected);
+    });
+
+    document.querySelectorAll('[data-speed-preset]').forEach((btn) => {
+      const isSelected = btn.getAttribute('data-speed-preset') === activePresetId;
+      this._applyDropdownSelectionClasses(btn, isSelected);
+    });
+  }
+
   openConsentModal() {
     if (!this.els.consentModal) return;
     this.els.cameraErrorBox?.classList.add('hidden');
@@ -565,8 +691,11 @@ export class Menu {
     this.els.consentModal?.classList.add('hidden');
   }
 
-  openCalibrationScreen(settings) {
+  openCalibrationScreen(settings, driveSummary = null) {
     this.syncSettingsControls(settings);
+    if (driveSummary) {
+      this.syncDriveSettings(driveSummary);
+    }
     if (!this.els.calibrationScreen) return;
     this.els.calibrationScreen.classList.remove('hidden');
     gsap.fromTo(
@@ -642,9 +771,18 @@ export class Menu {
     }
   }
 
-  openPauseModal({ context = 'race', controlMode = 'keyboard', settings = {}, quality = 'high' }) {
+  openPauseModal({
+    context = 'race',
+    controlMode = 'keyboard',
+    settings = {},
+    driveSettings = null,
+    quality = 'high',
+  }) {
     this.pauseContext = context;
     this.syncSettingsControls(settings);
+    if (driveSettings) {
+      this.syncDriveSettings(driveSettings);
+    }
     this.setQualityState(quality);
 
     const isTitleSettings = context === 'title';

@@ -16,19 +16,26 @@ Sit in front of your webcam, hold both hands up as if gripping an imaginary stee
   - Interactive **Steering Calibration Studio** with automatic neutral-grip hold detection, manual one-click neutral capture, adjustable sensitivity, center dead zone, jitter low-pass smoothing, and maximum wheel-lock angle.
   - Configurable **Gesture Throttle & Brake** modes (including *Auto-Accelerate + Open Both Palms to Brake*, *Closed Grip = Gas / Open Palms = Brake*, and *Auto-Accelerate Only*).
   - **Safe Tracking-Loss Recovery:** If one or both hands leave the camera frame, steering smoothly returns toward center neutral (`0°`) and displays `TRACKING LOST — SHOW BOTH HANDS`.
-- **Full Keyboard Fallback & Assist:**
+- **Full Keyboard & Mobile Touch Controls:**
   - `A` / `Left Arrow` — Steer Left
   - `D` / `Right Arrow` — Steer Right
-  - `W` / `Up Arrow` — Accelerate / Boost
-  - `S` / `Down Arrow` — Brake
-  - `Escape` — Pause / Resume
+  - `W` / `Up Arrow` / `GAS` Touch Pedal — Accelerate
+  - `S` / `Down Arrow` / `BRAKE` Touch Pedal — Brake
+  - `Space` / `Shift` / `NITRO` Touch Pedal — Hyper Nitro Boost
+  - `-` / `+` (`[` / `]`) or On-HUD Stepper — Decrease / Increase Vehicle Speed Pace (`50%` to `140%`)
+  - `M` or On-HUD Mode Button — Cycle Acceleration Control Mode (`Auto Cruise`, `Manual Gas`, `Steady Lock`)
+  - `C` — Cycle Camera Perspective (`Chase`, `Action`, `Hood`)
+  - `Escape` — Pause / Resume & Speed Settings
   - `R` — Instant Restart
   - `H` — Hide / Show Bottom Steering Gauge
+- **Adjustable Acceleration Control & Smooth Speed Settings:**
+  - Three selectable throttle modes: **Auto Cruise + Pedals** (smooth highway cruise + gas pedal), **Manual Gas Control** (direct pedal acceleration & smooth coasting), and **Steady Speed Lock** (locked target pace for relaxed steering).
+  - Quick presets (**Chill**, **Smooth**, **Arcade**, **Pro**) plus fine-grained **Vehicle Speed Pace** (`50%–140%`) and **Acceleration Response** (`40%–150%`) sliders persisted in `localStorage`.
 - **3D Highway World & Procedural Audio:**
-  - Multi-part sculpted GT player car with clearcoat paint, rotating 5-spoke wheels, articulated front steering knuckles, dynamic brake lights, projected road headlights, suspension micro-bumps, and collision sparks.
-  - Endless 4-lane highway with high-anisotropy procedural asphalt, dashed lane markers, reflective studs, concrete barriers, cantilevered streetlights, pine groves, and an illuminated distant skyline.
-  - Object-pooled multi-part traffic vehicles (sedans, coupes, SUVs, heavy cargo trucks) with fair wave spawning that always leaves at least one unobstructed lane.
-  - 3-point hull integrity shield system, near-miss overtake bonuses (`+50`), progressive speed/traffic difficulty tiers, procedural Web Audio GT engine synthesizer (with mute toggle), and `localStorage` personal-best persistence.
+  - Multi-part sculpted GT player cars (`Apex GT-R`, `Vortex F1-X`, `Titan V8`, `Nomad Cyber-X`) with 8 paint finishes, editable 3D driver nameplate, rotating wheels, articulated front steering knuckles, dynamic brake lights, projected road headlights, and collision sparks.
+  - Endless 4-lane highway across 5 colorful world arenas with object-pooled multi-part traffic vehicles that scale proportionally with your chosen speed setting and always leave at least one unobstructed lane.
+  - 3-point hull integrity shield system, near-miss overtake bonuses (`+50`), procedural Web Audio GT engine synthesizer (with mute toggle), and `localStorage` personal-best persistence.
+- **Credits:** T56
 
 ---
 

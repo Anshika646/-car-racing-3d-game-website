@@ -8,7 +8,7 @@
 
 import * as THREE from 'three';
 
-export const DEFAULT_DRIVER_NAME = 'ANSHIKA';
+export const DEFAULT_DRIVER_NAME = 'T56';
 
 export const RANDOM_RIVAL_NAMES = [
   'Aarav_GT',

@@ -55,7 +55,7 @@ export class CollisionSystem {
           break;
         }
       } else if (
-        playerSpeedMps > 18 &&
+        playerSpeedMps > 6.5 &&
         v.z > playerBounds.z + 1.2 &&
         v.z < playerBounds.z + 9.0
       ) {

@@ -40,7 +40,7 @@ export class GameOver {
     nearMisses = 0,
     overtakes = 0,
     maxCombo = 1,
-    driverName = 'ANSHIKA',
+    driverName = 'T56',
     carModelName = 'Apex GT-R',
     controlMode = 'keyboard',
   }) {

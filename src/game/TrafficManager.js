@@ -20,7 +20,7 @@ const VEHICLE_ARCHETYPES = [
     badge: 'GT',
     halfWidth: 0.94,
     halfLength: 2.08,
-    baseSpeedMps: 27,
+    baseSpeedMps: 16.5,
     nameplateY: 1.72,
     colors: [
       { hex: 0xff2eb6, accent: '#ff70cf' },
@@ -35,7 +35,7 @@ const VEHICLE_ARCHETYPES = [
     badge: 'RS',
     halfWidth: 0.94,
     halfLength: 2.02,
-    baseSpeedMps: 24,
+    baseSpeedMps: 14.8,
     nameplateY: 1.76,
     colors: [
       { hex: 0xff8c1a, accent: '#ffe224' },
@@ -50,7 +50,7 @@ const VEHICLE_ARCHETYPES = [
     badge: 'PRO',
     halfWidth: 0.92,
     halfLength: 2.1,
-    baseSpeedMps: 20,
+    baseSpeedMps: 13.0,
     nameplateY: 1.82,
     colors: [
       { hex: 0x3b82f6, accent: '#93c5fd' },
@@ -65,7 +65,7 @@ const VEHICLE_ARCHETYPES = [
     badge: '4X4',
     halfWidth: 1.0,
     halfLength: 2.22,
-    baseSpeedMps: 18,
+    baseSpeedMps: 11.4,
     nameplateY: 1.98,
     colors: [
       { hex: 0x06b6d4, accent: '#67e8f9' },
@@ -80,7 +80,7 @@ const VEHICLE_ARCHETYPES = [
     badge: 'RIG',
     halfWidth: 1.12,
     halfLength: 3.35,
-    baseSpeedMps: 14,
+    baseSpeedMps: 9.2,
     nameplateY: 3.15,
     colors: [
       { hex: 0xff8c1a, accent: '#ffe224' },
@@ -410,7 +410,8 @@ export class TrafficManager {
    * Spawns structured highway traffic formations while strictly guaranteeing
    * at least 1 unobstructed lane so every wave is 100% fair and navigable.
    */
-  spawnWave(difficulty = 1) {
+  spawnWave(difficulty = 1, speedScale = 1.0) {
+    const clampedScale = Math.max(0.45, Math.min(1.5, speedScale));
     const laneIndices = [0, 1, 2, 3];
     for (let i = laneIndices.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -421,11 +422,11 @@ export class TrafficManager {
 
     const roll = Math.random();
     let desiredCount = 1;
-    if (difficulty >= 4 && roll > 0.55) {
+    if (difficulty >= 5 && roll > 0.62) {
       desiredCount = 3;
-    } else if (difficulty >= 2 && roll > 0.3) {
+    } else if (difficulty >= 2 && roll > 0.36) {
       desiredCount = 2;
-    } else if (roll > 0.65) {
+    } else if (roll > 0.72) {
       desiredCount = 2;
     }
 
@@ -435,10 +436,10 @@ export class TrafficManager {
 
     for (let i = 0; i < candidateLanes.length; i++) {
       const laneIdx = candidateLanes[i];
-      const staggerZ = i * -11.5 - Math.random() * 5;
+      const staggerZ = i * -13.0 - Math.random() * 6;
       const z = baseSpawnZ + staggerZ;
 
-      if (!this._isLaneClearAtZ(laneIdx, z, 24)) continue;
+      if (!this._isLaneClearAtZ(laneIdx, z, 26)) continue;
 
       const vehicle = this._acquireVehicle();
       if (!vehicle) break;
@@ -460,12 +461,15 @@ export class TrafficManager {
         isPlayer: false,
       });
 
-      const speedBoost = (difficulty - 1) * 1.4;
+      const speedBoost = (difficulty - 1) * 0.75;
       vehicle.laneIndex = laneIdx;
       vehicle.x = LANE_CENTERS[laneIdx];
       vehicle.z = z;
-      vehicle.speedMps =
-        vehicle.archetype.baseSpeedMps + speedBoost + (Math.random() - 0.5) * 2.5;
+      vehicle.speedMps = Math.max(
+        4.0,
+        (vehicle.archetype.baseSpeedMps + speedBoost + (Math.random() - 0.5) * 1.8) *
+          clampedScale,
+      );
       vehicle.nearMissAwarded = false;
       vehicle.overtakenAwarded = false;
       vehicle.collided = false;
@@ -479,17 +483,17 @@ export class TrafficManager {
     }
   }
 
-  update(dt, playerSpeedMps, distanceMeters = 0) {
+  update(dt, playerSpeedMps, distanceMeters = 0, speedScale = 1.0) {
     const safeDt = Math.min(0.1, Math.max(0.001, dt));
 
-    this.difficultyLevel = Math.min(8, 1 + Math.floor(distanceMeters / 650));
+    this.difficultyLevel = Math.min(8, 1 + Math.floor(distanceMeters / 750));
 
-    if (playerSpeedMps > 8) {
-      this.spawnTimer -= safeDt * (0.75 + playerSpeedMps / 42);
+    if (playerSpeedMps > 5.5) {
+      this.spawnTimer -= safeDt * (0.48 + playerSpeedMps / 46);
       if (this.spawnTimer <= 0) {
-        this.spawnWave(this.difficultyLevel);
-        const minInterval = Math.max(0.68, 1.55 - this.difficultyLevel * 0.11);
-        this.spawnTimer = minInterval + Math.random() * 0.45;
+        this.spawnWave(this.difficultyLevel, speedScale);
+        const minInterval = Math.max(0.92, 1.82 - this.difficultyLevel * 0.1);
+        this.spawnTimer = minInterval + Math.random() * 0.5;
       }
     }
 

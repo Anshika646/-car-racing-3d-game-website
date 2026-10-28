@@ -18,6 +18,7 @@ export class KeyboardController {
     this.touch = {
       left: false,
       right: false,
+      accelerate: false,
       brake: false,
       boost: false,
     };
@@ -87,6 +88,22 @@ export class KeyboardController {
         event.preventDefault();
         this.callbacks.onCycleCamera?.();
         break;
+      case 'Minus':
+      case 'NumpadSubtract':
+      case 'BracketLeft':
+        event.preventDefault();
+        this.callbacks.onAdjustSpeed?.(-0.1);
+        break;
+      case 'Equal':
+      case 'NumpadAdd':
+      case 'BracketRight':
+        event.preventDefault();
+        this.callbacks.onAdjustSpeed?.(0.1);
+        break;
+      case 'KeyM':
+        event.preventDefault();
+        this.callbacks.onCycleAccelMode?.();
+        break;
       default:
         break;
     }
@@ -138,6 +155,7 @@ export class KeyboardController {
     this.keys.boost = false;
     this.touch.left = false;
     this.touch.right = false;
+    this.touch.accelerate = false;
     this.touch.brake = false;
     this.touch.boost = false;
     this.steerValue = 0;
@@ -171,7 +189,7 @@ export class KeyboardController {
     return {
       steer: Math.max(-1, Math.min(1, this.steerValue)),
       wheelAngleDeg: this.steerValue * 42,
-      accelerate: this.keys.up,
+      accelerate: this.keys.up || this.touch.accelerate,
       brake: this.keys.down || this.touch.brake,
       boost: this.keys.boost || this.touch.boost,
       hasSteerInput: rawDir !== 0,

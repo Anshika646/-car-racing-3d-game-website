@@ -56,13 +56,19 @@ export class HUD {
       speedBar: document.getElementById('hud-speed-bar'),
       pedalState: document.getElementById('hud-pedal-state'),
       difficultyTier: document.getElementById('hud-difficulty-tier'),
+      btnAccelMode: document.getElementById('btn-hud-accel-mode'),
+      btnSpeedDown: document.getElementById('btn-hud-speed-down'),
+      btnSpeedUp: document.getElementById('btn-hud-speed-up'),
+      speedCapLabel: document.getElementById('hud-speed-cap'),
       nitroBar: document.getElementById('hud-nitro-bar'),
       nitroPct: document.getElementById('hud-nitro-pct'),
+      btnGas: document.getElementById('btn-hud-gas'),
       btnNitro: document.getElementById('btn-hud-nitro'),
       touchControls: document.getElementById('hud-touch-controls'),
       touchSteerZone: document.getElementById('touch-steer-zone'),
       btnTouchLeft: document.getElementById('btn-touch-left'),
       btnTouchRight: document.getElementById('btn-touch-right'),
+      btnTouchGas: document.getElementById('btn-touch-gas'),
       btnTouchBrake: document.getElementById('btn-touch-brake'),
       btnTouchNitro: document.getElementById('btn-touch-nitro'),
       btnToggleDock: document.getElementById('btn-toggle-hud-dock'),
@@ -94,6 +100,23 @@ export class HUD {
     this.els.btnCameraView?.addEventListener('click', () => this.callbacks.onCycleCamera?.());
     this.els.btnToggleDock?.addEventListener('click', () => this.toggleDock());
     this.els.btnTogglePipSize?.addEventListener('click', () => this.togglePipMinimize());
+    this.els.btnAccelMode?.addEventListener('click', () => this.callbacks.onCycleAccelMode?.());
+    this.els.btnSpeedDown?.addEventListener('click', () => this.callbacks.onAdjustSpeed?.(-0.1));
+    this.els.btnSpeedUp?.addEventListener('click', () => this.callbacks.onAdjustSpeed?.(0.1));
+
+    if (this.els.btnGas) {
+      const startGas = (e) => {
+        e.preventDefault();
+        this.callbacks.onTriggerGas?.(true);
+      };
+      const stopGas = () => {
+        this.callbacks.onTriggerGas?.(false);
+      };
+      this.els.btnGas.addEventListener('pointerdown', startGas);
+      this.els.btnGas.addEventListener('pointerup', stopGas);
+      this.els.btnGas.addEventListener('pointerleave', stopGas);
+      this.els.btnGas.addEventListener('pointercancel', stopGas);
+    }
 
     if (this.els.btnNitro) {
       const startNitro = (e) => {
@@ -112,6 +135,7 @@ export class HUD {
     // Bind dedicated Mobile Multi-Touch Steering & Pedals
     this._bindTouchButton(this.els.btnTouchLeft, 'left');
     this._bindTouchButton(this.els.btnTouchRight, 'right');
+    this._bindTouchButton(this.els.btnTouchGas, 'accelerate');
     this._bindTouchButton(this.els.btnTouchBrake, 'brake');
     this._bindTouchButton(this.els.btnTouchNitro, 'boost');
 
@@ -248,6 +272,15 @@ export class HUD {
     }
   }
 
+  syncDriveSettings(summary = {}) {
+    if (this.els.btnAccelMode && summary.modeShortName) {
+      this.els.btnAccelMode.textContent = summary.modeShortName;
+    }
+    if (this.els.speedCapLabel && typeof summary.speedScale === 'number') {
+      this.els.speedCapLabel.textContent = `${Math.round(summary.speedScale * 100)}%`;
+    }
+  }
+
   toggleDock() {
     this.isDockCollapsed = !this.isDockCollapsed;
     if (this.els.steeringDock) {
@@ -331,6 +364,8 @@ export class HUD {
       nitroCharge = 100,
       combo = 1,
       difficultyTier = 1,
+      accelMode = 'smooth_auto',
+      speedScale = 1.0,
     } = state;
 
     if (this.els.score) {
@@ -361,29 +396,40 @@ export class HUD {
         ? '#ff2eb6'
         : isBraking
           ? '#ff8c1a'
-          : '#22e4ff';
+          : isAccelerating
+            ? '#a3ff2e'
+            : '#22e4ff';
     }
     if (this.els.pedalState) {
+      const isManual = accelMode === 'manual_throttle';
+      const isSteady = accelMode === 'constant_cruise';
       this.els.pedalState.textContent = isBoosting
         ? 'HYPER NITRO ⚡'
         : isBraking
           ? 'Braking'
-          : isAccelerating
+          : isAccelerating && !isSteady
             ? 'Accelerating'
-            : 'Cruising';
+            : isManual
+              ? 'Coasting [Hold Gas]'
+              : isSteady
+                ? 'Steady Lock'
+                : 'Cruising';
       this.els.pedalState.style.color = isBoosting
         ? '#ff2eb6'
         : isBraking
           ? '#ffe224'
-          : isAccelerating
+          : isAccelerating && !isSteady
             ? '#a3ff2e'
             : '#cbd5e1';
     }
     if (this.els.difficultyTier) {
       this.els.difficultyTier.textContent = `Tier ${difficultyTier}`;
     }
+    if (this.els.speedCapLabel && typeof speedScale === 'number') {
+      this.els.speedCapLabel.textContent = `${Math.round(speedScale * 100)}%`;
+    }
 
-    // Nitro Boost Bar & Button
+    // Nitro Boost & Gas Buttons
     const clampedNitro = Math.min(100, Math.max(0, nitroCharge));
     if (this.els.nitroBar) {
       this.els.nitroBar.style.width = `${clampedNitro.toFixed(0)}%`;
@@ -392,10 +438,15 @@ export class HUD {
     if (this.els.nitroPct) {
       this.els.nitroPct.textContent = `${Math.round(clampedNitro)}%`;
     }
+    if (this.els.btnGas) {
+      this.els.btnGas.style.borderColor = isAccelerating
+        ? '#a3ff2e'
+        : 'rgba(163, 255, 46, 0.45)';
+    }
     if (this.els.btnNitro) {
       const ready = clampedNitro >= 18;
       this.els.btnNitro.style.opacity = ready || isBoosting ? '1' : '0.45';
-      this.els.btnNitro.textContent = isBoosting ? 'BOOSTING! ⚡' : 'NITRO [Space]';
+      this.els.btnNitro.textContent = isBoosting ? 'BOOST! ⚡' : 'NITRO';
     }
 
     // Shield integrity bars
