@@ -1,6 +1,6 @@
 {
   "name": "MOTION DRIVE 3D",
-  "description": "Your hands. Your steering wheel. Your race. A real-time 3D highway racing game steered with webcam hand gestures via MediaPipe and Three.js.",
+  "description": "Your hands. Your steering wheel. Your race. A vibrant 3D arcade highway racing game steered with webcam hand gestures, keyboard, or mobile touch controls.",
   "requestFramePermissions": [
     "camera"
   ],
