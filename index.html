@@ -32,8 +32,8 @@
         }
       }
     </script>
-    <script type="module" crossorigin src="./assets/index-Bv8A4hxh.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-BQJt2U86.css">
+    <script type="module" crossorigin src="./assets/index-1tw7uBGp.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DFlTABOX.css">
   </head>
   <body class="bg-[#0a0818] text-[#f8fafc] antialiased select-none overflow-hidden">
     <!-- Isolated WebGL Mount Container -->
@@ -516,12 +516,12 @@
               </div>
             </div>
 
-            <!-- Field 5: Acceleration & Speed Control Dropdown (Adjustable Speed & Smoothness) -->
+            <!-- Field 5: Acceleration & Speed Control Dropdown (Direct Player Control + Adjustable Pace) -->
             <div class="relative mb-3.5" data-dropdown="accel">
               <div class="flex items-center justify-between gap-2 mb-1 text-[11px]">
                 <span class="font-bold text-[#ffe224]">5. Acceleration Control</span>
                 <span id="title-accel-summary" class="font-mono text-[10px] text-[#a3ff2e] tabular-nums truncate">
-                  88 km/h · Smooth
+                  Max 113 km/h · Smooth
                 </span>
               </div>
               <button
@@ -534,7 +534,7 @@
                 <span class="flex items-center gap-2 min-w-0">
                   <span class="w-2.5 h-2.5 rounded-xs shrink-0 bg-[#a3ff2e]"></span>
                   <span id="dd-accel-label" class="text-xs font-bold text-white truncate">
-                    Auto Cruise · 100% Pace
+                    Manual Gas · 90% Pace
                   </span>
                 </span>
                 <span class="flex items-center gap-1.5 shrink-0">
@@ -602,19 +602,19 @@
                   <div class="grid grid-cols-3 gap-1.5">
                     <button
                       type="button"
-                      data-accel-mode="smooth_auto"
+                      data-accel-mode="manual_throttle"
                       aria-pressed="true"
                       class="px-2 py-1.5 rounded-lg border border-[#22e4ff] bg-[#21194a] text-white text-center text-[11px] font-semibold cursor-pointer transition-colors"
                     >
-                      Auto Cruise
+                      Manual Gas
                     </button>
                     <button
                       type="button"
-                      data-accel-mode="manual_throttle"
+                      data-accel-mode="smooth_auto"
                       aria-pressed="false"
                       class="px-2 py-1.5 rounded-lg border border-white/12 bg-[#151030] hover:bg-[#21194a] text-slate-200 text-center text-[11px] font-semibold cursor-pointer transition-colors"
                     >
-                      Manual Gas
+                      Auto Cruise
                     </button>
                     <button
                       type="button"
@@ -627,19 +627,36 @@
                   </div>
                 </div>
 
+                <!-- Hands-Free Base Throttle Lever -->
+                <div>
+                  <div class="flex items-center justify-between text-[11px] mb-1">
+                    <label for="title-throttle-level" class="text-slate-200 font-semibold">Base Throttle Lever</label>
+                    <span id="title-throttle-val" class="font-mono text-[#ffe224] tabular-nums">0% (Pedal Control)</span>
+                  </div>
+                  <input
+                    id="title-throttle-level"
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value="0"
+                    class="w-full accent-[#ffe224] cursor-pointer"
+                  />
+                </div>
+
                 <!-- Vehicle Speed Limit Slider -->
                 <div>
                   <div class="flex items-center justify-between text-[11px] mb-1">
-                    <label for="title-speed-scale" class="text-slate-200 font-semibold">Vehicle Speed Pace</label>
-                    <span id="title-speed-val" class="font-mono text-[#22e4ff] tabular-nums">100% (88 km/h)</span>
+                    <label for="title-speed-scale" class="text-slate-200 font-semibold">Max Speed Limit</label>
+                    <span id="title-speed-val" class="font-mono text-[#22e4ff] tabular-nums">90% (Max 113 km/h)</span>
                   </div>
                   <input
                     id="title-speed-scale"
                     type="range"
-                    min="0.5"
+                    min="0.45"
                     max="1.4"
                     step="0.05"
-                    value="1.0"
+                    value="0.9"
                     class="w-full accent-[#22e4ff] cursor-pointer"
                   />
                 </div>
@@ -647,13 +664,13 @@
                 <!-- Acceleration Smoothness / Rate Slider -->
                 <div>
                   <div class="flex items-center justify-between text-[11px] mb-1">
-                    <label for="title-accel-rate" class="text-slate-200 font-semibold">Acceleration Response</label>
+                    <label for="title-accel-rate" class="text-slate-200 font-semibold">Acceleration Power</label>
                     <span id="title-accel-val" class="font-mono text-[#a3ff2e] tabular-nums">85% · Smooth</span>
                   </div>
                   <input
                     id="title-accel-rate"
                     type="range"
-                    min="0.4"
+                    min="0.35"
                     max="1.5"
                     step="0.05"
                     value="0.85"
@@ -662,7 +679,7 @@
                 </div>
 
                 <p id="title-accel-hint" class="text-[10px] text-slate-300 leading-snug pt-1 border-t border-white/12">
-                  Cruises at a calm highway pace; hold Gas (W / Up / Pedal) to accelerate smoothly.
+                  You control acceleration directly — hold Gas (W / Up / Hand Grip) or drag the Throttle Slider; release to coast or press Brake to stop.
                 </p>
               </div>
             </div>
@@ -990,21 +1007,21 @@
                     id="select-pedal-mode"
                     class="w-full bg-[#171233] border border-white/20 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-[#22e4ff]"
                   >
-                    <option value="auto_palm_brake">
-                      Auto-Accelerate + Open Palms to Brake (Recommended)
-                    </option>
-                    <option value="auto_only">
-                      Auto-Accelerate Only (Hands Steer Only)
-                    </option>
                     <option value="grip_gas_palm_brake">
-                      Closed Grip = Accelerate · Open Palms = Brake
+                      Closed Grip = Accelerate · Open Palms = Brake (Recommended)
                     </option>
                     <option value="palm_gas_fist_brake">
                       Open Palms = Accelerate · Closed Fists = Brake
                     </option>
+                    <option value="auto_palm_brake">
+                      Hands Up = Cruise · Open Palms = Brake
+                    </option>
+                    <option value="auto_only">
+                      Hands Steer Only (Use Keys / Slider for Gas)
+                    </option>
                   </select>
                   <p id="pedal-mode-hint" class="text-[11px] text-slate-300 mt-1 leading-snug">
-                    Car accelerates smoothly on its own. Spread both palms open to brake.
+                    Grip your imaginary wheel (1 or 2 hands) to accelerate. Spread palm(s) open to brake.
                   </p>
                 </div>
 
@@ -1012,28 +1029,28 @@
                 <div class="pt-2.5 border-t border-white/12 space-y-2.5">
                   <div>
                     <div class="flex justify-between text-xs mb-1">
-                      <label for="cal-speed-scale" class="text-slate-200 font-semibold">Vehicle Speed Pace</label>
-                      <span id="cal-speed-val" class="font-mono text-[#22e4ff] tabular-nums">100% (88 km/h)</span>
+                      <label for="cal-speed-scale" class="text-slate-200 font-semibold">Max Speed Limit</label>
+                      <span id="cal-speed-val" class="font-mono text-[#22e4ff] tabular-nums">90% (Max 113 km/h)</span>
                     </div>
                     <input
                       id="cal-speed-scale"
                       type="range"
-                      min="0.5"
+                      min="0.45"
                       max="1.4"
                       step="0.05"
-                      value="1.0"
+                      value="0.9"
                       class="w-full accent-[#22e4ff] cursor-pointer"
                     />
                   </div>
                   <div>
                     <div class="flex justify-between text-xs mb-1">
-                      <label for="cal-accel-rate" class="text-slate-200 font-semibold">Acceleration Response</label>
+                      <label for="cal-accel-rate" class="text-slate-200 font-semibold">Acceleration Power</label>
                       <span id="cal-accel-val" class="font-mono text-[#a3ff2e] tabular-nums">85% · Smooth</span>
                     </div>
                     <input
                       id="cal-accel-rate"
                       type="range"
-                      min="0.4"
+                      min="0.35"
                       max="1.5"
                       step="0.05"
                       value="0.85"
@@ -1227,8 +1244,8 @@
 
           <!-- Bottom Telemetry Row (Rainbow Speed + Acceleration Control + Nitro, Rainbow Virtual Steering Wheel, Camera PiP) -->
           <div class="flex items-end justify-between gap-2 sm:gap-4">
-            <!-- Bottom-Left: Rainbow Speedometer + Live Acceleration Control + Hyper Nitro Boost Gauge -->
-            <div id="hud-speed-panel" class="pointer-events-auto arcade-hud-card border-rainbow rounded-2xl px-3 py-2 sm:px-4 sm:py-3 min-w-[154px] sm:min-w-[214px] transition-transform duration-200">
+            <!-- Bottom-Left: Rainbow Speedometer + Live Throttle Lever + Pedals + Hyper Nitro Gauge -->
+            <div id="hud-speed-panel" class="pointer-events-auto arcade-hud-card border-rainbow rounded-2xl px-3 py-2 sm:px-4 sm:py-3 min-w-[168px] sm:min-w-[236px] transition-transform duration-200">
               <div class="flex items-baseline justify-between gap-2">
                 <div class="flex items-baseline gap-1">
                   <span id="hud-speed" class="font-display text-2xl sm:text-4xl text-rainbow tabular-nums leading-none">
@@ -1242,7 +1259,7 @@
                 <div id="hud-speed-bar" class="h-full bg-[#22e4ff] w-0 transition-none"></div>
               </div>
 
-              <!-- Live On-HUD Acceleration Mode & Speed Pace Stepper -->
+              <!-- Live On-HUD Acceleration Mode & Max Speed Stepper -->
               <div class="mt-1.5 pt-1.5 border-t border-white/12 flex items-center justify-between gap-1.5 text-[10px]">
                 <button
                   type="button"
@@ -1250,46 +1267,77 @@
                   class="px-1.5 py-0.5 rounded-md bg-[#1d163d] hover:bg-[#2a2057] border border-[#22e4ff]/40 font-semibold text-[#22e4ff] cursor-pointer truncate"
                   title="Switch Acceleration Mode [M]"
                 >
-                  Auto Cruise
+                  Manual Gas
                 </button>
                 <div class="flex items-center gap-1 shrink-0 font-mono tabular-nums">
                   <button
                     type="button"
                     id="btn-hud-speed-down"
                     class="w-5 h-5 rounded bg-white/10 hover:bg-white/20 text-white font-bold flex items-center justify-center cursor-pointer"
-                    title="Decrease Vehicle Speed [-]"
-                    aria-label="Decrease Vehicle Speed"
+                    title="Decrease Max Speed Limit [-]"
+                    aria-label="Decrease Max Speed Limit"
                   >
                     −
                   </button>
                   <span id="hud-speed-cap" class="text-[10px] font-bold text-[#ffe224] min-w-[32px] text-center">
-                    100%
+                    90%
                   </span>
                   <button
                     type="button"
                     id="btn-hud-speed-up"
                     class="w-5 h-5 rounded bg-white/10 hover:bg-white/20 text-white font-bold flex items-center justify-center cursor-pointer"
-                    title="Increase Vehicle Speed [+]"
-                    aria-label="Increase Vehicle Speed"
+                    title="Increase Max Speed Limit [+]"
+                    aria-label="Increase Max Speed Limit"
                   >
                     +
                   </button>
                 </div>
               </div>
 
+              <!-- Direct Live Throttle / Acceleration Control Slider -->
               <div class="mt-1.5 pt-1.5 border-t border-white/12">
                 <div class="flex items-center justify-between text-[10px] mb-1">
-                  <span id="hud-pedal-state" class="font-bold text-[#a3ff2e] truncate">Cruising</span>
+                  <label for="hud-throttle-slider" class="font-bold text-[#ffe224] cursor-pointer">
+                    Throttle
+                  </label>
+                  <span id="hud-throttle-val" class="font-mono font-bold text-[#a3ff2e] tabular-nums">
+                    0%
+                  </span>
+                </div>
+                <input
+                  id="hud-throttle-slider"
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value="0"
+                  aria-label="Live Throttle Control"
+                  title="Drag to set steady throttle [Q / E], or leave at 0% for manual pedal control"
+                  class="w-full accent-[#a3ff2e] cursor-pointer"
+                />
+              </div>
+
+              <div class="mt-1.5 pt-1.5 border-t border-white/12">
+                <div class="flex items-center justify-between text-[10px] mb-1">
+                  <span id="hud-pedal-state" class="font-bold text-[#a3ff2e] truncate">Hold GAS [W]</span>
                   <span id="hud-nitro-pct" class="font-mono font-bold text-[#22e4ff] tabular-nums">100%</span>
                 </div>
-                <div class="w-full h-2 bg-white/12 rounded-full overflow-hidden mb-1.5">
+                <div class="w-full h-1.5 bg-white/12 rounded-full overflow-hidden mb-1.5">
                   <div id="hud-nitro-bar" class="h-full bg-[#ff2eb6] w-full transition-none"></div>
                 </div>
-                <div class="hidden sm:grid grid-cols-2 gap-1.5">
+                <div class="hidden sm:grid grid-cols-3 gap-1">
+                  <button
+                    type="button"
+                    id="btn-hud-brake"
+                    class="py-1.5 px-1.5 bg-[#26131c] hover:bg-[#3a1927] border border-[#ff8c1a]/55 text-[#ffe224] rounded-lg text-[10px] font-display tracking-wider cursor-pointer whitespace-nowrap"
+                    title="Hold to Brake [S / Down]"
+                  >
+                    BRAKE
+                  </button>
                   <button
                     type="button"
                     id="btn-hud-gas"
-                    class="py-1.5 px-2 bg-[#132920] hover:bg-[#1a382c] border border-[#a3ff2e]/45 text-[#a3ff2e] rounded-lg text-[10px] font-display tracking-wider cursor-pointer whitespace-nowrap"
+                    class="py-1.5 px-1.5 bg-[#132920] hover:bg-[#1a382c] border border-[#a3ff2e]/55 text-[#a3ff2e] rounded-lg text-[10px] font-display tracking-wider cursor-pointer whitespace-nowrap"
                     title="Hold to Accelerate [W / Up]"
                   >
                     GAS [W]
@@ -1297,7 +1345,7 @@
                   <button
                     type="button"
                     id="btn-hud-nitro"
-                    class="py-1.5 px-2 btn-rainbow rounded-lg text-[10px] font-display tracking-wider cursor-pointer whitespace-nowrap"
+                    class="py-1.5 px-1.5 btn-rainbow rounded-lg text-[10px] font-display tracking-wider cursor-pointer whitespace-nowrap"
                     title="Hold for Hyper Nitro [Space]"
                   >
                     NITRO
@@ -1514,37 +1562,53 @@
                   id="pause-accel-mode"
                   class="w-44 sm:w-52 bg-[#14102b] border border-[#ffe224]/35 rounded-xl px-2.5 py-1.5 text-white"
                 >
-                  <option value="smooth_auto">Auto Cruise + Pedals</option>
                   <option value="manual_throttle">Manual Gas Control</option>
+                  <option value="smooth_auto">Auto Cruise + Pedals</option>
                   <option value="constant_cruise">Steady Speed Lock</option>
                 </select>
               </div>
 
               <div>
                 <div class="flex justify-between mb-1">
-                  <label for="pause-speed-scale" class="text-slate-200 font-semibold">Vehicle Speed Pace</label>
-                  <span id="pause-speed-val" class="font-mono text-[#22e4ff] tabular-nums">100% (88 km/h)</span>
+                  <label for="pause-throttle-level" class="text-slate-200 font-semibold">Base Throttle Lever</label>
+                  <span id="pause-throttle-val" class="font-mono text-[#ffe224] tabular-nums">0% (Pedal Control)</span>
+                </div>
+                <input
+                  id="pause-throttle-level"
+                  type="range"
+                  min="0"
+                  max="1"
+                  step="0.05"
+                  value="0"
+                  class="w-full accent-[#ffe224] cursor-pointer"
+                />
+              </div>
+
+              <div>
+                <div class="flex justify-between mb-1">
+                  <label for="pause-speed-scale" class="text-slate-200 font-semibold">Max Speed Limit</label>
+                  <span id="pause-speed-val" class="font-mono text-[#22e4ff] tabular-nums">90% (Max 113 km/h)</span>
                 </div>
                 <input
                   id="pause-speed-scale"
                   type="range"
-                  min="0.5"
+                  min="0.45"
                   max="1.4"
                   step="0.05"
-                  value="1.0"
+                  value="0.9"
                   class="w-full accent-[#22e4ff] cursor-pointer"
                 />
               </div>
 
               <div>
                 <div class="flex justify-between mb-1">
-                  <label for="pause-accel-rate" class="text-slate-200 font-semibold">Acceleration Response</label>
+                  <label for="pause-accel-rate" class="text-slate-200 font-semibold">Acceleration Power</label>
                   <span id="pause-accel-val" class="font-mono text-[#a3ff2e] tabular-nums">85% · Smooth</span>
                 </div>
                 <input
                   id="pause-accel-rate"
                   type="range"
-                  min="0.4"
+                  min="0.35"
                   max="1.5"
                   step="0.05"
                   value="0.85"
@@ -1735,26 +1799,26 @@
                 Hand Wheel Mode (Laptop &amp; Phone)
               </h3>
               <p class="text-slate-200">
-                1. Hold both hands in view like gripping a steering wheel at 9 &amp; 3 o'clock (or use 1 hand!).
+                1. Hold 2 hands (or 1 hand) in view like gripping a steering wheel — rotate Left/Right to steer.
               </p>
               <p class="text-slate-200">
-                2. Rotate counter-clockwise to steer Left, clockwise to steer Right.
+                2. <strong class="text-[#a3ff2e]">Closed Wheel Grip = Accelerate</strong> · <strong class="text-[#ffe224]">Open Palm(s) = Brake to a Stop</strong>.
               </p>
               <p class="text-slate-200">
-                3. Tap <strong class="text-[#a3ff2e]">Recenter</strong> anytime to lock your current hand posture as straight ahead, or spread palms wide to brake.
+                3. Tap <strong class="text-[#22e4ff]">Recenter</strong> anytime to lock your current hand posture as straight ahead.
               </p>
             </div>
 
             <div class="bg-[#120d29] border border-white/12 rounded-xl p-4 space-y-2">
               <h3 class="font-display text-sm text-[#ffe224]">
-                Touch, Keyboard &amp; Speed Control
+                Touch, Keyboard &amp; Throttle Control
               </h3>
               <div class="space-y-1.5 font-mono text-slate-200">
-                <div class="flex justify-between gap-2"><span>Phone Touch Pads</span><span class="text-[#22e4ff]">◀ ▶ + Gas / Brake / Nitro</span></div>
-                <div class="flex justify-between gap-2"><span>A / D or Arrows</span><span class="text-slate-300">Steer Left / Right</span></div>
-                <div class="flex justify-between gap-2"><span>W / S or Up / Down</span><span class="text-[#a3ff2e]">Accelerate / Brake</span></div>
-                <div class="flex justify-between gap-2"><span>[-] / [+] Keys</span><span class="text-[#ffe224]">Adjust Vehicle Speed</span></div>
-                <div class="flex justify-between gap-2"><span>[M] Key</span><span class="text-[#22e4ff]">Cycle Accel Mode</span></div>
+                <div class="flex justify-between gap-2"><span>W / Up or GAS</span><span class="text-[#a3ff2e]">Hold to Accelerate</span></div>
+                <div class="flex justify-between gap-2"><span>S / Down or BRAKE</span><span class="text-[#ffe224]">Brake Down to 0 km/h</span></div>
+                <div class="flex justify-between gap-2"><span>HUD Throttle Slider</span><span class="text-[#a3ff2e]">0%–100% Live Cruise [Q/E]</span></div>
+                <div class="flex justify-between gap-2"><span>[-] / [+] Keys</span><span class="text-[#22e4ff]">Adjust Max Speed Limit</span></div>
+                <div class="flex justify-between gap-2"><span>[M] Key</span><span class="text-[#ffe224]">Cycle Accel Mode</span></div>
                 <div class="flex justify-between gap-2"><span>Space / Shift</span><span class="text-[#ff2eb6]">Hyper Nitro ⚡</span></div>
                 <div class="flex justify-between gap-2"><span>C / Esc / R</span><span class="text-slate-300">Cam / Pause / Restart</span></div>
               </div>
