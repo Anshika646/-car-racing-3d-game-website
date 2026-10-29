@@ -35,40 +35,44 @@ export const CAR_PAINT_STORAGE_KEY = 'motion_drive_3d_car_paint_v1';
 export const CAR_MODEL_STORAGE_KEY = 'motion_drive_3d_car_model_v1';
 export const DRIVER_NAME_STORAGE_KEY = 'motion_drive_3d_driver_name_v1';
 export const ATMOSPHERE_STORAGE_KEY = 'motion_drive_3d_atmosphere_v1';
-export const DRIVE_SETTINGS_STORAGE_KEY = 'motion_drive_3d_drive_settings_v1';
+export const DRIVE_SETTINGS_STORAGE_KEY = 'motion_drive_3d_drive_settings_v2';
 
 export const ACCEL_CONTROL_MODES = [
-  {
-    id: 'smooth_auto',
-    name: 'Smooth Auto + Pedals',
-    shortName: 'Auto Cruise',
-    description: 'Cruises at a calm highway pace; hold Gas (W / Up / Pedal) to accelerate smoothly.',
-  },
   {
     id: 'manual_throttle',
     name: 'Manual Gas Control',
     shortName: 'Manual Gas',
-    description: 'You control vehicle speed directly — hold Gas to accelerate, release to coast.',
+    description:
+      'You control acceleration directly — hold Gas (W / Up / Hand Grip) or drag the Throttle Slider; release to coast or press Brake to stop.',
+  },
+  {
+    id: 'smooth_auto',
+    name: 'Auto Cruise + Pedals',
+    shortName: 'Auto Cruise',
+    description:
+      'Cruises at a calm highway pace; hold Gas to speed up, or hold Brake / Open Palm to slow down to a stop.',
   },
   {
     id: 'constant_cruise',
     name: 'Steady Speed Lock',
     shortName: 'Steady Lock',
-    description: 'Locks vehicle speed at your chosen target pace so you can focus purely on steering.',
+    description:
+      'Locks vehicle speed at your chosen pace so you can focus purely on steering (Brake still slows down).',
   },
 ];
 
 export const SPEED_PRESETS = [
   { id: 'chill', name: 'Chill', speedScale: 0.65, accelRate: 0.6 },
-  { id: 'smooth', name: 'Smooth', speedScale: 1.0, accelRate: 0.85 },
-  { id: 'arcade', name: 'Arcade', speedScale: 1.18, accelRate: 1.1 },
+  { id: 'smooth', name: 'Smooth', speedScale: 0.9, accelRate: 0.85 },
+  { id: 'arcade', name: 'Arcade', speedScale: 1.1, accelRate: 1.1 },
   { id: 'pro', name: 'Pro', speedScale: 1.35, accelRate: 1.35 },
 ];
 
 export const DEFAULT_DRIVE_SETTINGS = {
-  accelMode: 'smooth_auto',
-  speedScale: 1.0,
+  accelMode: 'manual_throttle',
+  speedScale: 0.9,
   accelRate: 0.85,
+  throttleLevel: 0,
 };
 
 export const CAMERA_VIEWS = ['chase', 'close', 'hood'];
@@ -133,6 +137,7 @@ export class Game {
     this.nitroCharge = 100;
     this.isBoosting = false;
     this.hudGasPressed = false;
+    this.hudBrakePressed = false;
     this.hudNitroPressed = false;
     this.countdownTimer = 0;
     this.lastCountdownDigit = -1;
@@ -164,6 +169,13 @@ export class Game {
       },
       onCycleAccelMode: () => {
         this.cycleAccelMode();
+      },
+      onAdjustThrottle: (delta) => {
+        this.adjustThrottleLevel(delta);
+      },
+      onZeroThrottle: () => {
+        this.setThrottleLevel(0, true);
+        this.hud?.showBonusToast('THROTTLE · 0% (COAST)');
       },
     });
 
@@ -391,17 +403,22 @@ export class Game {
       : DEFAULT_DRIVE_SETTINGS.accelMode;
     const rawSpeed = Number(raw.speedScale);
     const speedScale = Number.isFinite(rawSpeed)
-      ? Number(Math.max(0.5, Math.min(1.4, rawSpeed)).toFixed(2))
+      ? Number(Math.max(0.45, Math.min(1.4, rawSpeed)).toFixed(2))
       : DEFAULT_DRIVE_SETTINGS.speedScale;
     const rawAccel = Number(raw.accelRate);
     const accelRate = Number.isFinite(rawAccel)
-      ? Number(Math.max(0.4, Math.min(1.5, rawAccel)).toFixed(2))
+      ? Number(Math.max(0.35, Math.min(1.5, rawAccel)).toFixed(2))
       : DEFAULT_DRIVE_SETTINGS.accelRate;
+    const rawThrottle = Number(raw.throttleLevel);
+    const throttleLevel = Number.isFinite(rawThrottle)
+      ? Number(Math.max(0, Math.min(1, rawThrottle)).toFixed(2))
+      : DEFAULT_DRIVE_SETTINGS.throttleLevel;
 
     return {
       accelMode: validMode,
       speedScale,
       accelRate,
+      throttleLevel,
     };
   }
 
@@ -424,12 +441,13 @@ export class Game {
       CAR_MODEL_PRESETS.find((m) => m.id === this.carModel) ||
       CAR_MODEL_PRESETS[0];
     const modelScale = modelPreset.topSpeedFactor || 1.0;
-    const { accelMode, speedScale, accelRate } = this.driveSettings;
-    const cruiseKmh = Math.round(24.5 * modelScale * speedScale * 3.6);
-    const maxThrottleKmh = Math.round(36.5 * modelScale * speedScale * 3.6);
+    const { accelMode, speedScale, accelRate, throttleLevel = 0 } = this.driveSettings;
+    const cruiseKmh = Math.round(22.5 * modelScale * speedScale * 3.6);
+    const maxThrottleKmh = Math.round(35.0 * modelScale * speedScale * 3.6);
     const nitroMaxKmh = Math.round(
-      (36.5 * modelScale + 12.0 * (modelPreset.nitroPower || 1.0)) * speedScale * 3.6,
+      (35.0 * modelScale + 13.5 * (modelPreset.nitroPower || 1.0)) * speedScale * 3.6,
     );
+    const throttleTargetKmh = Math.round(throttleLevel * maxThrottleKmh);
     const modeInfo =
       ACCEL_CONTROL_MODES.find((m) => m.id === accelMode) || ACCEL_CONTROL_MODES[0];
 
@@ -451,6 +469,8 @@ export class Game {
       modeDescription: modeInfo.description,
       speedScale,
       accelRate,
+      throttleLevel,
+      throttleTargetKmh,
       cruiseKmh,
       maxThrottleKmh,
       nitroMaxKmh,
@@ -476,6 +496,25 @@ export class Game {
     return summary;
   }
 
+  setThrottleLevel(level = 0, switchToManual = false) {
+    const clamped = Number(Math.max(0, Math.min(1, Number(level) || 0)).toFixed(2));
+    const patch = { throttleLevel: clamped };
+    if (switchToManual && this.driveSettings.accelMode !== 'manual_throttle') {
+      patch.accelMode = 'manual_throttle';
+    }
+    return this.setDriveSettings(patch);
+  }
+
+  adjustThrottleLevel(delta = 0) {
+    const nextLevel = Number(
+      Math.max(0, Math.min(1, (this.driveSettings.throttleLevel || 0) + delta)).toFixed(2),
+    );
+    const summary = this.setThrottleLevel(nextLevel, true);
+    const pct = Math.round(summary.throttleLevel * 100);
+    this.hud?.showBonusToast(`THROTTLE · ${pct}% (${summary.throttleTargetKmh} KM/H)`);
+    return summary;
+  }
+
   applySpeedPreset(presetId) {
     const preset = SPEED_PRESETS.find((p) => p.id === presetId) || SPEED_PRESETS[1];
     const summary = this.setDriveSettings({
@@ -483,7 +522,7 @@ export class Game {
       accelRate: preset.accelRate,
     });
     this.hud?.showBonusToast(
-      `PACE · ${preset.name.toUpperCase()} (${summary.cruiseKmh} KM/H)`,
+      `PACE · ${preset.name.toUpperCase()} (MAX ${summary.maxThrottleKmh} KM/H)`,
     );
     return summary;
   }
@@ -492,7 +531,7 @@ export class Game {
     const nextSpeed = Number((this.driveSettings.speedScale + delta).toFixed(2));
     const summary = this.setDriveSettings({ speedScale: nextSpeed });
     const pct = Math.round(summary.speedScale * 100);
-    this.hud?.showBonusToast(`SPEED PACE · ${pct}% (${summary.cruiseKmh} KM/H)`);
+    this.hud?.showBonusToast(`MAX PACE · ${pct}% (${summary.maxThrottleKmh} KM/H)`);
     return summary;
   }
 
@@ -534,9 +573,17 @@ export class Game {
         this.audio.unlock();
         this.hudGasPressed = Boolean(active);
       },
+      onTriggerBrake: (active) => {
+        this.audio.unlock();
+        this.hudBrakePressed = Boolean(active);
+      },
       onTriggerNitro: (active) => {
         this.audio.unlock();
         this.hudNitroPressed = Boolean(active);
+      },
+      onChangeThrottleLevel: (val) => {
+        this.audio.unlock();
+        this.setThrottleLevel(val, true);
       },
       onAdjustSpeed: (delta) => {
         this.audio.unlock();
@@ -975,8 +1022,11 @@ export class Game {
   }
 
   resetRaceMetrics() {
+    const { accelMode, speedScale, throttleLevel = 0 } = this.driveSettings;
     const launchSpeedMps =
-      14.0 * Math.max(0.65, Math.min(1.2, this.driveSettings.speedScale));
+      accelMode === 'manual_throttle'
+        ? Math.min(28, Math.max(0, throttleLevel * 35.0 * speedScale))
+        : Math.max(4.5, Math.min(28, 12.5 * speedScale));
     this.score = 0;
     this.distanceMeters = 0;
     this.speedMps = launchSpeedMps;
@@ -989,6 +1039,7 @@ export class Game {
     this.nitroCharge = 100;
     this.isBoosting = false;
     this.hudGasPressed = false;
+    this.hudBrakePressed = false;
     this.hudNitroPressed = false;
     this.cameraShake = 0;
 
@@ -1004,6 +1055,7 @@ export class Game {
     this.state = GAME_STATE.PAUSED;
     this.isBoosting = false;
     this.hudGasPressed = false;
+    this.hudBrakePressed = false;
     this.hudNitroPressed = false;
     this.audio.updateEngine(0, false, false, false);
     this.menu?.openPauseModal({
@@ -1028,6 +1080,7 @@ export class Game {
     this.state = GAME_STATE.TITLE;
     this.isBoosting = false;
     this.hudGasPressed = false;
+    this.hudBrakePressed = false;
     this.hudNitroPressed = false;
     this.audio.updateEngine(0, false, false, false);
 
@@ -1128,20 +1181,22 @@ export class Game {
     // Gather active steering + pedal + nitro inputs
     const kbInput = this.keyboard.update(safeDt, this.calibration.settings.sensitivity);
     const manualGasInput = kbInput.accelerate || this.hudGasPressed;
+    const manualBrakeInput = kbInput.brake || this.hudBrakePressed;
     let steer = kbInput.steer;
     let wheelAngleDeg = kbInput.wheelAngleDeg;
-    let isAccelerating = manualGasInput;
-    let isBraking = kbInput.brake;
+    let isBraking = manualBrakeInput;
+    let isAccelerating = !isBraking && manualGasInput;
     let wantsBoost = kbInput.boost || this.hudNitroPressed;
     let gestureStatus = GESTURE_STATUS.HANDS_DETECTED;
+    let pedalGesture = '';
     let confidence = 0;
     let handCount = 0;
 
     if (externalControlOverride) {
       steer = externalControlOverride.steer ?? 0;
       wheelAngleDeg = externalControlOverride.wheelAngleDeg ?? steer * 38;
-      isAccelerating = Boolean(externalControlOverride.accelerate);
       isBraking = Boolean(externalControlOverride.brake);
+      isAccelerating = !isBraking && Boolean(externalControlOverride.accelerate);
       wantsBoost = Boolean(externalControlOverride.boost);
     } else if (this.controlMode === 'camera') {
       const hudVideo =
@@ -1157,11 +1212,11 @@ export class Game {
       steer = kbInput.hasSteerInput ? kbInput.steer : camEval.steer;
       wheelAngleDeg = kbInput.hasSteerInput ? kbInput.wheelAngleDeg : camEval.wheelAngleDeg;
       const pedalMode = this.calibration.settings.pedalMode;
-      const usesGestureGas =
-        pedalMode === 'grip_gas_palm_brake' || pedalMode === 'palm_gas_fist_brake';
-      isAccelerating = manualGasInput || (usesGestureGas && Boolean(camEval.throttle));
-      isBraking = camEval.brake || kbInput.brake;
+      const usesGestureGas = pedalMode !== 'auto_only';
+      isBraking = manualBrakeInput || Boolean(camEval.brake);
+      isAccelerating = !isBraking && (manualGasInput || (usesGestureGas && Boolean(camEval.throttle)));
       gestureStatus = camEval.status;
+      pedalGesture = camEval.pedalGesture || '';
       confidence = camEval.confidence;
       handCount = camEval.handCount;
     }
@@ -1175,12 +1230,12 @@ export class Game {
         this.hud?.showCountdownStep(
           String(digit),
           this.controlMode === 'camera'
-            ? 'HOLD YOUR IMAGINARY WHEEL'
-            : 'GET READY TO STEER',
+            ? 'GRIP WHEEL TO ACCELERATE · OPEN PALMS TO BRAKE'
+            : 'HOLD W / GAS OR SET THROTTLE SLIDER TO ACCELERATE',
         );
         this.audio.playCountdownBeep(false);
       } else if (this.countdownTimer <= 0) {
-        this.hud?.showCountdownStep('DRIVE', 'SMOOTH HIGHWAY AHEAD');
+        this.hud?.showCountdownStep('DRIVE', 'YOU CONTROL THE THROTTLE');
         this.audio.playCountdownBeep(true);
         setTimeout(() => this.hud?.hideCountdown(), 550);
         this.state = GAME_STATE.RACING;
@@ -1189,7 +1244,16 @@ export class Game {
       this.road?.update(safeDt, this.speedMps, false);
       this.car?.update(safeDt, { steer, speedMps: this.speedMps });
       this._updateCameraRig(safeDt, 'race');
-      this._syncHud(steer, wheelAngleDeg, gestureStatus, confidence, handCount, false, false);
+      this._syncHud(
+        steer,
+        wheelAngleDeg,
+        gestureStatus,
+        confidence,
+        handCount,
+        isAccelerating,
+        isBraking,
+        pedalGesture,
+      );
       return;
     }
 
@@ -1241,57 +1305,64 @@ export class Game {
       }
     }
 
-    // Adjustable Vehicle Speed & Acceleration Control kinematics
-    const { accelMode, speedScale, accelRate } = this.driveSettings;
-    const difficultyBonusMaxSpeed = (this.traffic.difficultyLevel - 1) * 1.1;
+    // Direct, Responsive Player-Controlled Acceleration & Braking Physics
+    const { accelMode, speedScale, accelRate, throttleLevel = 0 } = this.driveSettings;
+    const difficultyBonusMaxSpeed = (this.traffic.difficultyLevel - 1) * 0.9;
     const modelSpeedScale = modelPreset.topSpeedFactor || 1.0;
-    const cruiseTargetMps = (24.5 + difficultyBonusMaxSpeed * 0.65) * modelSpeedScale * speedScale;
-    const maxThrottleMps = (36.5 + difficultyBonusMaxSpeed * 0.75) * modelSpeedScale * speedScale;
+    const cruiseTargetMps = (22.5 + difficultyBonusMaxSpeed * 0.5) * modelSpeedScale * speedScale;
+    const maxThrottleMps = (35.0 + difficultyBonusMaxSpeed * 0.65) * modelSpeedScale * speedScale;
     const nitroTopMps =
-      maxThrottleMps + 12.0 * (modelPreset.nitroPower || 1.0) * speedScale;
-    const minSpeedMps = Math.max(7.5, 10.5 * speedScale);
-    const manualCoastMps = Math.max(8.0, 11.5 * speedScale);
+      maxThrottleMps + 13.5 * (modelPreset.nitroPower || 1.0) * speedScale;
+    const sliderTargetMps = Math.max(0, Math.min(1, throttleLevel)) * maxThrottleMps;
 
     if (isBraking) {
-      const brakeDecel = (24 + 8 * accelRate) * safeDt;
-      this.speedMps = Math.max(minSpeedMps, this.speedMps - brakeDecel);
+      // Crisp disc braking all the way down to 0 km/h (full stop) in ALL throttle modes
+      const brakeDecel = (28.0 + 12.0 * accelRate) * safeDt;
+      this.speedMps = Math.max(0, this.speedMps - brakeDecel);
     } else if (this.isBoosting) {
-      this.speedMps = THREE.MathUtils.damp(
-        this.speedMps,
-        nitroTopMps,
-        2.35 * Math.max(0.75, accelRate),
-        safeDt,
-      );
+      const nitroStep = (31.0 + 10.0 * accelRate) * safeDt;
+      if (this.speedMps < nitroTopMps) {
+        this.speedMps = Math.min(nitroTopMps, this.speedMps + nitroStep);
+      } else {
+        this.speedMps = THREE.MathUtils.damp(this.speedMps, nitroTopMps, 3.0, safeDt);
+      }
     } else if (accelMode === 'manual_throttle') {
       if (isAccelerating) {
-        this.speedMps = THREE.MathUtils.damp(
-          this.speedMps,
-          maxThrottleMps,
-          1.55 * accelRate,
-          safeDt,
-        );
+        const headroom = Math.max(0.28, 1 - (this.speedMps / Math.max(1, maxThrottleMps)) * 0.45);
+        const accelStep = (15.5 + 12.5 * accelRate) * headroom * safeDt;
+        if (this.speedMps < maxThrottleMps) {
+          this.speedMps = Math.min(maxThrottleMps, this.speedMps + accelStep);
+        } else {
+          this.speedMps = THREE.MathUtils.damp(this.speedMps, maxThrottleMps, 2.5, safeDt);
+        }
+      } else if (this.speedMps < sliderTargetMps - 0.15) {
+        const accelStep = (13.0 + 10.0 * accelRate) * safeDt;
+        this.speedMps = Math.min(sliderTargetMps, this.speedMps + accelStep);
       } else {
-        this.speedMps = THREE.MathUtils.damp(this.speedMps, manualCoastMps, 0.9, safeDt);
+        // Engine braking / coasting smoothly down to sliderTargetMps (0 km/h when Throttle Lever is 0%)
+        const coastDecel = (8.2 + 3.0 * accelRate) * safeDt;
+        this.speedMps = Math.max(sliderTargetMps, this.speedMps - coastDecel);
       }
     } else if (accelMode === 'constant_cruise') {
       this.speedMps = THREE.MathUtils.damp(
         this.speedMps,
         cruiseTargetMps,
-        1.25 * accelRate,
+        2.1 * accelRate,
         safeDt,
       );
     } else if (isAccelerating) {
-      this.speedMps = THREE.MathUtils.damp(
-        this.speedMps,
-        maxThrottleMps,
-        1.65 * accelRate,
-        safeDt,
-      );
+      const headroom = Math.max(0.3, 1 - (this.speedMps / Math.max(1, maxThrottleMps)) * 0.45);
+      const accelStep = (14.5 + 11.5 * accelRate) * headroom * safeDt;
+      if (this.speedMps < maxThrottleMps) {
+        this.speedMps = Math.min(maxThrottleMps, this.speedMps + accelStep);
+      } else {
+        this.speedMps = THREE.MathUtils.damp(this.speedMps, maxThrottleMps, 2.4, safeDt);
+      }
     } else {
       this.speedMps = THREE.MathUtils.damp(
         this.speedMps,
         cruiseTargetMps,
-        1.1 * accelRate,
+        1.85 * accelRate,
         safeDt,
       );
     }
@@ -1367,7 +1438,7 @@ export class Game {
         this.state = GAME_STATE.CRASHING;
       } else {
         this.audio.playCrash(false);
-        this.speedMps = Math.max(minSpeedMps, this.speedMps * 0.66);
+        this.speedMps = Math.max(0, this.speedMps * 0.62);
         const pushDir = this.car.x >= colResult.hitVehicle.x ? 1 : -1;
         this.car.lateralVelocity = pushDir * 6.5;
         this.car.triggerDamageShield(1.4);
@@ -1382,7 +1453,7 @@ export class Game {
       this._saveBestScore(this.score);
     }
 
-    this.audio.updateEngine(speedKmh, true, isBraking, this.isBoosting);
+    this.audio.updateEngine(speedKmh, this.speedMps > 0.3 || isAccelerating, isBraking, this.isBoosting);
     this._updateCameraRig(safeDt, 'race');
     this._syncHud(
       steer,
@@ -1392,6 +1463,7 @@ export class Game {
       handCount,
       isAccelerating,
       isBraking,
+      pedalGesture,
     );
   }
 
@@ -1416,7 +1488,16 @@ export class Game {
     });
   }
 
-  _syncHud(steer, wheelAngleDeg, gestureStatus, confidence, handCount, isAccelerating, isBraking) {
+  _syncHud(
+    steer,
+    wheelAngleDeg,
+    gestureStatus,
+    confidence,
+    handCount,
+    isAccelerating,
+    isBraking,
+    pedalGesture = '',
+  ) {
     const driveSummary = this.getDriveSpeedSummary();
     this.hud?.update({
       score: this.score,
@@ -1430,6 +1511,7 @@ export class Game {
       wheelAngleDeg,
       controlMode: this.controlMode,
       gestureStatus,
+      pedalGesture,
       confidence,
       handCount,
       isAccelerating,
@@ -1440,6 +1522,7 @@ export class Game {
       difficultyTier: this.traffic?.difficultyLevel || 1,
       accelMode: driveSummary.accelMode,
       speedScale: driveSummary.speedScale,
+      throttleLevel: driveSummary.throttleLevel,
     });
   }
 

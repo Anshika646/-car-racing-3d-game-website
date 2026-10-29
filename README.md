@@ -14,23 +14,25 @@ Sit in front of your webcam, hold both hands up as if gripping an imaginary stee
   - Uses MediaPipe `HandLandmarker` locally in the browser to track 21 landmarks per hand.
   - Calculates steering from the relative axle angle between your left and right palm hubs in mirrored screen space, so you steer naturally by rotating your imaginary wheel rather than sliding your body across the room.
   - Interactive **Steering Calibration Studio** with automatic neutral-grip hold detection, manual one-click neutral capture, adjustable sensitivity, center dead zone, jitter low-pass smoothing, and maximum wheel-lock angle.
-  - Configurable **Gesture Throttle & Brake** modes (including *Auto-Accelerate + Open Both Palms to Brake*, *Closed Grip = Gas / Open Palms = Brake*, and *Auto-Accelerate Only*).
-  - **Safe Tracking-Loss Recovery:** If one or both hands leave the camera frame, steering smoothly returns toward center neutral (`0°`) and displays `TRACKING LOST — SHOW BOTH HANDS`.
-- **Full Keyboard & Mobile Touch Controls:**
+  - Responsive **1-Hand & 2-Hand Gesture Throttle & Brake** (*Closed Grip = Accelerate · Open Palm = Brake* by default, plus *Auto-Accelerate + Open Palm Brake* and *Auto-Accelerate Only* options).
+  - **Safe Tracking-Loss Recovery:** If hands leave the camera frame, throttle disengages to coast safely and steering smoothly returns toward center neutral (`0°`).
+- **Full Keyboard, On-HUD Pedal & Mobile Touch Controls:**
   - `A` / `Left Arrow` — Steer Left
   - `D` / `Right Arrow` — Steer Right
-  - `W` / `Up Arrow` / `GAS` Touch Pedal — Accelerate
-  - `S` / `Down Arrow` / `BRAKE` Touch Pedal — Brake
-  - `Space` / `Shift` / `NITRO` Touch Pedal — Hyper Nitro Boost
-  - `-` / `+` (`[` / `]`) or On-HUD Stepper — Decrease / Increase Vehicle Speed Pace (`50%` to `140%`)
-  - `M` or On-HUD Mode Button — Cycle Acceleration Control Mode (`Auto Cruise`, `Manual Gas`, `Steady Lock`)
+  - `W` / `Up Arrow` / `GAS` Pedal — Hold to Accelerate
+  - `S` / `Down Arrow` / `BRAKE` Pedal — Hold to Brake (down to `0 km/h` full stop)
+  - `Q` / `E` (`PageDown` / `PageUp`) or **Live HUD Throttle Slider** — Decrease / Increase Hands-Free Cruise Throttle (`0%` to `100%`)
+  - `X` — Cut Cruise Throttle Slider back to `0%`
+  - `Space` / `Shift` / `NITRO` Pedal — Hyper Nitro Boost
+  - `-` / `+` (`[` / `]`) or On-HUD Stepper — Decrease / Increase Max Speed Limit (`45%` to `140%`)
+  - `M` or On-HUD Mode Button — Cycle Acceleration Control Mode (`Manual Gas`, `Auto Cruise`, `Steady Lock`)
   - `C` — Cycle Camera Perspective (`Chase`, `Action`, `Hood`)
   - `Escape` — Pause / Resume & Speed Settings
   - `R` — Instant Restart
   - `H` — Hide / Show Bottom Steering Gauge
-- **Adjustable Acceleration Control & Smooth Speed Settings:**
-  - Three selectable throttle modes: **Auto Cruise + Pedals** (smooth highway cruise + gas pedal), **Manual Gas Control** (direct pedal acceleration & smooth coasting), and **Steady Speed Lock** (locked target pace for relaxed steering).
-  - Quick presets (**Chill**, **Smooth**, **Arcade**, **Pro**) plus fine-grained **Vehicle Speed Pace** (`50%–140%`) and **Acceleration Response** (`40%–150%`) sliders persisted in `localStorage`.
+- **Direct Player-Controlled Acceleration & Speed Settings:**
+  - Defaults to **Manual Gas Control** so the car never accelerates uncontrollably on its own — accelerate with `W`/`Up`, on-screen `GAS`, `0%–100%` Throttle Slider, or closed hand grip, coast smoothly when released, and brake to `0 km/h` at any time.
+  - Three selectable throttle modes (**Manual Gas Control**, **Auto Cruise + Pedals**, **Steady Speed Lock**) plus quick presets (**Chill**, **Smooth**, **Arcade**, **Pro**), **Max Speed Limit** (`45%–140%`), and **Acceleration Power** (`35%–150%`) persisted in `localStorage`.
 - **3D Highway World & Procedural Audio:**
   - Multi-part sculpted GT player cars (`Apex GT-R`, `Vortex F1-X`, `Titan V8`, `Nomad Cyber-X`) with 8 paint finishes, editable 3D driver nameplate, rotating wheels, articulated front steering knuckles, dynamic brake lights, projected road headlights, and collision sparks.
   - Endless 4-lane highway across 5 colorful world arenas with object-pooled multi-part traffic vehicles that scale proportionally with your chosen speed setting and always leave at least one unobstructed lane.

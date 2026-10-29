@@ -104,6 +104,20 @@ export class KeyboardController {
         event.preventDefault();
         this.callbacks.onCycleAccelMode?.();
         break;
+      case 'KeyQ':
+      case 'PageDown':
+        event.preventDefault();
+        this.callbacks.onAdjustThrottle?.(-0.1);
+        break;
+      case 'KeyE':
+      case 'PageUp':
+        event.preventDefault();
+        this.callbacks.onAdjustThrottle?.(0.1);
+        break;
+      case 'KeyX':
+        event.preventDefault();
+        this.callbacks.onZeroThrottle?.();
+        break;
       default:
         break;
     }

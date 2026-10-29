@@ -10,14 +10,14 @@ import { CAR_MODEL_PRESETS, CAR_PAINT_PRESETS } from '../game/Car.js';
 import { ATMOSPHERE_PRESETS } from '../game/Road.js';
 
 const PEDAL_MODE_HINTS = {
-  auto_palm_brake:
-    'Car accelerates smoothly on its own. Spread both palms wide open to brake, or use W/S keys anytime.',
   grip_gas_palm_brake:
-    'Grip with closed fists to accelerate. Open both palms wide to brake. Neutral relaxed hands coast.',
+    'Grip your imaginary wheel (1 or 2 hands) to accelerate. Spread palm(s) open to brake to a stop.',
   palm_gas_fist_brake:
-    'Hold open palms to accelerate. Close both fists to brake.',
+    'Hold open palm(s) to accelerate. Close hand(s) into fists to brake to a stop.',
+  auto_palm_brake:
+    'Hands in view accelerate/cruise smoothly. Spread palm(s) wide open to brake, or use W/S keys anytime.',
   auto_only:
-    'Automatic forward acceleration is active. Your hands are used exclusively for smooth left/right steering.',
+    'Your hands steer left/right only. Control acceleration with W/S, Touch Pedals, or the HUD Throttle Slider.',
 };
 
 export class Menu {
@@ -61,6 +61,8 @@ export class Menu {
       menuDdAccel: document.getElementById('menu-dd-accel'),
       ddAccelLabel: document.getElementById('dd-accel-label'),
       titleAccelSummary: document.getElementById('title-accel-summary'),
+      titleThrottleLevel: document.getElementById('title-throttle-level'),
+      titleThrottleVal: document.getElementById('title-throttle-val'),
       titleSpeedScale: document.getElementById('title-speed-scale'),
       titleSpeedVal: document.getElementById('title-speed-val'),
       titleAccelRate: document.getElementById('title-accel-rate'),
@@ -73,6 +75,8 @@ export class Menu {
       pausePaintSelect: document.getElementById('pause-paint-select'),
       pauseAtmosphereSelect: document.getElementById('pause-atmosphere-select'),
       pauseAccelMode: document.getElementById('pause-accel-mode'),
+      pauseThrottleLevel: document.getElementById('pause-throttle-level'),
+      pauseThrottleVal: document.getElementById('pause-throttle-val'),
       pauseSpeedScale: document.getElementById('pause-speed-scale'),
       pauseSpeedVal: document.getElementById('pause-speed-val'),
       pauseAccelRate: document.getElementById('pause-accel-rate'),
@@ -282,6 +286,16 @@ export class Menu {
     this.els.pauseAccelMode?.addEventListener('change', (e) => {
       this.callbacks.onUpdateDriveSettings?.({ accelMode: e.target.value });
     });
+
+    for (const throttleInput of [this.els.titleThrottleLevel, this.els.pauseThrottleLevel]) {
+      throttleInput?.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        this.callbacks.onUpdateDriveSettings?.({
+          throttleLevel: val,
+          accelMode: 'manual_throttle',
+        });
+      });
+    }
 
     for (const speedInput of [
       this.els.titleSpeedScale,
@@ -576,25 +590,28 @@ export class Menu {
       if (this.els.selectPedalMode) this.els.selectPedalMode.value = settings.pedalMode;
       if (this.els.pedalModeHint) {
         this.els.pedalModeHint.textContent =
-          PEDAL_MODE_HINTS[settings.pedalMode] || PEDAL_MODE_HINTS.auto_palm_brake;
+          PEDAL_MODE_HINTS[settings.pedalMode] || PEDAL_MODE_HINTS.grip_gas_palm_brake;
       }
     }
   }
 
   syncDriveSettings(summary = {}) {
     const {
-      accelMode = 'smooth_auto',
-      modeShortName = 'Auto Cruise',
+      accelMode = 'manual_throttle',
+      modeShortName = 'Manual Gas',
       modeDescription = '',
-      speedScale = 1.0,
+      speedScale = 0.9,
       accelRate = 0.85,
-      cruiseKmh = 88,
-      maxThrottleKmh = 131,
+      throttleLevel = 0,
+      throttleTargetKmh = 0,
+      cruiseKmh = 73,
+      maxThrottleKmh = 113,
       activePresetId = 'smooth',
     } = summary;
 
     const speedPct = Math.round(speedScale * 100);
     const accelPct = Math.round(accelRate * 100);
+    const throttlePct = Math.round(throttleLevel * 100);
     const accelFeel =
       accelRate <= 0.65 ? 'Gentle' : accelRate <= 0.98 ? 'Smooth' : 'Sport';
     const targetKmh =
@@ -608,6 +625,15 @@ export class Menu {
     }
     if (this.els.titleAccelHint && modeDescription) {
       this.els.titleAccelHint.textContent = modeDescription;
+    }
+
+    const throttleReadout =
+      throttlePct === 0 ? '0% (Pedal Control)' : `${throttlePct}% (${throttleTargetKmh} km/h)`;
+    for (const el of [this.els.titleThrottleLevel, this.els.pauseThrottleLevel]) {
+      if (el) el.value = String(throttleLevel);
+    }
+    for (const el of [this.els.titleThrottleVal, this.els.pauseThrottleVal]) {
+      if (el) el.textContent = throttleReadout;
     }
 
     const speedReadout = `${speedPct}% (${targetKmh})`;

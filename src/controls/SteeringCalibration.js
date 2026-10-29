@@ -8,7 +8,7 @@
  * - Instant one-tap neutral recentering + safe return-to-center on tracking loss
  */
 
-const STORAGE_KEY = 'motion_drive_3d_steering_settings_v2';
+const STORAGE_KEY = 'motion_drive_3d_steering_settings_v3';
 
 export const GESTURE_STATUS = {
   HANDS_DETECTED: 'STRAIGHT · LOCKED',
@@ -17,7 +17,7 @@ export const GESTURE_STATUS = {
   STEER_LEFT: 'STEERING LEFT',
   STEER_RIGHT: 'STEERING RIGHT',
   CENTER_HANDS: 'STRAIGHT',
-  TRACKING_LOST: 'HANDS LOST — SHOW HANDS',
+  TRACKING_LOST: 'HANDS LOST — COASTING',
 };
 
 export const DEFAULT_STEERING_SETTINGS = {
@@ -28,7 +28,7 @@ export const DEFAULT_STEERING_SETTINGS = {
   deadZoneDeg: 2.2,
   maxAngleDeg: 32.0,
   smoothingRate: 16.0,
-  pedalMode: 'auto_palm_brake',
+  pedalMode: 'grip_gas_palm_brake',
   isCalibrated: false,
 };
 
@@ -69,30 +69,34 @@ export function computeSingleHandTiltDeg(landmarks) {
 }
 
 /**
- * Scale-invariant check for whether a hand has all 4 fingers clearly spread open
- * (deliberate "STOP" brake gesture) vs a relaxed or closed steering grip.
+ * Scale-invariant check for whether a hand has fingers spread open
+ * (deliberate "STOP / OPEN PALM" gesture) vs a closed steering wheel grip.
+ * Works reliably even when the hand is slightly angled toward the webcam.
  */
 export function isHandOpenPalm(landmarks) {
   if (!Array.isArray(landmarks) || landmarks.length < 21) return false;
   const wrist = landmarks[0];
-  const fingerPairs = [
-    [8, 6],   // Index tip vs PIP
-    [12, 10], // Middle tip vs PIP
-    [16, 14], // Ring tip vs PIP
-    [20, 18], // Pinky tip vs PIP
+  const fingerTriples = [
+    [8, 6, 5],    // Index tip, PIP, MCP
+    [12, 10, 9],  // Middle tip, PIP, MCP
+    [16, 14, 13], // Ring tip, PIP, MCP
+    [20, 18, 17], // Pinky tip, PIP, MCP
   ];
 
   let extendedCount = 0;
-  for (let i = 0; i < fingerPairs.length; i++) {
-    const tip = landmarks[fingerPairs[i][0]];
-    const pip = landmarks[fingerPairs[i][1]];
+  for (let i = 0; i < fingerTriples.length; i++) {
+    const [tipIdx, pipIdx, mcpIdx] = fingerTriples[i];
+    const tip = landmarks[tipIdx];
+    const pip = landmarks[pipIdx];
+    const mcp = landmarks[mcpIdx];
     const tipDist = Math.hypot(tip.x - wrist.x, tip.y - wrist.y);
     const pipDist = Math.hypot(pip.x - wrist.x, pip.y - wrist.y);
-    if (tipDist > pipDist * 1.32) {
+    const mcpDist = Math.hypot(mcp.x - wrist.x, mcp.y - wrist.y);
+    if (tipDist > pipDist * 1.22 && tipDist > mcpDist * 1.38) {
       extendedCount++;
     }
   }
-  return extendedCount >= 4;
+  return extendedCount >= 3;
 }
 
 /**
@@ -452,8 +456,9 @@ export class SteeringCalibration {
       return {
         steer: this.smoothedSteer,
         wheelAngleDeg: this.smoothedWheelDeg,
-        throttle: true,
+        throttle: false,
         brake: false,
+        pedalGesture: 'COAST',
         trackingLost: isLost,
         handCount: 0,
         confidence: 0,
@@ -510,42 +515,43 @@ export class SteeringCalibration {
       this.smoothedSteer = 0;
     }
 
-    // 5. Gesture throttle & brake (requires deliberate wide-open palms)
-    const allVisibleOpen =
-      geometry.hasBothHands ? geometry.openPalmCount === 2 : false;
-    const bothGripped = geometry.openPalmCount === 0;
-    let throttle = true;
+    // 5. Gesture throttle & brake (works seamlessly for BOTH 2-hand and 1-hand modes!)
+    const allVisibleOpen = geometry.hasBothHands
+      ? geometry.openPalmCount >= 2
+      : geometry.openPalmCount >= 1;
+    const allVisibleGripped = geometry.openPalmCount === 0;
+    let throttle = false;
     let brake = false;
 
-    if (pedalMode === 'auto_palm_brake') {
+    if (pedalMode === 'grip_gas_palm_brake') {
+      // Closed wheel grip = Accelerate; Open palm(s) = Brake; Mixed (1 open, 1 grip) = Coast
+      brake = allVisibleOpen;
+      throttle = allVisibleGripped;
+    } else if (pedalMode === 'auto_palm_brake') {
       brake = allVisibleOpen;
       throttle = !brake;
-    } else if (pedalMode === 'grip_gas_palm_brake') {
-      brake = allVisibleOpen;
-      throttle = bothGripped;
     } else if (pedalMode === 'palm_gas_fist_brake') {
       throttle = allVisibleOpen;
-      brake = bothGripped;
+      brake = allVisibleGripped;
     } else {
-      throttle = true;
+      // 'auto_only': hands steer only; throttle/brake controlled by HUD slider or keys
+      throttle = false;
       brake = false;
     }
 
+    const pedalGesture = brake ? 'BRAKE' : throttle ? 'GAS' : 'COAST';
+
     // 6. Real-time gesture feedback status
-    let status = geometry.hasBothHands
+    let baseStatus = geometry.hasBothHands
       ? GESTURE_STATUS.HANDS_DETECTED
       : GESTURE_STATUS.ONE_HAND_ACTIVE;
 
     if (this.smoothedSteer < -0.1) {
-      status = GESTURE_STATUS.STEER_LEFT;
+      baseStatus = GESTURE_STATUS.STEER_LEFT;
     } else if (this.smoothedSteer > 0.1) {
-      status = GESTURE_STATUS.STEER_RIGHT;
-    } else if (absRel <= deadZoneDeg * 1.5) {
-      status = geometry.hasBothHands
-        ? GESTURE_STATUS.HANDS_DETECTED
-        : GESTURE_STATUS.ONE_HAND_ACTIVE;
-    } else {
-      status = GESTURE_STATUS.CENTER_HANDS;
+      baseStatus = GESTURE_STATUS.STEER_RIGHT;
+    } else if (absRel > deadZoneDeg * 1.5) {
+      baseStatus = GESTURE_STATUS.CENTER_HANDS;
     }
 
     return {
@@ -553,10 +559,11 @@ export class SteeringCalibration {
       wheelAngleDeg: this.smoothedWheelDeg,
       throttle,
       brake,
+      pedalGesture,
       trackingLost: false,
       handCount,
       confidence: geometry.confidence,
-      status,
+      status: baseStatus,
     };
   }
 }

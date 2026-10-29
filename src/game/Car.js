@@ -1305,8 +1305,9 @@ export class Car {
       return;
     }
 
-    // Crisp, manageable lateral velocity scaled smoothly across both low and standard speeds
-    const speedFactor = Math.min(1.12, 0.62 + speedMps / 56);
+    // Crisp, manageable lateral velocity that smoothly drops to 0 when stopped at 0 km/h
+    const rollingRatio = Math.min(1, Math.max(0, speedMps / 4.2));
+    const speedFactor = rollingRatio * Math.min(1.12, 0.62 + speedMps / 56);
     const maxLateralSpeed = 14.8 * speedFactor * (model.handlingFactor || 1.0);
     let targetVx = clampedSteer * maxLateralSpeed;
 

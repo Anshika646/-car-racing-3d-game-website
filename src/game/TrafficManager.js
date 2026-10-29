@@ -499,7 +499,11 @@ export class TrafficManager {
 
     for (let i = this.activeVehicles.length - 1; i >= 0; i--) {
       const v = this.activeVehicles[i];
-      const relativeSpeed = playerSpeedMps - v.speedMps;
+      let relativeSpeed = playerSpeedMps - v.speedMps;
+      // Once a rival car is behind the player's rear bumper, prevent off-screen rear-ending when player brakes
+      if (v.z > 2.6 && relativeSpeed < 2.0) {
+        relativeSpeed = 2.0;
+      }
       v.z += relativeSpeed * safeDt;
       v.mesh.position.set(v.x, 0, v.z);
 
