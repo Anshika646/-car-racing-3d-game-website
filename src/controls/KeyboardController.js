@@ -118,6 +118,36 @@ export class KeyboardController {
         event.preventDefault();
         this.callbacks.onZeroThrottle?.();
         break;
+      case 'Digit0':
+      case 'Numpad0':
+        event.preventDefault();
+        this.callbacks.onSelectGear?.(0);
+        break;
+      case 'Digit1':
+      case 'Numpad1':
+        event.preventDefault();
+        this.callbacks.onSelectGear?.(1);
+        break;
+      case 'Digit2':
+      case 'Numpad2':
+        event.preventDefault();
+        this.callbacks.onSelectGear?.(2);
+        break;
+      case 'Digit3':
+      case 'Numpad3':
+        event.preventDefault();
+        this.callbacks.onSelectGear?.(3);
+        break;
+      case 'Digit4':
+      case 'Numpad4':
+        event.preventDefault();
+        this.callbacks.onSelectGear?.(4);
+        break;
+      case 'Digit5':
+      case 'Numpad5':
+        event.preventDefault();
+        this.callbacks.onSelectGear?.(5);
+        break;
       default:
         break;
     }

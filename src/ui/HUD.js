@@ -1,12 +1,12 @@
 /**
  * HUD.js
  *
- * Manages the active Chroma Confetti Arcade Heads-Up Display:
- * - Score, Personal Best, Distance & Live Combo Multiplier Badge
- * - Rainbow Speedometer + Interactive Hyper Nitro Boost Gauge ([Space] or tap/hold)
+ * Manages Page 2's Active Race Heads-Up Display & Live Speed Control Cockpit:
+ * - Score, Personal Best, Distance & Live Combo Multiplier
+ * - Live Speedometer + 6-Gear Shifter (0..5) + Direct 0-180 km/h Speed Slider + Mouse Wheel Speed Control
+ * - On-Screen Brake / Gas / Nitro Pedals & Mobile Multi-Touch Driving Pad
  * - Camera View Switcher ([C]: Chase / Action Close / Hood)
- * - One-tap Hand Recenter + Tuning Studio + Rainbow Virtual Steering Wheel
- * - Collapsible Bottom Wheel Dock & Mirrored Webcam PiP Panel
+ * - Collapsible Virtual Steering Wheel Dock & Mirrored Webcam PiP Panel
  */
 
 import gsap from 'gsap';
@@ -55,12 +55,11 @@ export class HUD {
       speed: document.getElementById('hud-speed'),
       speedBar: document.getElementById('hud-speed-bar'),
       pedalState: document.getElementById('hud-pedal-state'),
-      difficultyTier: document.getElementById('hud-difficulty-tier'),
       btnAccelMode: document.getElementById('btn-hud-accel-mode'),
       btnSpeedDown: document.getElementById('btn-hud-speed-down'),
       btnSpeedUp: document.getElementById('btn-hud-speed-up'),
       speedCapLabel: document.getElementById('hud-speed-cap'),
-      throttleSlider: document.getElementById('hud-throttle-slider'),
+      targetSpeedSlider: document.getElementById('hud-target-speed-slider'),
       throttleVal: document.getElementById('hud-throttle-val'),
       nitroBar: document.getElementById('hud-nitro-bar'),
       nitroPct: document.getElementById('hud-nitro-pct'),
@@ -104,13 +103,32 @@ export class HUD {
     this.els.btnToggleDock?.addEventListener('click', () => this.toggleDock());
     this.els.btnTogglePipSize?.addEventListener('click', () => this.togglePipMinimize());
     this.els.btnAccelMode?.addEventListener('click', () => this.callbacks.onCycleAccelMode?.());
-    this.els.btnSpeedDown?.addEventListener('click', () => this.callbacks.onAdjustSpeed?.(-0.1));
-    this.els.btnSpeedUp?.addEventListener('click', () => this.callbacks.onAdjustSpeed?.(0.1));
+    this.els.btnSpeedDown?.addEventListener('click', () =>
+      this.callbacks.onAdjustTargetSpeed?.(-10),
+    );
+    this.els.btnSpeedUp?.addEventListener('click', () =>
+      this.callbacks.onAdjustTargetSpeed?.(10),
+    );
 
-    this.els.throttleSlider?.addEventListener('input', (e) => {
-      const val = parseFloat(e.target.value);
-      this.callbacks.onChangeThrottleLevel?.(val);
+    this.els.targetSpeedSlider?.addEventListener('input', (e) => {
+      const kmh = parseFloat(e.target.value);
+      this.callbacks.onChangeTargetSpeed?.(kmh);
     });
+
+    // Mouse Scroll Wheel during active race smoothly dials target speed up/down by 5 km/h
+    if (typeof window !== 'undefined') {
+      window.addEventListener(
+        'wheel',
+        (e) => {
+          if (!this.els.root || this.els.root.classList.contains('hidden')) return;
+          if (e.target?.closest?.('#pause-modal, #help-modal, #calibration-screen')) return;
+          if (Math.abs(e.deltaY) < 2) return;
+          const step = e.deltaY < 0 ? 5 : -5;
+          this.callbacks.onAdjustTargetSpeed?.(step);
+        },
+        { passive: true },
+      );
+    }
 
     if (this.els.btnBrake) {
       const startBrake = (e) => {
@@ -161,7 +179,6 @@ export class HUD {
     this._bindTouchButton(this.els.btnTouchBrake, 'brake');
     this._bindTouchButton(this.els.btnTouchNitro, 'boost');
 
-    // Allow smooth left-thumb slide across the steer zone between ◀ and ▶
     if (this.els.touchSteerZone) {
       let steerPointerId = null;
       const updateSlideSteer = (clientX) => {
@@ -237,7 +254,6 @@ export class HUD {
     const isTouchDevice = this.hasTouchSupport || isSmallViewport;
     this.els.touchControls.classList.toggle('hidden', !isTouchDevice);
     if (this.els.touchSteerZone) {
-      // In Camera Hand-Wheel mode on touchscreens, hide left-thumb arrows while keeping Gas/Brake/Nitro pedals accessible!
       const isCamera = this._currentControlMode === 'camera';
       this.els.touchSteerZone.style.visibility = isCamera ? 'hidden' : 'visible';
       this.els.touchSteerZone.style.pointerEvents = isCamera ? 'none' : 'auto';
@@ -251,7 +267,7 @@ export class HUD {
     gsap.fromTo(
       this.els.root,
       { opacity: 0 },
-      { opacity: 1, duration: 0.25, ease: 'power2.out' },
+      { opacity: 1, duration: 0.22, ease: 'power2.out' },
     );
   }
 
@@ -300,18 +316,35 @@ export class HUD {
   }
 
   syncDriveSettings(summary = {}) {
-    if (this.els.btnAccelMode && summary.modeShortName) {
-      this.els.btnAccelMode.textContent = summary.modeShortName;
+    const {
+      accelMode = 'smooth_auto',
+      modeShortName = 'Speed Dial',
+      targetKmh = 75,
+      activeGear = 2,
+    } = summary;
+
+    if (this.els.btnAccelMode) {
+      this.els.btnAccelMode.textContent = modeShortName;
     }
-    if (this.els.speedCapLabel && typeof summary.speedScale === 'number') {
-      this.els.speedCapLabel.textContent = `${Math.round(summary.speedScale * 100)}%`;
+    if (this.els.speedCapLabel) {
+      this.els.speedCapLabel.textContent =
+        targetKmh <= 0
+          ? 'STOP · 0'
+          : accelMode === 'manual_throttle'
+            ? `Cap: ${targetKmh}`
+            : `Set: ${targetKmh}`;
     }
-    if (this.els.throttleSlider && typeof summary.throttleLevel === 'number') {
-      this.els.throttleSlider.value = String(summary.throttleLevel);
+    if (this.els.targetSpeedSlider) {
+      this.els.targetSpeedSlider.value = String(targetKmh);
     }
-    if (this.els.throttleVal && typeof summary.throttleLevel === 'number') {
-      this.els.throttleVal.textContent = `${Math.round(summary.throttleLevel * 100)}%`;
+    if (this.els.throttleVal) {
+      this.els.throttleVal.textContent = `${targetKmh} km/h`;
     }
+
+    document.querySelectorAll('#hud-speed-panel [data-gear]').forEach((btn) => {
+      const g = Number(btn.getAttribute('data-gear'));
+      btn.setAttribute('aria-pressed', g === activeGear ? 'true' : 'false');
+    });
   }
 
   toggleDock() {
@@ -382,7 +415,7 @@ export class HUD {
       bestScore = 0,
       distanceMeters = 0,
       speedKmh = 0,
-      maxSpeedKmh = 285,
+      maxSpeedKmh = 220,
       health = 3,
       maxHealth = 3,
       steer = 0,
@@ -397,10 +430,8 @@ export class HUD {
       isBoosting = false,
       nitroCharge = 100,
       combo = 1,
-      difficultyTier = 1,
-      accelMode = 'manual_throttle',
-      speedScale = 0.9,
-      throttleLevel = 0,
+      accelMode = 'smooth_auto',
+      targetKmh = 75,
     } = state;
 
     if (this.els.score) {
@@ -415,7 +446,7 @@ export class HUD {
     if (this.els.comboBadge) {
       if (combo > 1) {
         this.els.comboBadge.classList.remove('hidden');
-        this.els.comboBadge.textContent = `COMBO x${combo}`;
+        this.els.comboBadge.textContent = `· x${combo}`;
       } else {
         this.els.comboBadge.classList.add('hidden');
       }
@@ -425,7 +456,7 @@ export class HUD {
       this.els.speed.textContent = String(Math.round(speedKmh));
     }
     if (this.els.speedBar) {
-      const pct = Math.min(100, Math.max(0, (speedKmh / maxSpeedKmh) * 100));
+      const pct = Math.min(100, Math.max(0, (speedKmh / Math.max(120, maxSpeedKmh)) * 100));
       this.els.speedBar.style.width = `${pct.toFixed(1)}%`;
       this.els.speedBar.style.backgroundColor = isBoosting
         ? '#ff2eb6'
@@ -437,15 +468,21 @@ export class HUD {
     }
     if (this.els.throttleVal) {
       if (isBraking) {
-        this.els.throttleVal.textContent = 'BRAKE';
+        this.els.throttleVal.textContent = 'BRAKING';
         this.els.throttleVal.style.color = '#ffe224';
-      } else if (isAccelerating) {
-        this.els.throttleVal.textContent = '100% GAS';
-        this.els.throttleVal.style.color = '#a3ff2e';
       } else {
-        this.els.throttleVal.textContent = `${Math.round(throttleLevel * 100)}%`;
-        this.els.throttleVal.style.color = throttleLevel > 0 ? '#22e4ff' : '#cbd5e1';
+        this.els.throttleVal.textContent =
+          targetKmh <= 0 ? 'STOP (0)' : `${targetKmh} km/h`;
+        this.els.throttleVal.style.color = targetKmh <= 0 ? '#ffe224' : '#a3ff2e';
       }
+    }
+    if (this.els.speedCapLabel) {
+      this.els.speedCapLabel.textContent =
+        targetKmh <= 0
+          ? 'STOP · 0'
+          : accelMode === 'manual_throttle'
+            ? `Cap: ${targetKmh}`
+            : `Set: ${targetKmh}`;
     }
     if (this.els.pedalState) {
       const isManual = accelMode === 'manual_throttle';
@@ -457,32 +494,26 @@ export class HUD {
           ? isStopped
             ? 'Stopped [Brake]'
             : 'Braking'
-          : isAccelerating && !isSteady
-            ? 'Accelerating'
-            : isManual
-              ? throttleLevel > 0
-                ? `Cruise ${Math.round(throttleLevel * 100)}%`
-                : isStopped
-                  ? controlMode === 'camera'
-                    ? 'Stopped [Grip = Gas]'
-                    : 'Stopped [Hold W / Gas]'
-                  : 'Coasting'
+          : isManual
+            ? isAccelerating
+              ? `Gas → ${Math.max(30, targetKmh)} km/h`
+              : isStopped
+                ? 'Stopped [Hold W / Gas]'
+                : 'Coasting'
+            : targetKmh <= 0
+              ? 'Parked [Pick Gear 1–5]'
               : isSteady
-                ? 'Steady Lock'
-                : 'Auto Cruise';
+                ? `Locked ${targetKmh} km/h`
+                : isAccelerating
+                  ? 'Passing Boost'
+                  : `Cruise ${targetKmh} km/h`;
       this.els.pedalState.style.color = isBoosting
         ? '#ff2eb6'
-        : isBraking
+        : isBraking || targetKmh <= 0
           ? '#ffe224'
-          : isAccelerating && !isSteady
+          : isAccelerating
             ? '#a3ff2e'
             : '#cbd5e1';
-    }
-    if (this.els.difficultyTier) {
-      this.els.difficultyTier.textContent = `Tier ${difficultyTier}`;
-    }
-    if (this.els.speedCapLabel && typeof speedScale === 'number') {
-      this.els.speedCapLabel.textContent = `${Math.round(speedScale * 100)}%`;
     }
 
     // Nitro Boost, Brake & Gas Buttons
@@ -492,7 +523,7 @@ export class HUD {
       this.els.nitroBar.style.backgroundColor = isBoosting ? '#ffe224' : '#ff2eb6';
     }
     if (this.els.nitroPct) {
-      this.els.nitroPct.textContent = `${Math.round(clampedNitro)}%`;
+      this.els.nitroPct.textContent = `N2O ${Math.round(clampedNitro)}%`;
     }
     if (this.els.btnBrake) {
       this.els.btnBrake.style.borderColor = isBraking
@@ -525,7 +556,7 @@ export class HUD {
       }
     }
 
-    // Rainbow Virtual Steering Wheel & Direction Indicator (±115° full arcade sweep!)
+    // Virtual Steering Wheel & Direction Indicator
     const visualRotation = Math.max(-115, Math.min(115, steer * 115));
     if (this.els.wheelSvg) {
       this.els.wheelSvg.style.transform = `rotate(${visualRotation.toFixed(1)}deg)`;
@@ -559,7 +590,7 @@ export class HUD {
       this.els.steerText.textContent = `${dirWord} · ${roundedDeg}°`;
     }
 
-    // Gesture & Tracking Banner
+    // Gesture & Driving Banner
     if (this.els.gestureStatus && this.els.gestureBanner) {
       if (controlMode === 'camera') {
         const baseLabel = gestureStatus || GESTURE_STATUS.HANDS_DETECTED;
@@ -567,8 +598,8 @@ export class HUD {
         const gestureSuffix =
           !isLost && pedalGesture === 'BRAKE'
             ? ' · BRAKE'
-            : !isLost && pedalGesture === 'GAS'
-              ? ' · GAS'
+            : !isLost && targetKmh > 0
+              ? ` · ${targetKmh} KM/H`
               : '';
         this.els.gestureStatus.textContent = `${baseLabel}${gestureSuffix}`;
         this.els.gestureBanner.style.borderColor = isLost
@@ -604,28 +635,28 @@ export class HUD {
           ? 'HYPER NITRO ENGAGED ⚡'
           : isBraking
             ? `${modePrefix} · BRAKING`
-            : isAccelerating
-              ? `${modePrefix} · ACCELERATING`
-              : isLeft
-                ? `${modePrefix} · STEER LEFT`
-                : isRight
-                  ? `${modePrefix} · STEER RIGHT`
-                  : `${modePrefix} · HOLD W / GAS`;
+            : isLeft
+              ? `${modePrefix} · STEER LEFT`
+              : isRight
+                ? `${modePrefix} · STEER RIGHT`
+                : accelMode === 'manual_throttle'
+                  ? isAccelerating
+                    ? `${modePrefix} · ACCELERATING`
+                    : `${modePrefix} · HOLD W / GAS`
+                  : targetKmh <= 0
+                    ? 'STOPPED · PICK GEAR 1–5'
+                    : `${modePrefix} · ${targetKmh} KM/H`;
         this.els.gestureStatus.textContent = kbStatus;
         this.els.gestureBanner.style.borderColor = isBoosting
           ? 'rgba(255, 46, 182, 0.65)'
           : isBraking
             ? 'rgba(255, 140, 26, 0.65)'
-            : isAccelerating
-              ? 'rgba(163, 255, 46, 0.5)'
-              : 'rgba(255, 255, 255, 0.16)';
+            : 'rgba(255, 255, 255, 0.16)';
         this.els.gestureStatus.style.color = isBoosting
           ? '#ff85d8'
-          : isBraking
+          : isBraking || targetKmh <= 0
             ? '#ffe224'
-            : isAccelerating
-              ? '#a3ff2e'
-              : '#22e4ff';
+            : '#22e4ff';
       }
     }
   }

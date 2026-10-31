@@ -24,6 +24,7 @@ import {
   DRIVE_SETTINGS_STORAGE_KEY,
   ACCEL_CONTROL_MODES,
   SPEED_PRESETS,
+  GEAR_PRESETS,
 } from '../src/game/Game.js';
 
 /**
@@ -517,55 +518,87 @@ describe('MOTION DRIVE 3D — Automated Verification Suite', () => {
     expect(rightRes.status).toBe(GESTURE_STATUS.STEER_RIGHT);
   });
 
-  it('provides direct player-controlled Acceleration Control, Throttle Slider (Q/E/X), full-stop braking, presets, and mode cycling', () => {
+  it('provides honest 0–180 km/h Speed Control, 6-Position Gearbox (Keys 0–5), Manual Gas speed cap, and full-stop braking', () => {
     const game = new Game({ headless: true });
     expect(ACCEL_CONTROL_MODES.length).toBe(3);
     expect(SPEED_PRESETS.length).toBe(4);
+    expect(GEAR_PRESETS.length).toBe(6);
 
-    // Defaults to Manual Gas Control with 0% auto-throttle so car never accelerates on its own
+    // Defaults to Speed Dial + Pedals at 75 km/h (Gear 2 · Smooth)
     const defaultSummary = game.getDriveSpeedSummary();
-    expect(defaultSummary.accelMode).toBe('manual_throttle');
-    expect(defaultSummary.speedScale).toBeCloseTo(0.9, 2);
-    expect(defaultSummary.accelRate).toBeCloseTo(0.85, 2);
-    expect(defaultSummary.throttleLevel).toBe(0);
+    expect(defaultSummary.accelMode).toBe('smooth_auto');
+    expect(defaultSummary.targetKmh).toBe(75);
+    expect(defaultSummary.activeGear).toBe(2);
 
-    // Chill preset lowers max speed limit and softens acceleration power
-    const chillSummary = game.applySpeedPreset('chill');
-    expect(chillSummary.speedScale).toBeCloseTo(0.65, 2);
-    expect(chillSummary.accelRate).toBeCloseTo(0.6, 2);
-    expect(chillSummary.maxThrottleKmh).toBeLessThan(defaultSummary.maxThrottleKmh);
+    // Direct 0–180 km/h Speed Slider & Gear shortcuts (Keys 0–5)
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit1' }));
+    expect(game.driveSettings.targetKmh).toBe(45);
+    expect(game.getDriveSpeedSummary().activeGear).toBe(1);
+
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Digit4' }));
+    expect(game.driveSettings.targetKmh).toBe(140);
+    expect(game.getDriveSpeedSummary().activeGear).toBe(4);
+
+    // Keyboard [+] / [-] and [E] / [Q] step target speed by ±10 km/h, [X] / [0] shifts to STOP (0 km/h)
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Equal' }));
+    expect(game.driveSettings.targetKmh).toBe(150);
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Minus' }));
+    expect(game.driveSettings.targetKmh).toBe(140);
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyQ' }));
+    expect(game.driveSettings.targetKmh).toBe(130);
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyE' }));
+    expect(game.driveSettings.targetKmh).toBe(140);
+    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyX' }));
+    expect(game.driveSettings.targetKmh).toBe(0);
+    expect(game.getDriveSpeedSummary().activeGear).toBe(0);
 
     // Persisted in localStorage
+    const chillSummary = game.applySpeedPreset('chill');
+    expect(chillSummary.targetKmh).toBe(45);
     const stored = JSON.parse(window.localStorage.getItem(DRIVE_SETTINGS_STORAGE_KEY));
-    expect(stored.speedScale).toBeCloseTo(0.65, 2);
-    expect(stored.accelRate).toBeCloseTo(0.6, 2);
+    expect(stored.targetKmh).toBe(45);
 
-    // Keyboard shortcuts [-] / [+], [Q] / [E] / [X], and [M] adjust speed, throttle slider, and mode cleanly
-    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Equal' }));
-    expect(game.driveSettings.speedScale).toBeCloseTo(0.75, 2);
-    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'Minus' }));
-    expect(game.driveSettings.speedScale).toBeCloseTo(0.65, 2);
-
-    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyE' }));
-    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyE' }));
-    expect(game.driveSettings.throttleLevel).toBeCloseTo(0.2, 2);
-    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyQ' }));
-    expect(game.driveSettings.throttleLevel).toBeCloseTo(0.1, 2);
-    window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyX' }));
-    expect(game.driveSettings.throttleLevel).toBe(0);
-
+    // [M] cycles through all 3 throttle styles cleanly
     window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyM' }));
-    expect(game.driveSettings.accelMode).toBe('smooth_auto');
+    expect(game.driveSettings.accelMode).toBe('manual_throttle');
     window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyM' }));
     expect(game.driveSettings.accelMode).toBe('constant_cruise');
     window.dispatchEvent(new KeyboardEvent('keydown', { code: 'KeyM' }));
-    expect(game.driveSettings.accelMode).toBe('manual_throttle');
+    expect(game.driveSettings.accelMode).toBe('smooth_auto');
 
-    // Manual Gas Control: starts at 0 km/h, stays at 0 when Gas is not pressed, accelerates smoothly when Gas is held, and coasts all the way to 0 km/h when released
+    // Speed Dial + Pedals in Camera Mode: holding 2-hand wheel grip cruises honestly at exact targetKmh (60 km/h) without overspeeding
+    const closedGripGeo = computeWheelGeometry([
+      createSyntheticHand(0.72, 0.5, { openPalm: false }),
+      createSyntheticHand(0.28, 0.5, { openPalm: false }),
+    ]);
+    game.calibration.captureNeutral(0);
+    game.handTracker.detect = () => closedGripGeo;
+    game.handTracker.renderOverlay = () => {};
+    game.controlMode = 'camera';
+    game.setTargetSpeedKmh(60);
+    game.beginRaceCountdown();
+    game.state = GAME_STATE.RACING;
+    game.traffic.activeVehicles = [];
+    for (let i = 0; i < 80; i++) {
+      game.traffic.activeVehicles = [];
+      game.stepSimulation(0.05);
+    }
+    expect(Math.round(game.speedMps * 3.6)).toBe(60);
+
+    // Shifting to Gear 0 (0 km/h) glides smoothly to a complete stop
+    game.setGear(0);
+    for (let i = 0; i < 80; i++) {
+      game.traffic.activeVehicles = [];
+      game.stepSimulation(0.05, { steer: 0, accelerate: false, brake: false, boost: false });
+    }
+    expect(game.speedMps).toBe(0);
+
+    // Manual Gas Pedal: starts at 0 km/h, stays at 0 when Gas is released, caps cleanly at chosen targetKmh (54 km/h) when Gas is held, and coasts back to 0 km/h
+    game.controlMode = 'keyboard';
     game.setDriveSettings({
       accelMode: 'manual_throttle',
-      speedScale: 1.0,
-      accelRate: 0.9,
+      targetKmh: 54,
+      accelRate: 1.0,
       throttleLevel: 0,
     });
     game.beginRaceCountdown();
@@ -579,42 +612,54 @@ describe('MOTION DRIVE 3D — Automated Verification Suite', () => {
     }
     expect(game.speedMps).toBe(0);
 
-    // Hold Gas -> accelerates cleanly
-    for (let i = 0; i < 30; i++) {
+    for (let i = 0; i < 60; i++) {
       game.traffic.activeVehicles = [];
       game.stepSimulation(0.05, { steer: 0, accelerate: true, brake: false, boost: false });
     }
-    expect(game.speedMps).toBeGreaterThan(22);
+    expect(Math.round(game.speedMps * 3.6)).toBe(54);
 
-    // Release Gas with throttleLevel = 0 -> coasts all the way down to 0 m/s
     for (let i = 0; i < 80; i++) {
       game.traffic.activeVehicles = [];
       game.stepSimulation(0.05, { steer: 0, accelerate: false, brake: false, boost: false });
     }
     expect(game.speedMps).toBe(0);
 
-    // Live Throttle Slider (50%) holds steady hands-free speed
-    game.setThrottleLevel(0.5, true);
-    const halfThrottleSummary = game.getDriveSpeedSummary();
+    // Holding Brake stops crisply to 0 km/h even in Locked Cruise mode
+    game.setDriveSettings({ accelMode: 'constant_cruise', targetKmh: 90, accelRate: 1.0 });
     for (let i = 0; i < 50; i++) {
       game.traffic.activeVehicles = [];
       game.stepSimulation(0.05, { steer: 0, accelerate: false, brake: false, boost: false });
     }
-    expect(Math.round(game.speedMps * 3.6)).toBeCloseTo(halfThrottleSummary.throttleTargetKmh, -1);
+    expect(Math.round(game.speedMps * 3.6)).toBe(90);
 
-    // Holding Brake decelerates crisply all the way to 0 km/h (full stop) even in Steady Speed Lock
-    game.setDriveSettings({ accelMode: 'constant_cruise', speedScale: 0.9, accelRate: 1.0 });
-    for (let i = 0; i < 40; i++) {
-      game.traffic.activeVehicles = [];
-      game.stepSimulation(0.05, { steer: 0, accelerate: false, brake: false, boost: false });
-    }
-    expect(game.speedMps).toBeGreaterThan(15);
-
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 50; i++) {
       game.traffic.activeVehicles = [];
       game.stepSimulation(0.05, { steer: 0, accelerate: false, brake: true, boost: false });
     }
     expect(game.speedMps).toBe(0);
+
+    game.dispose();
+  });
+
+  it('supports Two-Page Website navigation (#garage <-> #race) and showroom camera angles', () => {
+    const game = new Game({ headless: true });
+    expect(game.activePage).toBe('garage');
+    expect(game.showroomAngle).toBe('orbit');
+
+    expect(game.setShowroomAngle('side')).toBe('side');
+    expect(game.showroomAngle).toBe('side');
+
+    expect(game.navigateToPage('race')).toBe('race');
+    expect(game.activePage).toBe('race');
+
+    expect(game.navigateToPage('garage')).toBe('garage');
+    expect(game.activePage).toBe('garage');
+    expect(game.state).toBe(GAME_STATE.TITLE);
+
+    const html = fs.readFileSync(path.resolve(process.cwd(), 'index.html'), 'utf8');
+    expect(html).toContain('data-page-section="garage"');
+    expect(html).toContain('data-page-section="race"');
+    expect(html).toContain('id="site-navbar"');
 
     game.dispose();
   });

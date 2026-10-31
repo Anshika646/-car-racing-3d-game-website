@@ -10,29 +10,26 @@ Sit in front of your webcam, hold both hands up as if gripping an imaginary stee
 
 ## Features
 
-- **Real-Time Two-Hand Webcam Steering (Primary Control):**
+- **Two-Page Website Architecture (`#garage` & `#race`):**
+  - **Page 01 — Garage & Speed Lab (`#garage`):** Dedicated 3D showroom and vehicle tuning studio featuring 4 sculpted 3D car models, 8 instant paint swatches, live 3D floating driver nameplate editor, 5 world arenas, interactive showroom camera angles (`Auto Orbit`, `Front 3/4`, `Side Profile`, `Rear Aero`), and a full **Speed & Acceleration Lab**.
+  - **Page 02 — Live Race Track (`#race`):** Dedicated full-viewport 3D highway cockpit with a Starting Grid Ready Deck before green flag and an uncluttered live Race HUD with instant Gearbox & Speed Slider controls.
+- **Real-Time Two-Hand & One-Hand Webcam Steering:**
   - Uses MediaPipe `HandLandmarker` locally in the browser to track 21 landmarks per hand.
-  - Calculates steering from the relative axle angle between your left and right palm hubs in mirrored screen space, so you steer naturally by rotating your imaginary wheel rather than sliding your body across the room.
-  - Interactive **Steering Calibration Studio** with automatic neutral-grip hold detection, manual one-click neutral capture, adjustable sensitivity, center dead zone, jitter low-pass smoothing, and maximum wheel-lock angle.
-  - Responsive **1-Hand & 2-Hand Gesture Throttle & Brake** (*Closed Grip = Accelerate · Open Palm = Brake* by default, plus *Auto-Accelerate + Open Palm Brake* and *Auto-Accelerate Only* options).
-  - **Safe Tracking-Loss Recovery:** If hands leave the camera frame, throttle disengages to coast safely and steering smoothly returns toward center neutral (`0°`).
-- **Full Keyboard, On-HUD Pedal & Mobile Touch Controls:**
-  - `A` / `Left Arrow` — Steer Left
-  - `D` / `Right Arrow` — Steer Right
-  - `W` / `Up Arrow` / `GAS` Pedal — Hold to Accelerate
-  - `S` / `Down Arrow` / `BRAKE` Pedal — Hold to Brake (down to `0 km/h` full stop)
-  - `Q` / `E` (`PageDown` / `PageUp`) or **Live HUD Throttle Slider** — Decrease / Increase Hands-Free Cruise Throttle (`0%` to `100%`)
-  - `X` — Cut Cruise Throttle Slider back to `0%`
+  - Calculates steering from the relative axle angle between your left and right palm hubs in mirrored screen space, with seamless 1-hand steering support.
+  - Interactive **Steering Calibration Studio** with automatic neutral-grip hold detection, manual one-click neutral capture, adjustable sensitivity, center dead zone, jitter smoothing, and maximum wheel-lock angle.
+  - **Safe Tracking-Loss Recovery:** If hands leave the camera frame, throttle disengages safely and steering returns smoothly toward center neutral (`0°`).
+- **Full Speed & Acceleration Control (`0–180 km/h` + 6-Position Gearbox):**
+  - `0` — **STOP Gear (`0 km/h`)** (smooth coast to a complete stop)
+  - `1`–`5` — **Instant Gearbox Presets** (`G1 = 45`, `G2 = 75`, `G3 = 105`, `G4 = 140`, `G5 = 180 km/h`)
+  - **Live `0–180 km/h` Speed Slider** + **`−10` / `+10 km/h` Buttons** + **Mouse Scroll Wheel (`±5 km/h`)** — Dial your exact driving speed or speed limit before or during any race
+  - `Q` / `E` or `-` / `+` — Step Target Speed down / up by `10 km/h` (`X` shifts to `0 km/h` STOP)
+  - `M` or On-HUD Mode Button — Cycle Throttle Style (`Speed Dial + Pedals`, `Manual Gas Pedal`, `Locked Cruise`)
+  - `A` / `D` or `Left` / `Right` — Steer Left / Right
+  - `W` / `Up Arrow` / `GAS` Pedal — Accelerate (passes faster in `Speed Dial`, or drives up to your KM/H cap in `Manual Gas`)
+  - `S` / `Down Arrow` / `BRAKE` Pedal / Open Palm — Brake crisply down to `0 km/h` full stop
   - `Space` / `Shift` / `NITRO` Pedal — Hyper Nitro Boost
-  - `-` / `+` (`[` / `]`) or On-HUD Stepper — Decrease / Increase Max Speed Limit (`45%` to `140%`)
-  - `M` or On-HUD Mode Button — Cycle Acceleration Control Mode (`Manual Gas`, `Auto Cruise`, `Steady Lock`)
   - `C` — Cycle Camera Perspective (`Chase`, `Action`, `Hood`)
-  - `Escape` — Pause / Resume & Speed Settings
-  - `R` — Instant Restart
-  - `H` — Hide / Show Bottom Steering Gauge
-- **Direct Player-Controlled Acceleration & Speed Settings:**
-  - Defaults to **Manual Gas Control** so the car never accelerates uncontrollably on its own — accelerate with `W`/`Up`, on-screen `GAS`, `0%–100%` Throttle Slider, or closed hand grip, coast smoothly when released, and brake to `0 km/h` at any time.
-  - Three selectable throttle modes (**Manual Gas Control**, **Auto Cruise + Pedals**, **Steady Speed Lock**) plus quick presets (**Chill**, **Smooth**, **Arcade**, **Pro**), **Max Speed Limit** (`45%–140%`), and **Acceleration Power** (`35%–150%`) persisted in `localStorage`.
+  - `Escape` — Pause / Resume & Speed Settings · `R` — Instant Restart · `H` — Hide / Show Bottom Steering Gauge
 - **3D Highway World & Procedural Audio:**
   - Multi-part sculpted GT player cars (`Apex GT-R`, `Vortex F1-X`, `Titan V8`, `Nomad Cyber-X`) with 8 paint finishes, editable 3D driver nameplate, rotating wheels, articulated front steering knuckles, dynamic brake lights, projected road headlights, and collision sparks.
   - Endless 4-lane highway across 5 colorful world arenas with object-pooled multi-part traffic vehicles that scale proportionally with your chosen speed setting and always leave at least one unobstructed lane.

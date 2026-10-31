@@ -1,8 +1,12 @@
 /**
  * Menu.js
  *
- * Manages Title Screen Garage (Driver Name, 4 Car Models, 8 Paint Colours, 5 Colorful World Arenas),
- * Camera Permission Fallback Modal, Steering Tuning Studio, Pause/Settings Dialog, and Help Modal.
+ * Manages the Two-Page Website UI:
+ * - Persistent Top Navigation Bar (Page 01: Garage & Speed Lab <-> Page 02: Race Track)
+ * - Page 01: Showroom Customizer (Driver Name, 4 Car Models, 8 Paint Swatches, 5 Worlds, Showroom Camera Angles)
+ *   + Speed & Gearbox Control Lab (Gears 0–5, 0–180 km/h Speed Slider, Throttle Style, Smoothness)
+ * - Page 02 Starting Grid Deck (#race-lobby-card) before race countdown begins
+ * - Camera Consent Modal, Hand Wheel Tuning Studio, Pause/Settings Modal, and Controls Guide
  */
 
 import gsap from 'gsap';
@@ -11,60 +15,60 @@ import { ATMOSPHERE_PRESETS } from '../game/Road.js';
 
 const PEDAL_MODE_HINTS = {
   grip_gas_palm_brake:
-    'Grip your imaginary wheel (1 or 2 hands) to accelerate. Spread palm(s) open to brake to a stop.',
+    'Grip your imaginary wheel to drive at your chosen speed; spread palm(s) open to brake to 0 km/h.',
   palm_gas_fist_brake:
-    'Hold open palm(s) to accelerate. Close hand(s) into fists to brake to a stop.',
+    'Hold open palm(s) to drive/accelerate; close hand(s) into fists to brake to 0 km/h.',
   auto_palm_brake:
-    'Hands in view accelerate/cruise smoothly. Spread palm(s) wide open to brake, or use W/S keys anytime.',
+    'Cruises at your chosen speed; spread palm(s) wide open to brake to a stop.',
   auto_only:
-    'Your hands steer left/right only. Control acceleration with W/S, Touch Pedals, or the HUD Throttle Slider.',
+    'Your hands steer left/right only. Control speed with Gears 0–5, Speed Slider, or W/S keys.',
 };
 
 export class Menu {
   constructor(callbacks = {}) {
     this.callbacks = callbacks;
     this.pauseContext = 'race'; // 'race' | 'title'
+    this.activePage = 'garage'; // 'garage' | 'race'
+    this._currentDriverName = 'T56';
+    this._currentModelName = 'Apex GT-R';
+    this._currentTargetKmh = 75;
+    this._currentGear = 2;
+    this._currentModeShort = 'Speed Dial';
 
     this.els = {
+      // Two-Page Sections & Global Navbar
+      siteNavbar: document.getElementById('site-navbar'),
+      btnNavPageSwitch: document.getElementById('btn-nav-page-switch'),
       titleScreen: document.getElementById('title-screen'),
+      pageRace: document.getElementById('page-race'),
+      raceLobbyCard: document.getElementById('race-lobby-card'),
+      btnGoRacePage: document.getElementById('btn-go-race-page'),
+
+      // Page 1 & Page 2 Score / Audio / Quality Readouts
       titleBestReadout: document.getElementById('title-best-readout'),
       titleBestMobile: document.getElementById('title-best-mobile'),
       navQualityBtn: document.getElementById('nav-quality-btn'),
       navMuteBtn: document.getElementById('nav-mute-btn'),
+
+      // Page 2 Starting Grid Launch Controls
+      lobbySetupSummary: document.getElementById('lobby-setup-summary'),
+      lobbySpeedReadout: document.getElementById('lobby-speed-readout'),
+      lobbyTargetSpeed: document.getElementById('lobby-target-speed'),
       btnPlayCamera: document.getElementById('btn-play-camera'),
       btnPlayCameraLabel: document.getElementById('btn-play-camera-label'),
       btnPlayKeyboard: document.getElementById('btn-play-keyboard'),
 
-      // Garage Controls (Driver Name + Custom Dropdowns for Model, Paint, World Arena)
+      // Page 1 Showroom Customizer
       inputDriverName: document.getElementById('input-driver-name'),
       btnRandomDriverName: document.getElementById('btn-random-driver-name'),
+      titleAtmosphereSelect: document.getElementById('title-atmosphere-select'),
       titleModelStats: document.getElementById('title-model-stats'),
       titlePaintLabel: document.getElementById('title-paint-label'),
 
-      btnDdModel: document.getElementById('btn-dd-model'),
-      menuDdModel: document.getElementById('menu-dd-model'),
-      ddModelName: document.getElementById('dd-model-name'),
-      ddModelClass: document.getElementById('dd-model-class'),
-
-      btnDdPaint: document.getElementById('btn-dd-paint'),
-      menuDdPaint: document.getElementById('menu-dd-paint'),
-      ddPaintSwatch: document.getElementById('dd-paint-swatch'),
-      ddPaintName: document.getElementById('dd-paint-name'),
-
-      btnDdAtmo: document.getElementById('btn-dd-atmo'),
-      menuDdAtmo: document.getElementById('menu-dd-atmo'),
-      ddAtmoSwatch: document.getElementById('dd-atmo-swatch'),
-      ddAtmoLabel: document.getElementById('dd-atmo-label'),
-
-      // Field 5: Acceleration & Speed Control Dropdown + Sliders
-      btnDdAccel: document.getElementById('btn-dd-accel'),
-      menuDdAccel: document.getElementById('menu-dd-accel'),
-      ddAccelLabel: document.getElementById('dd-accel-label'),
+      // Page 1 Speed & Acceleration Lab
       titleAccelSummary: document.getElementById('title-accel-summary'),
-      titleThrottleLevel: document.getElementById('title-throttle-level'),
-      titleThrottleVal: document.getElementById('title-throttle-val'),
-      titleSpeedScale: document.getElementById('title-speed-scale'),
-      titleSpeedVal: document.getElementById('title-speed-val'),
+      titleTargetSpeed: document.getElementById('title-target-speed'),
+      titleTargetSpeedVal: document.getElementById('title-target-speed-val'),
       titleAccelRate: document.getElementById('title-accel-rate'),
       titleAccelVal: document.getElementById('title-accel-val'),
       titleAccelHint: document.getElementById('title-accel-hint'),
@@ -75,9 +79,7 @@ export class Menu {
       pausePaintSelect: document.getElementById('pause-paint-select'),
       pauseAtmosphereSelect: document.getElementById('pause-atmosphere-select'),
       pauseAccelMode: document.getElementById('pause-accel-mode'),
-      pauseThrottleLevel: document.getElementById('pause-throttle-level'),
-      pauseThrottleVal: document.getElementById('pause-throttle-val'),
-      pauseSpeedScale: document.getElementById('pause-speed-scale'),
+      pauseTargetSpeed: document.getElementById('pause-target-speed'),
       pauseSpeedVal: document.getElementById('pause-speed-val'),
       pauseAccelRate: document.getElementById('pause-accel-rate'),
       pauseAccelVal: document.getElementById('pause-accel-val'),
@@ -116,7 +118,7 @@ export class Menu {
       valMaxangle: document.getElementById('val-maxangle'),
       selectPedalMode: document.getElementById('select-pedal-mode'),
       pedalModeHint: document.getElementById('pedal-mode-hint'),
-      calSpeedScale: document.getElementById('cal-speed-scale'),
+      calTargetSpeed: document.getElementById('cal-target-speed'),
       calSpeedVal: document.getElementById('cal-speed-val'),
       calAccelRate: document.getElementById('cal-accel-rate'),
       calAccelVal: document.getElementById('cal-accel-val'),
@@ -147,6 +149,34 @@ export class Menu {
   }
 
   _bindEvents() {
+    // Two-Page Navigation Links & Buttons
+    document.querySelectorAll('[data-nav-page]').forEach((el) => {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetPage = el.getAttribute('data-nav-page');
+        if (targetPage) {
+          this.callbacks.onNavigatePage?.(targetPage);
+        }
+      });
+    });
+
+    this.els.btnNavPageSwitch?.addEventListener('click', () => {
+      const nextPage = this.activePage === 'garage' ? 'race' : 'garage';
+      this.callbacks.onNavigatePage?.(nextPage);
+    });
+
+    this.els.btnGoRacePage?.addEventListener('click', () => {
+      this.callbacks.onNavigatePage?.('race');
+    });
+
+    // Quick-launch shortcuts from Page 1 + Main Start buttons on Page 2
+    document.querySelectorAll('[data-action="quick-camera-race"]').forEach((btn) => {
+      btn.addEventListener('click', () => this.callbacks.onSelectCameraPlay?.());
+    });
+    document.querySelectorAll('[data-action="quick-keyboard-race"]').forEach((btn) => {
+      btn.addEventListener('click', () => this.callbacks.onSelectKeyboardPlay?.());
+    });
+
     this.els.btnPlayCamera?.addEventListener('click', () => {
       this.callbacks.onSelectCameraPlay?.();
     });
@@ -154,7 +184,18 @@ export class Menu {
       this.callbacks.onSelectKeyboardPlay?.();
     });
 
-    // Global data-action buttons on Title Screen
+    // Showroom Camera Angle Presets on Page 1
+    document.querySelectorAll('[data-showroom-cam]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const angleId = btn.getAttribute('data-showroom-cam');
+        if (angleId) {
+          this.setShowroomAngleState(angleId);
+          this.callbacks.onSelectShowroomAngle?.(angleId);
+        }
+      });
+    });
+
+    // Global data-action buttons
     document.querySelectorAll('[data-action="open-help"]').forEach((btn) => {
       btn.addEventListener('click', () => this.openHelp());
     });
@@ -179,56 +220,12 @@ export class Menu {
       this.callbacks.onRandomizeDriverName?.();
     });
 
-    // Custom Dropdown toggles (Model, Paint, Atmosphere, Acceleration Control)
-    const dropdownPairs = [
-      { key: 'model', btn: this.els.btnDdModel, menu: this.els.menuDdModel },
-      { key: 'paint', btn: this.els.btnDdPaint, menu: this.els.menuDdPaint },
-      { key: 'atmo', btn: this.els.btnDdAtmo, menu: this.els.menuDdAtmo },
-      { key: 'accel', btn: this.els.btnDdAccel, menu: this.els.menuDdAccel },
-    ];
-
-    this.closeAllDropdowns = () => {
-      for (const pair of dropdownPairs) {
-        if (!pair.menu || !pair.btn) continue;
-        pair.menu.classList.add('hidden');
-        pair.btn.setAttribute('aria-expanded', 'false');
-        const chev = pair.btn.querySelector('[data-dd-chevron]');
-        if (chev) chev.style.transform = 'rotate(0deg)';
-      }
-    };
-
-    for (const pair of dropdownPairs) {
-      pair.btn?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const isOpen = pair.menu && !pair.menu.classList.contains('hidden');
-        this.closeAllDropdowns();
-        if (!isOpen && pair.menu) {
-          pair.menu.classList.remove('hidden');
-          pair.btn.setAttribute('aria-expanded', 'true');
-          const chev = pair.btn.querySelector('[data-dd-chevron]');
-          if (chev) chev.style.transform = 'rotate(180deg)';
-        }
-      });
-    }
-
-    document.addEventListener('click', (e) => {
-      if (!e.target?.closest?.('[data-dropdown]')) {
-        this.closeAllDropdowns();
-      }
-    });
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
-        this.closeAllDropdowns();
-      }
-    });
-
     // Car Model Selection
     document.querySelectorAll('[data-car-model]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const modelId = btn.getAttribute('data-car-model');
         if (modelId) {
           this.callbacks.onSelectCarModel?.(modelId);
-          this.closeAllDropdowns();
         }
       });
     });
@@ -236,13 +233,12 @@ export class Menu {
       this.callbacks.onSelectCarModel?.(e.target.value);
     });
 
-    // Car Paint Colour & Finish Selection
+    // Car Paint Colour Swatches
     document.querySelectorAll('[data-car-paint]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const presetId = btn.getAttribute('data-car-paint');
         if (presetId) {
           this.callbacks.onSelectCarPaint?.(presetId);
-          this.closeAllDropdowns();
         }
       });
     });
@@ -251,29 +247,47 @@ export class Menu {
     });
 
     // World Arena Selection
-    document.querySelectorAll('[data-atmosphere]').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const themeId = btn.getAttribute('data-atmosphere');
-        if (themeId) {
-          this.callbacks.onSelectAtmosphere?.(themeId);
-          this.closeAllDropdowns();
-        }
-      });
+    this.els.titleAtmosphereSelect?.addEventListener('change', (e) => {
+      this.callbacks.onSelectAtmosphere?.(e.target.value);
     });
     this.els.pauseAtmosphereSelect?.addEventListener('change', (e) => {
       this.callbacks.onSelectAtmosphere?.(e.target.value);
     });
 
-    // Acceleration Control Mode, Speed Presets & Speed/Accel Sliders
-    document.querySelectorAll('[data-speed-preset]').forEach((btn) => {
+    // 6-Position Gearbox Buttons (Page 1, Page 2 Starting Grid, and Page 2 HUD)
+    document.querySelectorAll('[data-gear]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        const presetId = btn.getAttribute('data-speed-preset');
-        if (presetId) {
-          this.callbacks.onSelectSpeedPreset?.(presetId);
+        const gearVal = Number(btn.getAttribute('data-gear'));
+        if (Number.isFinite(gearVal)) {
+          this.callbacks.onSelectGear?.(gearVal);
         }
       });
     });
 
+    // Speed +/-10 km/h Stepper Buttons on Page 1
+    document.querySelectorAll('[data-speed-step]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const delta = Number(btn.getAttribute('data-speed-step'));
+        if (Number.isFinite(delta)) {
+          this.callbacks.onAdjustTargetSpeed?.(delta);
+        }
+      });
+    });
+
+    // Direct Target Speed Sliders (0 - 180 km/h)
+    for (const speedSlider of [
+      this.els.titleTargetSpeed,
+      this.els.lobbyTargetSpeed,
+      this.els.calTargetSpeed,
+      this.els.pauseTargetSpeed,
+    ]) {
+      speedSlider?.addEventListener('input', (e) => {
+        const kmh = parseFloat(e.target.value);
+        this.callbacks.onChangeTargetSpeed?.(kmh);
+      });
+    }
+
+    // Throttle Mode Buttons & Select
     document.querySelectorAll('[data-accel-mode]').forEach((btn) => {
       btn.addEventListener('click', () => {
         const modeId = btn.getAttribute('data-accel-mode');
@@ -287,27 +301,7 @@ export class Menu {
       this.callbacks.onUpdateDriveSettings?.({ accelMode: e.target.value });
     });
 
-    for (const throttleInput of [this.els.titleThrottleLevel, this.els.pauseThrottleLevel]) {
-      throttleInput?.addEventListener('input', (e) => {
-        const val = parseFloat(e.target.value);
-        this.callbacks.onUpdateDriveSettings?.({
-          throttleLevel: val,
-          accelMode: 'manual_throttle',
-        });
-      });
-    }
-
-    for (const speedInput of [
-      this.els.titleSpeedScale,
-      this.els.pauseSpeedScale,
-      this.els.calSpeedScale,
-    ]) {
-      speedInput?.addEventListener('input', (e) => {
-        const val = parseFloat(e.target.value);
-        this.callbacks.onUpdateDriveSettings?.({ speedScale: val });
-      });
-    }
-
+    // Acceleration Smoothness Sliders
     for (const accelInput of [
       this.els.titleAccelRate,
       this.els.pauseAccelRate,
@@ -406,6 +400,56 @@ export class Menu {
     this.els.btnDoneHelp?.addEventListener('click', () => this.closeHelp());
   }
 
+  /**
+   * Switches between Page 1 ('garage') and Page 2 ('race').
+   * `showLobby`: when true on Page 2, displays the Starting Grid launch console (#race-lobby-card).
+   */
+  setActivePage(page = 'garage', { showLobby = true } = {}) {
+    this.activePage = page === 'race' ? 'race' : 'garage';
+    const isGarage = this.activePage === 'garage';
+
+    if (this.els.titleScreen) {
+      this.els.titleScreen.classList.toggle('hidden', !isGarage);
+    }
+    if (this.els.pageRace) {
+      this.els.pageRace.classList.toggle('hidden', isGarage);
+    }
+    if (this.els.raceLobbyCard) {
+      this.els.raceLobbyCard.classList.toggle('hidden', isGarage || !showLobby);
+    }
+
+    document.querySelectorAll('.nav-page-link[data-nav-page]').forEach((link) => {
+      const linkPage = link.getAttribute('data-nav-page');
+      if (linkPage === this.activePage) {
+        link.setAttribute('aria-current', 'page');
+      } else {
+        link.removeAttribute('aria-current');
+      }
+    });
+
+    if (this.els.btnNavPageSwitch) {
+      this.els.btnNavPageSwitch.textContent = isGarage ? 'Race Track →' : '← Garage';
+    }
+
+    this._syncLobbySummaryText();
+  }
+
+  setLobbyVisible(visible) {
+    if (this.els.raceLobbyCard) {
+      this.els.raceLobbyCard.classList.toggle('hidden', !visible);
+    }
+  }
+
+  setShowroomAngleState(angleId = 'orbit') {
+    document.querySelectorAll('[data-showroom-cam]').forEach((btn) => {
+      const active = btn.getAttribute('data-showroom-cam') === angleId;
+      btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+      btn.classList.toggle('bg-[#21194a]', active);
+      btn.classList.toggle('text-[#22e4ff]', active);
+      btn.classList.toggle('text-slate-300', !active);
+    });
+  }
+
   setCameraPlayLoading(isLoading) {
     if (this.els.btnPlayCamera) {
       this.els.btnPlayCamera.disabled = Boolean(isLoading);
@@ -413,26 +457,26 @@ export class Menu {
     if (this.els.btnPlayCameraLabel) {
       this.els.btnPlayCameraLabel.textContent = isLoading
         ? 'STARTING CAMERA...'
-        : 'HAND STEER DRIVE';
+        : 'START · HAND STEERING';
     }
   }
 
   showTitleScreen(bestScore = 0) {
     this.setCameraPlayLoading(false);
     this.updateBestScore(bestScore);
-    if (!this.els.titleScreen) return;
-    this.els.titleScreen.classList.remove('hidden');
-    gsap.fromTo(
-      this.els.titleScreen,
-      { opacity: 0 },
-      { opacity: 1, duration: 0.3, ease: 'power2.out' },
-    );
+    this.setActivePage('garage', { showLobby: false });
+    if (this.els.titleScreen) {
+      gsap.fromTo(
+        this.els.titleScreen,
+        { opacity: 0 },
+        { opacity: 1, duration: 0.22, ease: 'power2.out' },
+      );
+    }
   }
 
   hideTitleScreen() {
     this.setCameraPlayLoading(false);
-    if (!this.els.titleScreen) return;
-    this.els.titleScreen.classList.add('hidden');
+    this.setActivePage('race', { showLobby: false });
   }
 
   updateBestScore(bestScore = 0) {
@@ -461,16 +505,35 @@ export class Menu {
     }
   }
 
+  _syncLobbySummaryText() {
+    if (this.els.lobbySetupSummary) {
+      const speedText =
+        this._currentTargetKmh <= 0 ? 'STOP (0 km/h)' : `${this._currentTargetKmh} km/h`;
+      this.els.lobbySetupSummary.textContent = `${this._currentDriverName} · ${this._currentModelName} · Speed ${speedText}`;
+    }
+    if (this.els.lobbySpeedReadout) {
+      const gearText =
+        this._currentGear === 0
+          ? 'STOP'
+          : this._currentGear > 0
+            ? `Gear ${this._currentGear}`
+            : 'Custom';
+      this.els.lobbySpeedReadout.textContent = `${this._currentTargetKmh} km/h · ${gearText} (${this._currentModeShort})`;
+    }
+  }
+
   setDriverNameState(name, skipInputSource = null) {
+    this._currentDriverName = name;
     if (this.els.inputDriverName && skipInputSource !== 'title') {
       this.els.inputDriverName.value = name;
     }
     if (this.els.pauseDriverName && skipInputSource !== 'pause') {
       this.els.pauseDriverName.value = name;
     }
+    this._syncLobbySummaryText();
   }
 
-  _applyDropdownSelectionClasses(btn, isSelected) {
+  _applySelectionCardClasses(btn, isSelected) {
     btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
     btn.classList.toggle('border-[#22e4ff]', isSelected);
     btn.classList.toggle('bg-[#21194a]', isSelected);
@@ -483,15 +546,10 @@ export class Menu {
   setCarModelState(modelId) {
     const activeModel =
       CAR_MODEL_PRESETS.find((m) => m.id === modelId) || CAR_MODEL_PRESETS[0];
+    this._currentModelName = activeModel.name;
 
     if (this.els.titleModelStats) {
       this.els.titleModelStats.textContent = `SPD ${activeModel.speedRating} · HND ${activeModel.handlingRating} · N2O ${activeModel.nitroRating}`;
-    }
-    if (this.els.ddModelName) {
-      this.els.ddModelName.textContent = activeModel.name;
-    }
-    if (this.els.ddModelClass) {
-      this.els.ddModelClass.textContent = `· ${activeModel.category || 'Hyper Coupe'}`;
     }
     if (this.els.pauseModelSelect) {
       this.els.pauseModelSelect.value = activeModel.id;
@@ -499,8 +557,9 @@ export class Menu {
 
     document.querySelectorAll('[data-car-model]').forEach((btn) => {
       const isSelected = btn.getAttribute('data-car-model') === activeModel.id;
-      this._applyDropdownSelectionClasses(btn, isSelected);
+      this._applySelectionCardClasses(btn, isSelected);
     });
+    this._syncLobbySummaryText();
   }
 
   setCarPaintState(presetId) {
@@ -508,13 +567,7 @@ export class Menu {
       CAR_PAINT_PRESETS.find((p) => p.id === presetId) || CAR_PAINT_PRESETS[0];
 
     if (this.els.titlePaintLabel) {
-      this.els.titlePaintLabel.textContent = activePreset.finishType;
-    }
-    if (this.els.ddPaintSwatch) {
-      this.els.ddPaintSwatch.style.backgroundColor = activePreset.swatch;
-    }
-    if (this.els.ddPaintName) {
-      this.els.ddPaintName.textContent = activePreset.name;
+      this.els.titlePaintLabel.textContent = `${activePreset.name} · ${activePreset.finishType}`;
     }
     if (this.els.pausePaintSelect) {
       this.els.pausePaintSelect.value = activePreset.id;
@@ -522,7 +575,12 @@ export class Menu {
 
     document.querySelectorAll('[data-car-paint]').forEach((btn) => {
       const isSelected = btn.getAttribute('data-car-paint') === activePreset.id;
-      this._applyDropdownSelectionClasses(btn, isSelected);
+      btn.setAttribute('aria-pressed', isSelected ? 'true' : 'false');
+      btn.classList.toggle('border-2', isSelected);
+      btn.classList.toggle('border-white', isSelected);
+      btn.classList.toggle('scale-105', isSelected);
+      btn.classList.toggle('border', !isSelected);
+      btn.classList.toggle('border-white/25', !isSelected);
     });
   }
 
@@ -530,28 +588,12 @@ export class Menu {
     const activeTheme =
       ATMOSPHERE_PRESETS.find((t) => t.id === themeId) || ATMOSPHERE_PRESETS[0];
 
-    const swatchMap = {
-      midnight: '#ff2eb6',
-      city: '#38bdf8',
-      track: '#a3ff2e',
-      sunset: '#ff8c1a',
-      cyber_dusk: '#c084fc',
-    };
-    if (this.els.ddAtmoSwatch) {
-      this.els.ddAtmoSwatch.style.backgroundColor =
-        activeTheme.swatch || swatchMap[activeTheme.id] || '#ff2eb6';
-    }
-    if (this.els.ddAtmoLabel) {
-      this.els.ddAtmoLabel.textContent = activeTheme.name;
+    if (this.els.titleAtmosphereSelect) {
+      this.els.titleAtmosphereSelect.value = activeTheme.id;
     }
     if (this.els.pauseAtmosphereSelect) {
       this.els.pauseAtmosphereSelect.value = activeTheme.id;
     }
-
-    document.querySelectorAll('[data-atmosphere]').forEach((btn) => {
-      const isSelected = btn.getAttribute('data-atmosphere') === activeTheme.id;
-      this._applyDropdownSelectionClasses(btn, isSelected);
-    });
   }
 
   syncSettingsControls(settings = {}) {
@@ -597,51 +639,55 @@ export class Menu {
 
   syncDriveSettings(summary = {}) {
     const {
-      accelMode = 'manual_throttle',
-      modeShortName = 'Manual Gas',
+      accelMode = 'smooth_auto',
+      modeShortName = 'Speed Dial',
       modeDescription = '',
-      speedScale = 0.9,
+      targetKmh = 75,
+      activeGear = 2,
       accelRate = 0.85,
-      throttleLevel = 0,
-      throttleTargetKmh = 0,
-      cruiseKmh = 73,
-      maxThrottleKmh = 113,
-      activePresetId = 'smooth',
     } = summary;
 
-    const speedPct = Math.round(speedScale * 100);
+    this._currentTargetKmh = targetKmh;
+    this._currentGear = activeGear;
+    this._currentModeShort = modeShortName;
+
     const accelPct = Math.round(accelRate * 100);
-    const throttlePct = Math.round(throttleLevel * 100);
     const accelFeel =
       accelRate <= 0.65 ? 'Gentle' : accelRate <= 0.98 ? 'Smooth' : 'Sport';
-    const targetKmh =
-      accelMode === 'manual_throttle' ? `Max ${maxThrottleKmh} km/h` : `${cruiseKmh} km/h`;
+    const gearLabel =
+      activeGear === 0 ? 'STOP' : activeGear > 0 ? `Gear ${activeGear}` : 'Custom';
+    const prefix = accelMode === 'manual_throttle' ? 'Max Cap' : 'Target';
 
-    if (this.els.ddAccelLabel) {
-      this.els.ddAccelLabel.textContent = `${modeShortName} · ${speedPct}% Pace`;
-    }
     if (this.els.titleAccelSummary) {
-      this.els.titleAccelSummary.textContent = `${targetKmh} · ${accelFeel}`;
+      this.els.titleAccelSummary.textContent =
+        targetKmh <= 0 ? 'STOP · 0 km/h' : `${prefix} ${targetKmh} km/h · ${gearLabel}`;
     }
     if (this.els.titleAccelHint && modeDescription) {
       this.els.titleAccelHint.textContent = modeDescription;
     }
 
-    const throttleReadout =
-      throttlePct === 0 ? '0% (Pedal Control)' : `${throttlePct}% (${throttleTargetKmh} km/h)`;
-    for (const el of [this.els.titleThrottleLevel, this.els.pauseThrottleLevel]) {
-      if (el) el.value = String(throttleLevel);
-    }
-    for (const el of [this.els.titleThrottleVal, this.els.pauseThrottleVal]) {
-      if (el) el.textContent = throttleReadout;
+    const kmhReadout =
+      targetKmh <= 0
+        ? '0 km/h (Stopped)'
+        : accelMode === 'manual_throttle'
+          ? `Cap ${targetKmh} km/h`
+          : `${targetKmh} km/h`;
+
+    for (const el of [
+      this.els.titleTargetSpeed,
+      this.els.lobbyTargetSpeed,
+      this.els.calTargetSpeed,
+      this.els.pauseTargetSpeed,
+    ]) {
+      if (el) el.value = String(targetKmh);
     }
 
-    const speedReadout = `${speedPct}% (${targetKmh})`;
-    for (const el of [this.els.titleSpeedScale, this.els.pauseSpeedScale, this.els.calSpeedScale]) {
-      if (el) el.value = String(speedScale);
-    }
-    for (const el of [this.els.titleSpeedVal, this.els.pauseSpeedVal, this.els.calSpeedVal]) {
-      if (el) el.textContent = speedReadout;
+    for (const el of [
+      this.els.titleTargetSpeedVal,
+      this.els.calSpeedVal,
+      this.els.pauseSpeedVal,
+    ]) {
+      if (el) el.textContent = kmhReadout;
     }
 
     const accelReadout = `${accelPct}% · ${accelFeel}`;
@@ -658,13 +704,15 @@ export class Menu {
 
     document.querySelectorAll('[data-accel-mode]').forEach((btn) => {
       const isSelected = btn.getAttribute('data-accel-mode') === accelMode;
-      this._applyDropdownSelectionClasses(btn, isSelected);
+      this._applySelectionCardClasses(btn, isSelected);
     });
 
-    document.querySelectorAll('[data-speed-preset]').forEach((btn) => {
-      const isSelected = btn.getAttribute('data-speed-preset') === activePresetId;
-      this._applyDropdownSelectionClasses(btn, isSelected);
+    document.querySelectorAll('[data-gear]').forEach((btn) => {
+      const g = Number(btn.getAttribute('data-gear'));
+      btn.setAttribute('aria-pressed', g === activeGear ? 'true' : 'false');
     });
+
+    this._syncLobbySummaryText();
   }
 
   openConsentModal() {
@@ -815,7 +863,7 @@ export class Menu {
     const isCamera = controlMode === 'camera';
 
     if (this.els.pauseTitle) {
-      this.els.pauseTitle.textContent = isTitleSettings ? 'Garage & World Settings' : 'Race Paused';
+      this.els.pauseTitle.textContent = isTitleSettings ? 'Garage & Speed Settings' : 'Race Paused';
     }
     if (this.els.pauseModeLabel) {
       this.els.pauseModeLabel.textContent = isTitleSettings
