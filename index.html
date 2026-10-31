@@ -6,19 +6,19 @@
     <title>MOTION DRIVE 3D</title>
     <meta
       name="description"
-      content="Your hands. Your steering wheel. Your race. A vibrant 3D arcade highway racing game steered with webcam hand gestures, keyboard, or mobile touch controls."
+      content="Your hands. Your steering wheel. Your race. A two-page 3D arcade highway racing experience with live gearbox & speed control, webcam hand steering, keyboard, and mobile touch controls."
     />
     <meta property="og:title" content="MOTION DRIVE 3D" />
     <meta
       property="og:description"
-      content="Your hands. Your steering wheel. Your race. A vibrant 3D arcade highway racing game steered with webcam hand gestures, keyboard, or mobile touch controls."
+      content="Your hands. Your steering wheel. Your race. A two-page 3D arcade highway racing experience with live gearbox & speed control, webcam hand steering, keyboard, and mobile touch controls."
     />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Bungee&family=Chakra+Petch:ital,wght@0,500;0,600;0,700;1,700&family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bungee&family=Chakra+Petch:ital,wght@0,500;0,600;0,700;1,700&family=JetBrains+Mono:wght@500;700&display=swap"
       rel="stylesheet"
     />
 
@@ -32,8 +32,8 @@
         }
       }
     </script>
-    <script type="module" crossorigin src="./assets/index-1tw7uBGp.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-DFlTABOX.css">
+    <script type="module" crossorigin src="./assets/index-B8457kFK.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-DAwetGhy.css">
   </head>
   <body class="bg-[#0a0818] text-[#f8fafc] antialiased select-none overflow-hidden">
     <!-- Isolated WebGL Mount Container -->
@@ -63,608 +63,256 @@
     </div>
 
     <!-- UI Overlay Root -->
-    <div id="ui-layer" class="fixed inset-0 z-10 pointer-events-none flex flex-col justify-between">
-      <!-- TITLE SCREEN (Chroma Confetti Arcade Aesthetic · Laptop + Phone Responsive · Dropdown Garage) -->
+    <div id="ui-layer" class="fixed inset-0 z-10 pointer-events-none flex flex-col">
+      <!-- PERSISTENT TWO-PAGE TOP NAVIGATION BAR (3-Zone Top Bar Contract) -->
+      <header
+        id="site-navbar"
+        class="pointer-events-auto relative z-30 flex items-center justify-between gap-4 sm:gap-8 px-4 sm:px-6 lg:px-10 h-12 border-b border-white/15 bg-[#0c0a1d]/92 shrink-0"
+      >
+        <!-- Zone 1: Brand Wordmark -->
+        <a
+          href="#garage"
+          id="brand-wordmark"
+          data-nav-page="garage"
+          class="font-display text-xs sm:text-base lg:text-lg tracking-wider text-rainbow whitespace-nowrap shrink-0"
+        >
+          MOTION DRIVE 3D
+        </a>
+
+        <!-- Zone 2: Two-Page Navigation & Utility Links -->
+        <nav
+          aria-label="Primary Page Navigation"
+          class="flex items-center gap-3 sm:gap-6 text-xs sm:text-sm font-semibold"
+        >
+          <a
+            href="#garage"
+            data-nav-page="garage"
+            aria-current="page"
+            class="nav-page-link whitespace-nowrap shrink-0 cursor-pointer"
+          >
+            01. Garage
+          </a>
+          <a
+            href="#race"
+            data-nav-page="race"
+            class="nav-page-link whitespace-nowrap shrink-0 cursor-pointer"
+          >
+            02. Race Track
+          </a>
+          <button
+            type="button"
+            data-action="open-settings"
+            class="hidden md:inline-block nav-page-link whitespace-nowrap shrink-0 cursor-pointer"
+          >
+            Settings
+          </button>
+          <button
+            type="button"
+            data-action="open-help"
+            class="hidden sm:inline-block nav-page-link whitespace-nowrap shrink-0 cursor-pointer"
+          >
+            Controls
+          </button>
+        </nav>
+
+        <!-- Zone 3: Primary Page Action -->
+        <div class="flex items-center gap-2 shrink-0">
+          <button
+            type="button"
+            id="btn-nav-page-switch"
+            class="px-3 sm:px-4 py-1.5 text-[11px] sm:text-xs font-display tracking-wide btn-drive rounded-lg cursor-pointer whitespace-nowrap shrink-0"
+          >
+            Race Track →
+          </button>
+        </div>
+      </header>
+
+      <!-- ===================================================================== -->
+      <!-- PAGE 1: GARAGE & SPEED LAB (#garage)                                  -->
+      <!-- ===================================================================== -->
       <section
         id="title-screen"
-        class="pointer-events-auto fixed inset-0 z-30 flex flex-col justify-between bg-arcade-scrim"
+        data-page-section="garage"
+        class="pointer-events-auto flex-1 min-h-0 flex flex-col justify-between bg-arcade-scrim overflow-hidden"
       >
-        <!-- Top Bar (Compact on Mobile & Laptop) -->
-        <header class="flex items-center justify-between gap-3 px-4 sm:px-6 lg:px-10 py-2.5 sm:py-3 border-b border-white/15 bg-[#0c0a1d]/82 shrink-0">
-          <div class="flex items-center gap-2 min-w-0">
-            <a
-              href="#top"
-              id="brand-wordmark"
-              class="font-display text-sm sm:text-base lg:text-lg tracking-wider text-rainbow whitespace-nowrap shrink-0"
-            >
-              MOTION DRIVE 3D
-            </a>
-            <span aria-hidden="true" class="text-pink-400/70 font-bold">✦</span>
-            <span class="text-[11px] sm:text-xs font-bold text-[#ffe224] tracking-wide truncate">
-              T56
-            </span>
+        <!-- Main Split Body: Left Studio & Speed Lab / Right 3D Showroom -->
+        <div class="flex-1 min-h-0 flex flex-col md:flex-row md:items-stretch justify-between gap-4 px-3.5 sm:px-6 lg:px-10 py-3 sm:py-4 overflow-y-auto md:overflow-hidden clean-scroll">
+          <!-- Mobile Top 3D Car Window -->
+          <div class="md:hidden min-h-[135px] sm:min-h-[175px] shrink-0 pointer-events-none flex items-end justify-end pb-1">
+            <div class="pointer-events-auto flex items-center gap-1 bg-[#120d28]/90 border border-white/15 rounded-lg p-1 text-[10px] font-semibold">
+              <button type="button" data-showroom-cam="orbit" aria-pressed="true" class="px-2 py-1 rounded bg-[#21194a] text-[#22e4ff] cursor-pointer">Orbit</button>
+              <button type="button" data-showroom-cam="front" aria-pressed="false" class="px-2 py-1 rounded text-slate-300 cursor-pointer">Front</button>
+              <button type="button" data-showroom-cam="side" aria-pressed="false" class="px-2 py-1 rounded text-slate-300 cursor-pointer">Side</button>
+            </div>
           </div>
 
-          <nav class="hidden md:flex items-center gap-5 lg:gap-6 text-xs lg:text-sm font-semibold text-slate-200">
-            <button
-              type="button"
-              data-action="open-help"
-              class="hover:text-[#22e4ff] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-            >
-              Controls
-            </button>
-            <button
-              type="button"
-              data-action="open-settings"
-              class="hover:text-[#ff2eb6] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-            >
-              Steering &amp; Settings
-            </button>
-            <button
-              type="button"
-              data-action="toggle-quality-quick"
-              id="nav-quality-btn"
-              class="hover:text-[#a3ff2e] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-            >
-              Graphics: High
-            </button>
-            <button
-              type="button"
-              data-action="toggle-mute"
-              id="nav-mute-btn"
-              class="hover:text-[#ffe224] transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-            >
-              Audio: On
-            </button>
-          </nav>
-
-          <div class="flex items-center gap-2 shrink-0">
-            <button
-              type="button"
-              data-action="open-settings"
-              class="md:hidden px-2.5 py-1.5 text-[11px] font-bold text-white bg-white/12 border border-white/15 rounded-lg hover:bg-white/20 transition-colors whitespace-nowrap cursor-pointer"
-            >
-              Settings
-            </button>
-            <button
-              type="button"
-              data-action="open-help"
-              class="md:hidden px-2.5 py-1.5 text-[11px] font-bold text-[#22e4ff] bg-white/12 border border-[#22e4ff]/35 rounded-lg hover:bg-white/20 transition-colors whitespace-nowrap cursor-pointer"
-            >
-              Help
-            </button>
-            <span
-              id="title-best-readout"
-              class="hidden md:inline-block font-mono text-xs font-bold text-[#a3ff2e] tabular-nums whitespace-nowrap shrink-0"
-            >
-              Personal Best: 0 pts
-            </span>
-          </div>
-        </header>
-
-        <!-- Main Responsive Body: Open 3D Car Window on Mobile Top / Right Showroom on Laptop -->
-        <div class="flex-1 min-h-0 flex flex-col md:flex-row md:items-center justify-end md:justify-start px-3.5 sm:px-6 lg:px-12 py-2.5 sm:py-4 overflow-y-auto clean-scroll">
-          <!-- Mobile-only transparent 3D car showcase window so phone users see their colorful 3D car & nameplate clearly -->
-          <div class="md:hidden flex-1 min-h-[120px] sm:min-h-[165px] pointer-events-none"></div>
-
-          <!-- Chroma Confetti Arcade Hero & Dropdown Garage Panel -->
-          <div class="w-full max-w-[515px] arcade-panel border-rainbow rounded-2xl p-4 sm:p-5 shrink-0">
-            <div class="mb-3.5">
-              <div class="flex items-center justify-between gap-2 mb-1">
-                <p class="text-[11px] font-bold uppercase tracking-wider text-[#22e4ff]">
-                  Chroma Arcade · Hand Wheel · Touch &amp; Keys
-                </p>
-                <span class="text-[10px] font-bold text-[#ff2eb6] uppercase tracking-wider shrink-0">
-                  5 Worlds
-                </span>
-              </div>
-              <h1
-                class="font-display text-2xl sm:text-4xl tracking-tight text-white leading-[1.05]"
-              >
-                MOTION <span class="text-rainbow">DRIVE 3D</span>
+          <!-- Left Column: Spacious Garage & Speed Control Deck -->
+          <div class="w-full md:max-w-[560px] lg:max-w-[600px] md:h-full md:overflow-y-auto clean-scroll arcade-panel border-rainbow rounded-2xl p-4 sm:p-6 shrink-0 space-y-5">
+            <!-- Hero Header -->
+            <div>
+              <p class="text-xs font-semibold text-[#22e4ff] mb-1">
+                Page 01 of 02 · Garage &amp; Speed Lab · T56 Edition
+              </p>
+              <h1 class="font-display text-2xl sm:text-3xl lg:text-4xl tracking-tight text-white leading-[1.08]">
+                BUILD YOUR RIDE &amp; <span class="text-rainbow">SET YOUR SPEED</span>
               </h1>
-              <p class="text-xs sm:text-sm text-slate-200 mt-1 font-medium">
-                Steer in mid-air like a real wheel — colorful 3D worlds, zero lag!
+              <p class="text-xs sm:text-sm text-slate-300 mt-1.5 leading-relaxed">
+                Customize your 3D car and dial in your exact speed &amp; gear below, then head to Page 2 to hit the highway.
               </p>
             </div>
 
-            <!-- 4 Cleanly Separated Garage Controls (2x2 Grid on Laptop/Tablet, Clean Stack on Phone) -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4 pt-3 border-t border-white/15">
-              <!-- Field 1: Driver Name (Above Car) -->
+            <!-- SECTION 1: SPEED & GEARBOX CONTROL LAB (Front & Center!) -->
+            <div class="pt-4 border-t border-white/15 space-y-3.5">
+              <div class="flex flex-wrap items-baseline justify-between gap-2">
+                <h2 class="text-sm sm:text-base font-bold text-[#ffe224]">
+                  01. Speed &amp; Acceleration Control
+                </h2>
+                <span id="title-accel-summary" class="font-mono text-xs font-bold text-[#a3ff2e] tabular-nums">
+                  Target 75 km/h · Gear 2
+                </span>
+              </div>
+
+              <!-- 6-Position Gearbox Selector (0 = Stop, G1..G5 = Exact Speeds) -->
               <div>
-                <div class="flex items-center justify-between gap-2 mb-1 text-[11px]">
-                  <label for="input-driver-name" class="font-bold text-[#ffe224]">
-                    1. Driver Name
-                  </label>
-                  <span class="text-[10px] text-slate-300">3D Tag</span>
+                <div class="flex items-center justify-between text-xs text-slate-300 mb-1.5">
+                  <span>Quick Speed Gears (Keys 0–5 or Click)</span>
+                  <span class="font-mono text-[11px] text-slate-400 tabular-nums">0 – 180 km/h</span>
                 </div>
-                <div class="flex items-center gap-1.5">
+                <div class="grid grid-cols-6 gap-1.5" role="group" aria-label="Select Speed Gear">
+                  <button
+                    type="button"
+                    data-gear="0"
+                    aria-pressed="false"
+                    class="gear-btn py-2 px-1 rounded-xl text-center cursor-pointer"
+                  >
+                    <span class="block font-display text-xs">STOP</span>
+                    <span class="block font-mono text-[10px] opacity-80 tabular-nums">0</span>
+                  </button>
+                  <button
+                    type="button"
+                    data-gear="1"
+                    aria-pressed="false"
+                    class="gear-btn py-2 px-1 rounded-xl text-center cursor-pointer"
+                  >
+                    <span class="block font-display text-xs">G1</span>
+                    <span class="block font-mono text-[10px] opacity-80 tabular-nums">45</span>
+                  </button>
+                  <button
+                    type="button"
+                    data-gear="2"
+                    aria-pressed="true"
+                    class="gear-btn py-2 px-1 rounded-xl text-center cursor-pointer"
+                  >
+                    <span class="block font-display text-xs">G2</span>
+                    <span class="block font-mono text-[10px] opacity-80 tabular-nums">75</span>
+                  </button>
+                  <button
+                    type="button"
+                    data-gear="3"
+                    aria-pressed="false"
+                    class="gear-btn py-2 px-1 rounded-xl text-center cursor-pointer"
+                  >
+                    <span class="block font-display text-xs">G3</span>
+                    <span class="block font-mono text-[10px] opacity-80 tabular-nums">105</span>
+                  </button>
+                  <button
+                    type="button"
+                    data-gear="4"
+                    aria-pressed="false"
+                    class="gear-btn py-2 px-1 rounded-xl text-center cursor-pointer"
+                  >
+                    <span class="block font-display text-xs">G4</span>
+                    <span class="block font-mono text-[10px] opacity-80 tabular-nums">140</span>
+                  </button>
+                  <button
+                    type="button"
+                    data-gear="5"
+                    aria-pressed="false"
+                    class="gear-btn py-2 px-1 rounded-xl text-center cursor-pointer"
+                  >
+                    <span class="block font-display text-xs">G5</span>
+                    <span class="block font-mono text-[10px] opacity-80 tabular-nums">180</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Direct Target / Max Speed Slider (0 - 180 km/h) -->
+              <div>
+                <div class="flex items-center justify-between text-xs mb-1.5">
+                  <label for="title-target-speed" class="text-slate-200 font-semibold">
+                    Exact Vehicle Speed (KM/H)
+                  </label>
+                  <span id="title-target-speed-val" class="font-mono font-bold text-[#22e4ff] tabular-nums">
+                    75 km/h
+                  </span>
+                </div>
+                <div class="flex items-center gap-2.5">
+                  <button
+                    type="button"
+                    data-speed-step="-10"
+                    class="w-9 h-9 rounded-xl bg-[#161133] hover:bg-[#231b4d] border border-white/15 font-mono text-sm font-bold text-white cursor-pointer shrink-0"
+                    aria-label="Decrease Speed by 10 km/h"
+                  >
+                    −10
+                  </button>
                   <input
-                    id="input-driver-name"
-                    type="text"
-                    maxlength="16"
-                    value="T56"
-                    placeholder="Your name..."
-                    autocomplete="off"
-                    spellcheck="false"
-                    class="w-full h-10 bg-[#14102b] border border-white/20 focus:border-[#22e4ff] rounded-xl px-3 text-xs font-display tracking-wider text-white focus:outline-none min-w-0"
+                    id="title-target-speed"
+                    type="range"
+                    min="0"
+                    max="180"
+                    step="5"
+                    value="75"
+                    class="w-full cursor-pointer"
                   />
                   <button
                     type="button"
-                    id="btn-random-driver-name"
-                    class="h-10 px-2.5 bg-[#1d163d] hover:bg-[#2a2057] border border-[#ff2eb6]/45 rounded-xl text-[11px] font-bold text-[#ff85d8] transition-colors cursor-pointer whitespace-nowrap shrink-0"
-                    title="Pick a random racer name"
+                    data-speed-step="10"
+                    class="w-9 h-9 rounded-xl bg-[#161133] hover:bg-[#231b4d] border border-white/15 font-mono text-sm font-bold text-white cursor-pointer shrink-0"
+                    aria-label="Increase Speed by 10 km/h"
                   >
-                    Random
+                    +10
                   </button>
                 </div>
               </div>
 
-              <!-- Field 2: Colorful World Theme Dropdown (5 Chroma Worlds!) -->
-              <div class="relative" data-dropdown="atmo">
-                <div class="flex items-center justify-between gap-2 mb-1 text-[11px]">
-                  <span class="font-bold text-[#22e4ff]">2. World Arena</span>
-                  <span class="text-[10px] text-slate-300">5 Colorful Worlds</span>
-                </div>
-                <button
-                  type="button"
-                  id="btn-dd-atmo"
-                  aria-haspopup="listbox"
-                  aria-expanded="false"
-                  class="w-full h-10 bg-[#14102b] hover:bg-[#1d173d] border border-white/20 rounded-xl px-3 flex items-center justify-between gap-2 text-left transition-colors cursor-pointer"
-                >
-                  <span class="flex items-center gap-2 min-w-0">
-                    <span id="dd-atmo-swatch" class="w-3.5 h-3.5 rounded-full shrink-0 bg-[#ff2eb6] ring-2 ring-white/40"></span>
-                    <span id="dd-atmo-label" class="text-xs font-bold text-white truncate">Neon Chroma City</span>
-                  </span>
-                  <svg class="w-4 h-4 text-[#22e4ff] shrink-0 transition-transform" data-dd-chevron viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                  </svg>
-                </button>
-
-                <div
-                  id="menu-dd-atmo"
-                  role="listbox"
-                  aria-label="World Arena Theme"
-                  class="hidden absolute left-0 right-0 top-full mt-1.5 z-50 bg-[#120e29] border border-white/25 rounded-xl p-1.5 shadow-2xl space-y-1 max-h-60 overflow-y-auto clean-scroll"
-                >
-                  <button
-                    type="button"
-                    data-atmosphere="midnight"
-                    aria-pressed="true"
-                    class="w-full px-2.5 py-2 rounded-lg border border-[#22e4ff] bg-[#21194a] text-white text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
-                  >
-                    <span class="flex items-center gap-2 min-w-0">
-                      <span class="w-3 h-3 rounded-full bg-[#ff2eb6] shrink-0"></span>
-                      <span class="text-xs font-semibold truncate">Neon Chroma City</span>
-                    </span>
-                    <span class="text-[10px] text-[#22e4ff] shrink-0">Rainbow</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    data-atmosphere="city"
-                    aria-pressed="false"
-                    class="w-full px-2.5 py-2 rounded-lg border border-white/12 bg-[#151030] hover:bg-[#21194a] text-slate-200 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
-                  >
-                    <span class="flex items-center gap-2 min-w-0">
-                      <span class="w-3 h-3 rounded-full bg-[#38bdf8] shrink-0"></span>
-                      <span class="text-xs font-semibold truncate">Sunny Modern City</span>
-                    </span>
-                    <span class="text-[10px] text-sky-300 shrink-0">Daylight</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    data-atmosphere="track"
-                    aria-pressed="false"
-                    class="w-full px-2.5 py-2 rounded-lg border border-white/12 bg-[#151030] hover:bg-[#21194a] text-slate-200 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
-                  >
-                    <span class="flex items-center gap-2 min-w-0">
-                      <span class="w-3 h-3 rounded-full bg-[#a3ff2e] shrink-0"></span>
-                      <span class="text-xs font-semibold truncate">Grand Prix Track</span>
-                    </span>
-                    <span class="text-[10px] text-[#a3ff2e] shrink-0">Circuit</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    data-atmosphere="sunset"
-                    aria-pressed="false"
-                    class="w-full px-2.5 py-2 rounded-lg border border-white/12 bg-[#151030] hover:bg-[#21194a] text-slate-200 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
-                  >
-                    <span class="flex items-center gap-2 min-w-0">
-                      <span class="w-3 h-3 rounded-full bg-[#ff8c1a] shrink-0"></span>
-                      <span class="text-xs font-semibold truncate">Golden Sunset</span>
-                    </span>
-                    <span class="text-[10px] text-amber-300 shrink-0">Warm Dusk</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    data-atmosphere="cyber_dusk"
-                    aria-pressed="false"
-                    class="w-full px-2.5 py-2 rounded-lg border border-white/12 bg-[#151030] hover:bg-[#21194a] text-slate-200 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
-                  >
-                    <span class="flex items-center gap-2 min-w-0">
-                      <span class="w-3 h-3 rounded-full bg-[#c084fc] shrink-0"></span>
-                      <span class="text-xs font-semibold truncate">Candy Confetti</span>
-                    </span>
-                    <span class="text-[10px] text-fuchsia-300 shrink-0">Arcade</span>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Field 3: 3D Car Model Dropdown -->
-              <div class="relative" data-dropdown="model">
-                <div class="flex items-center justify-between gap-2 mb-1 text-[11px]">
-                  <span class="font-bold text-[#a3ff2e]">3. Car Model</span>
-                  <span id="title-model-stats" class="font-mono text-[10px] text-[#a3ff2e] tabular-nums truncate">
-                    SPD 95 · HND 93 · N2O 92
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  id="btn-dd-model"
-                  aria-haspopup="listbox"
-                  aria-expanded="false"
-                  class="w-full h-10 bg-[#14102b] hover:bg-[#1d173d] border border-white/20 rounded-xl px-3 flex items-center justify-between gap-2 text-left transition-colors cursor-pointer"
-                >
-                  <span class="min-w-0 flex items-baseline gap-1.5 truncate">
-                    <span id="dd-model-name" class="font-display text-xs text-white truncate">Apex GT-R</span>
-                    <span id="dd-model-class" class="text-[10px] text-slate-300 truncate">· Hyper Coupe</span>
-                  </span>
-                  <svg class="w-4 h-4 text-[#a3ff2e] shrink-0 transition-transform" data-dd-chevron viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                  </svg>
-                </button>
-
-                <div
-                  id="menu-dd-model"
-                  role="listbox"
-                  aria-label="Select 3D Car Model"
-                  class="hidden absolute left-0 right-0 sm:w-[300px] bottom-full sm:bottom-auto sm:top-full mb-1.5 sm:mb-0 sm:mt-1.5 z-50 bg-[#120e29] border border-white/25 rounded-xl p-1.5 shadow-2xl space-y-1 max-h-60 overflow-y-auto clean-scroll"
-                >
-                  <button
-                    type="button"
-                    data-car-model="apex_gtr"
-                    aria-pressed="true"
-                    class="w-full px-2.5 py-2 rounded-lg border border-[#22e4ff] bg-[#21194a] text-white text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
-                  >
-                    <span class="min-w-0">
-                      <span class="block font-display text-xs truncate">Apex GT-R</span>
-                      <span class="block text-[10px] text-slate-300 truncate">Hyper Coupe · Balanced Aero</span>
-                    </span>
-                    <span class="font-mono text-[10px] text-[#22e4ff] shrink-0">95/93</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    data-car-model="vortex_f1"
-                    aria-pressed="false"
-                    class="w-full px-2.5 py-2 rounded-lg border border-white/12 bg-[#151030] hover:bg-[#21194a] text-slate-200 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
-                  >
-                    <span class="min-w-0">
-                      <span class="block font-display text-xs truncate">Vortex F1-X</span>
-                      <span class="block text-[10px] text-slate-300 truncate">Formula Aero · Open Wheel</span>
-                    </span>
-                    <span class="font-mono text-[10px] text-[#a3ff2e] shrink-0">98/97</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    data-car-model="titan_v8"
-                    aria-pressed="false"
-                    class="w-full px-2.5 py-2 rounded-lg border border-white/12 bg-[#151030] hover:bg-[#21194a] text-slate-200 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
-                  >
-                    <span class="min-w-0">
-                      <span class="block font-display text-xs truncate">Titan V8</span>
-                      <span class="block text-[10px] text-slate-300 truncate">Street Muscle · Supercharged</span>
-                    </span>
-                    <span class="font-mono text-[10px] text-[#ff8c1a] shrink-0">96/88</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    data-car-model="nomad_x"
-                    aria-pressed="false"
-                    class="w-full px-2.5 py-2 rounded-lg border border-white/12 bg-[#151030] hover:bg-[#21194a] text-slate-200 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
-                  >
-                    <span class="min-w-0">
-                      <span class="block font-display text-xs truncate">Nomad Cyber-X</span>
-                      <span class="block text-[10px] text-slate-300 truncate">Armored Rally · Off-Road Rig</span>
-                    </span>
-                    <span class="font-mono text-[10px] text-[#ff2eb6] shrink-0">91/90</span>
-                  </button>
-                </div>
-              </div>
-
-              <!-- Field 4: Car Colour & Finish Dropdown -->
-              <div class="relative" data-dropdown="paint">
-                <div class="flex items-center justify-between gap-2 mb-1 text-[11px]">
-                  <span class="font-bold text-[#ff2eb6]">4. Car Colour</span>
-                  <span id="title-paint-label" class="font-mono text-[10px] text-[#ff85d8] truncate">
-                    Liquid Metallic
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  id="btn-dd-paint"
-                  aria-haspopup="listbox"
-                  aria-expanded="false"
-                  class="w-full h-10 bg-[#14102b] hover:bg-[#1d173d] border border-white/20 rounded-xl px-3 flex items-center justify-between gap-2 text-left transition-colors cursor-pointer"
-                >
-                  <span class="flex items-center gap-2 min-w-0">
-                    <span id="dd-paint-swatch" class="w-3.5 h-3.5 rounded-full shrink-0 bg-[#22e4ff] ring-2 ring-white/40"></span>
-                    <span id="dd-paint-name" class="text-xs font-bold text-white truncate">Cyber Cyan</span>
-                  </span>
-                  <svg class="w-4 h-4 text-[#ff2eb6] shrink-0 transition-transform" data-dd-chevron viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                  </svg>
-                </button>
-
-                <div
-                  id="menu-dd-paint"
-                  role="listbox"
-                  aria-label="Select Car Colour and Finish"
-                  class="hidden absolute right-0 left-0 sm:left-auto sm:w-[290px] bottom-full sm:bottom-auto sm:top-full mb-1.5 sm:mb-0 sm:mt-1.5 z-50 bg-[#120e29] border border-white/25 rounded-xl p-1.5 shadow-2xl space-y-1 max-h-56 overflow-y-auto clean-scroll"
-                >
-                  <button
-                    type="button"
-                    data-car-paint="cyan_metallic"
-                    aria-pressed="true"
-                    class="w-full px-2.5 py-1.5 rounded-lg border border-[#22e4ff] bg-[#21194a] text-white text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
-                  >
-                    <span class="flex items-center gap-2 min-w-0">
-                      <span class="w-3.5 h-3.5 rounded-full shrink-0 bg-[#22e4ff] ring-1 ring-white/40"></span>
-                      <span class="text-xs font-semibold truncate">Cyber Cyan</span>
-                    </span>
-                    <span class="text-[10px] text-slate-300 shrink-0">Metallic</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    data-car-paint="rosso_gloss"
-                    aria-pressed="false"
-                    class="w-full px-2.5 py-1.5 rounded-lg border border-white/12 bg-[#151030] hover:bg-[#21194a] text-slate-200 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
-                  >
-                    <span class="flex items-center gap-2 min-w-0">
-                      <span class="w-3.5 h-3.5 rounded-full shrink-0 bg-[#ff2442] ring-1 ring-white/40"></span>
-                      <span class="text-xs font-semibold truncate">Crimson Red</span>
-                    </span>
-                    <span class="text-[10px] text-slate-300 shrink-0">Gloss</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    data-car-paint="solar_pearl"
-                    aria-pressed="false"
-                    class="w-full px-2.5 py-1.5 rounded-lg border border-white/12 bg-[#151030] hover:bg-[#21194a] text-slate-200 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
-                  >
-                    <span class="flex items-center gap-2 min-w-0">
-                      <span class="w-3.5 h-3.5 rounded-full shrink-0 bg-[#ff8c1a] ring-1 ring-white/40"></span>
-                      <span class="text-xs font-semibold truncate">Solar Gold</span>
-                    </span>
-                    <span class="text-[10px] text-slate-300 shrink-0">Pearl</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    data-car-paint="emerald_satin"
-                    aria-pressed="false"
-                    class="w-full px-2.5 py-1.5 rounded-lg border border-white/12 bg-[#151030] hover:bg-[#21194a] text-slate-200 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
-                  >
-                    <span class="flex items-center gap-2 min-w-0">
-                      <span class="w-3.5 h-3.5 rounded-full shrink-0 bg-[#a3ff2e] ring-1 ring-white/40"></span>
-                      <span class="text-xs font-semibold truncate">Neon Lime</span>
-                    </span>
-                    <span class="text-[10px] text-slate-300 shrink-0">Satin</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    data-car-paint="stealth_matte"
-                    aria-pressed="false"
-                    class="w-full px-2.5 py-1.5 rounded-lg border border-white/12 bg-[#151030] hover:bg-[#21194a] text-slate-200 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
-                  >
-                    <span class="flex items-center gap-2 min-w-0">
-                      <span class="w-3.5 h-3.5 rounded-full shrink-0 bg-[#475569] ring-1 ring-white/40"></span>
-                      <span class="text-xs font-semibold truncate">Matte Black</span>
-                    </span>
-                    <span class="text-[10px] text-slate-300 shrink-0">Carbon</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    data-car-paint="pearl_ceramic"
-                    aria-pressed="false"
-                    class="w-full px-2.5 py-1.5 rounded-lg border border-white/12 bg-[#151030] hover:bg-[#21194a] text-slate-200 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
-                  >
-                    <span class="flex items-center gap-2 min-w-0">
-                      <span class="w-3.5 h-3.5 rounded-full shrink-0 bg-[#f8fafc] ring-1 ring-white/40"></span>
-                      <span class="text-xs font-semibold truncate">Glacier White</span>
-                    </span>
-                    <span class="text-[10px] text-slate-300 shrink-0">Ceramic</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    data-car-paint="ultraviolet_chrome"
-                    aria-pressed="false"
-                    class="w-full px-2.5 py-1.5 rounded-lg border border-white/12 bg-[#151030] hover:bg-[#21194a] text-slate-200 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
-                  >
-                    <span class="flex items-center gap-2 min-w-0">
-                      <span class="w-3.5 h-3.5 rounded-full shrink-0 bg-[#9d4edd] ring-1 ring-white/40"></span>
-                      <span class="text-xs font-semibold truncate">Ultraviolet</span>
-                    </span>
-                    <span class="text-[10px] text-slate-300 shrink-0">Chrome</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    data-car-paint="rosegold_pearl"
-                    aria-pressed="false"
-                    class="w-full px-2.5 py-1.5 rounded-lg border border-white/12 bg-[#151030] hover:bg-[#21194a] text-slate-200 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
-                  >
-                    <span class="flex items-center gap-2 min-w-0">
-                      <span class="w-3.5 h-3.5 rounded-full shrink-0 bg-[#ff2eb6] ring-1 ring-white/40"></span>
-                      <span class="text-xs font-semibold truncate">Candy Pink</span>
-                    </span>
-                    <span class="text-[10px] text-slate-300 shrink-0">Arcade Gloss</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Field 5: Acceleration & Speed Control Dropdown (Direct Player Control + Adjustable Pace) -->
-            <div class="relative mb-3.5" data-dropdown="accel">
-              <div class="flex items-center justify-between gap-2 mb-1 text-[11px]">
-                <span class="font-bold text-[#ffe224]">5. Acceleration Control</span>
-                <span id="title-accel-summary" class="font-mono text-[10px] text-[#a3ff2e] tabular-nums truncate">
-                  Max 113 km/h · Smooth
-                </span>
-              </div>
-              <button
-                type="button"
-                id="btn-dd-accel"
-                aria-haspopup="dialog"
-                aria-expanded="false"
-                class="w-full h-10 bg-[#14102b] hover:bg-[#1d173d] border border-[#ffe224]/35 rounded-xl px-3 flex items-center justify-between gap-2 text-left transition-colors cursor-pointer"
-              >
-                <span class="flex items-center gap-2 min-w-0">
-                  <span class="w-2.5 h-2.5 rounded-xs shrink-0 bg-[#a3ff2e]"></span>
-                  <span id="dd-accel-label" class="text-xs font-bold text-white truncate">
-                    Manual Gas · 90% Pace
-                  </span>
-                </span>
-                <span class="flex items-center gap-1.5 shrink-0">
-                  <span class="text-[10px] font-mono text-[#ffe224]">Tune Speed</span>
-                  <svg class="w-4 h-4 text-[#ffe224] shrink-0 transition-transform" data-dd-chevron viewBox="0 0 20 20" fill="currentColor">
-                    <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd" />
-                  </svg>
-                </span>
-              </button>
-
-              <div
-                id="menu-dd-accel"
-                role="region"
-                aria-label="Acceleration and Vehicle Speed Control"
-                class="hidden absolute left-0 right-0 bottom-full mb-1.5 z-50 bg-[#120e29] border border-white/25 rounded-xl p-3 shadow-2xl space-y-2.5 max-h-[68dvh] overflow-y-auto clean-scroll"
-              >
-                <!-- Quick Speed Presets -->
-                <div>
-                  <div class="flex items-center justify-between text-[10px] mb-1">
-                    <span class="font-bold uppercase tracking-wider text-[#22e4ff]">Quick Speed Presets</span>
-                    <span class="font-mono text-slate-300">Keys: [-] / [+]</span>
-                  </div>
-                  <div class="grid grid-cols-4 gap-1.5">
-                    <button
-                      type="button"
-                      data-speed-preset="chill"
-                      aria-pressed="false"
-                      class="px-2 py-1.5 rounded-lg border border-white/12 bg-[#151030] hover:bg-[#21194a] text-slate-200 text-center text-[11px] font-bold cursor-pointer transition-colors"
-                    >
-                      Chill
-                    </button>
-                    <button
-                      type="button"
-                      data-speed-preset="smooth"
-                      aria-pressed="true"
-                      class="px-2 py-1.5 rounded-lg border border-[#22e4ff] bg-[#21194a] text-white text-center text-[11px] font-bold cursor-pointer transition-colors"
-                    >
-                      Smooth
-                    </button>
-                    <button
-                      type="button"
-                      data-speed-preset="arcade"
-                      aria-pressed="false"
-                      class="px-2 py-1.5 rounded-lg border border-white/12 bg-[#151030] hover:bg-[#21194a] text-slate-200 text-center text-[11px] font-bold cursor-pointer transition-colors"
-                    >
-                      Arcade
-                    </button>
-                    <button
-                      type="button"
-                      data-speed-preset="pro"
-                      aria-pressed="false"
-                      class="px-2 py-1.5 rounded-lg border border-white/12 bg-[#151030] hover:bg-[#21194a] text-slate-200 text-center text-[11px] font-bold cursor-pointer transition-colors"
-                    >
-                      Pro
-                    </button>
-                  </div>
-                </div>
-
-                <!-- Acceleration Control Mode -->
-                <div>
-                  <div class="flex items-center justify-between text-[10px] mb-1">
-                    <span class="font-bold uppercase tracking-wider text-[#ffe224]">Throttle Mode</span>
-                    <span class="font-mono text-slate-300">Shortcut: [M]</span>
+              <!-- Throttle Mode + Acceleration Smoothness -->
+              <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                <div class="sm:col-span-7">
+                  <div class="flex items-center justify-between text-xs mb-1.5">
+                    <span class="text-slate-200 font-semibold">Throttle Style</span>
+                    <span class="font-mono text-[11px] text-slate-400">[M]</span>
                   </div>
                   <div class="grid grid-cols-3 gap-1.5">
                     <button
                       type="button"
-                      data-accel-mode="manual_throttle"
+                      data-accel-mode="smooth_auto"
                       aria-pressed="true"
-                      class="px-2 py-1.5 rounded-lg border border-[#22e4ff] bg-[#21194a] text-white text-center text-[11px] font-semibold cursor-pointer transition-colors"
+                      class="py-2 px-2 rounded-xl border border-[#22e4ff] bg-[#21194a] text-white text-center text-xs font-semibold cursor-pointer transition-colors whitespace-nowrap"
+                    >
+                      Speed Dial
+                    </button>
+                    <button
+                      type="button"
+                      data-accel-mode="manual_throttle"
+                      aria-pressed="false"
+                      class="py-2 px-2 rounded-xl border border-white/12 bg-[#151030] hover:bg-[#21194a] text-slate-200 text-center text-xs font-semibold cursor-pointer transition-colors whitespace-nowrap"
                     >
                       Manual Gas
                     </button>
                     <button
                       type="button"
-                      data-accel-mode="smooth_auto"
-                      aria-pressed="false"
-                      class="px-2 py-1.5 rounded-lg border border-white/12 bg-[#151030] hover:bg-[#21194a] text-slate-200 text-center text-[11px] font-semibold cursor-pointer transition-colors"
-                    >
-                      Auto Cruise
-                    </button>
-                    <button
-                      type="button"
                       data-accel-mode="constant_cruise"
                       aria-pressed="false"
-                      class="px-2 py-1.5 rounded-lg border border-white/12 bg-[#151030] hover:bg-[#21194a] text-slate-200 text-center text-[11px] font-semibold cursor-pointer transition-colors"
+                      class="py-2 px-2 rounded-xl border border-white/12 bg-[#151030] hover:bg-[#21194a] text-slate-200 text-center text-xs font-semibold cursor-pointer transition-colors whitespace-nowrap"
                     >
-                      Steady Lock
+                      Locked
                     </button>
                   </div>
                 </div>
 
-                <!-- Hands-Free Base Throttle Lever -->
-                <div>
-                  <div class="flex items-center justify-between text-[11px] mb-1">
-                    <label for="title-throttle-level" class="text-slate-200 font-semibold">Base Throttle Lever</label>
-                    <span id="title-throttle-val" class="font-mono text-[#ffe224] tabular-nums">0% (Pedal Control)</span>
-                  </div>
-                  <input
-                    id="title-throttle-level"
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.05"
-                    value="0"
-                    class="w-full accent-[#ffe224] cursor-pointer"
-                  />
-                </div>
-
-                <!-- Vehicle Speed Limit Slider -->
-                <div>
-                  <div class="flex items-center justify-between text-[11px] mb-1">
-                    <label for="title-speed-scale" class="text-slate-200 font-semibold">Max Speed Limit</label>
-                    <span id="title-speed-val" class="font-mono text-[#22e4ff] tabular-nums">90% (Max 113 km/h)</span>
-                  </div>
-                  <input
-                    id="title-speed-scale"
-                    type="range"
-                    min="0.45"
-                    max="1.4"
-                    step="0.05"
-                    value="0.9"
-                    class="w-full accent-[#22e4ff] cursor-pointer"
-                  />
-                </div>
-
-                <!-- Acceleration Smoothness / Rate Slider -->
-                <div>
-                  <div class="flex items-center justify-between text-[11px] mb-1">
-                    <label for="title-accel-rate" class="text-slate-200 font-semibold">Acceleration Power</label>
+                <div class="sm:col-span-5">
+                  <div class="flex items-center justify-between text-xs mb-1.5">
+                    <label for="title-accel-rate" class="text-slate-200 font-semibold">Accel Smoothness</label>
                     <span id="title-accel-val" class="font-mono text-[#a3ff2e] tabular-nums">85% · Smooth</span>
                   </div>
                   <input
@@ -674,18 +322,364 @@
                     max="1.5"
                     step="0.05"
                     value="0.85"
-                    class="w-full accent-[#a3ff2e] cursor-pointer"
+                    class="w-full cursor-pointer"
                   />
                 </div>
+              </div>
 
-                <p id="title-accel-hint" class="text-[10px] text-slate-300 leading-snug pt-1 border-t border-white/12">
-                  You control acceleration directly — hold Gas (W / Up / Hand Grip) or drag the Throttle Slider; release to coast or press Brake to stop.
-                </p>
+              <p id="title-accel-hint" class="text-xs text-slate-300 leading-relaxed">
+                Cruises smoothly at your chosen KM/H speed — shift Gears 0–5, drag the Speed Slider, hold W to pass faster, or press S / Open Palm to brake to a stop.
+              </p>
+            </div>
+
+            <!-- SECTION 2: DRIVER TAG, 3D CAR MODEL, COLOUR SWATCHES & WORLD ARENA -->
+            <div class="pt-4 border-t border-white/15 space-y-4">
+              <div class="flex flex-wrap items-baseline justify-between gap-2">
+                <h2 class="text-sm sm:text-base font-bold text-[#22e4ff]">
+                  02. Showroom Customizer
+                </h2>
+                <span id="title-model-stats" class="font-mono text-xs text-[#a3ff2e] tabular-nums">
+                  SPD 95 · HND 93 · N2O 92
+                </span>
+              </div>
+
+              <!-- Driver Name + World Arena Row -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label for="input-driver-name" class="block text-xs font-semibold text-slate-200 mb-1">
+                    Driver Nameplate (Above Car)
+                  </label>
+                  <div class="flex items-center gap-1.5">
+                    <input
+                      id="input-driver-name"
+                      type="text"
+                      maxlength="16"
+                      value="T56"
+                      placeholder="Your name..."
+                      autocomplete="off"
+                      spellcheck="false"
+                      class="w-full h-10 bg-[#14102b] border border-white/20 focus:border-[#22e4ff] rounded-xl px-3 text-xs font-display tracking-wider text-white focus:outline-none min-w-0"
+                    />
+                    <button
+                      type="button"
+                      id="btn-random-driver-name"
+                      class="h-10 px-3 bg-[#1d163d] hover:bg-[#2a2057] border border-[#ff2eb6]/45 rounded-xl text-xs font-bold text-[#ff85d8] transition-colors cursor-pointer whitespace-nowrap shrink-0"
+                    >
+                      Random
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label for="title-atmosphere-select" class="block text-xs font-semibold text-slate-200 mb-1">
+                    Highway World Arena
+                  </label>
+                  <select
+                    id="title-atmosphere-select"
+                    class="w-full h-10 bg-[#14102b] border border-white/20 focus:border-[#22e4ff] rounded-xl px-3 text-xs font-semibold text-white cursor-pointer"
+                  >
+                    <option value="midnight">Neon Chroma City (Night)</option>
+                    <option value="city">Sunny Modern City (Day)</option>
+                    <option value="track">Grand Prix Circuit</option>
+                    <option value="sunset">Golden Horizon Sunset</option>
+                    <option value="cyber_dusk">Candy Confetti Arcade</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- 4 Sculpted 3D Car Models (2x2 Grid) -->
+              <div>
+                <span class="block text-xs font-semibold text-slate-200 mb-1.5">Select 3D Car Model</span>
+                <div class="grid grid-cols-2 gap-2" role="group" aria-label="Select 3D Car Model">
+                  <button
+                    type="button"
+                    data-car-model="apex_gtr"
+                    aria-pressed="true"
+                    class="px-3 py-2 rounded-xl border border-[#22e4ff] bg-[#21194a] text-white text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
+                  >
+                    <span class="min-w-0">
+                      <span class="block font-display text-xs truncate">Apex GT-R</span>
+                      <span class="block text-[11px] text-slate-300 truncate">Hyper Coupe</span>
+                    </span>
+                    <span class="font-mono text-[11px] text-[#22e4ff] shrink-0 tabular-nums">95/93</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    data-car-model="vortex_f1"
+                    aria-pressed="false"
+                    class="px-3 py-2 rounded-xl border border-white/12 bg-[#151030] hover:bg-[#21194a] text-slate-200 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
+                  >
+                    <span class="min-w-0">
+                      <span class="block font-display text-xs truncate">Vortex F1-X</span>
+                      <span class="block text-[11px] text-slate-300 truncate">Formula Aero</span>
+                    </span>
+                    <span class="font-mono text-[11px] text-[#a3ff2e] shrink-0 tabular-nums">98/97</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    data-car-model="titan_v8"
+                    aria-pressed="false"
+                    class="px-3 py-2 rounded-xl border border-white/12 bg-[#151030] hover:bg-[#21194a] text-slate-200 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
+                  >
+                    <span class="min-w-0">
+                      <span class="block font-display text-xs truncate">Titan V8</span>
+                      <span class="block text-[11px] text-slate-300 truncate">Street Muscle</span>
+                    </span>
+                    <span class="font-mono text-[11px] text-[#ff8c1a] shrink-0 tabular-nums">96/88</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    data-car-model="nomad_x"
+                    aria-pressed="false"
+                    class="px-3 py-2 rounded-xl border border-white/12 bg-[#151030] hover:bg-[#21194a] text-slate-200 text-left flex items-center justify-between gap-2 cursor-pointer transition-colors"
+                  >
+                    <span class="min-w-0">
+                      <span class="block font-display text-xs truncate">Nomad Cyber-X</span>
+                      <span class="block text-[11px] text-slate-300 truncate">Armored Rally</span>
+                    </span>
+                    <span class="font-mono text-[11px] text-[#ff2eb6] shrink-0 tabular-nums">91/90</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 8 Instant Paint Colour Swatches -->
+              <div>
+                <div class="flex items-center justify-between text-xs mb-1.5">
+                  <span class="font-semibold text-slate-200">Body Paint &amp; Finish</span>
+                  <span id="title-paint-label" class="font-mono text-xs text-[#ff85d8]">
+                    Cyber Cyan · Liquid Metallic
+                  </span>
+                </div>
+                <div class="grid grid-cols-8 gap-2" role="group" aria-label="Select Car Colour">
+                  <button
+                    type="button"
+                    data-car-paint="cyan_metallic"
+                    aria-pressed="true"
+                    title="Cyber Cyan · Liquid Metallic"
+                    class="h-9 rounded-xl border-2 border-white bg-[#22e4ff] cursor-pointer transition-transform hover:scale-105"
+                  ></button>
+                  <button
+                    type="button"
+                    data-car-paint="rosso_gloss"
+                    aria-pressed="false"
+                    title="Crimson Red · Racing Gloss"
+                    class="h-9 rounded-xl border border-white/25 bg-[#ff2442] cursor-pointer transition-transform hover:scale-105"
+                  ></button>
+                  <button
+                    type="button"
+                    data-car-paint="solar_pearl"
+                    aria-pressed="false"
+                    title="Solar Gold · Pearlescent"
+                    class="h-9 rounded-xl border border-white/25 bg-[#ff8c1a] cursor-pointer transition-transform hover:scale-105"
+                  ></button>
+                  <button
+                    type="button"
+                    data-car-paint="emerald_satin"
+                    aria-pressed="false"
+                    title="Neon Lime · Satin Metallic"
+                    class="h-9 rounded-xl border border-white/25 bg-[#a3ff2e] cursor-pointer transition-transform hover:scale-105"
+                  ></button>
+                  <button
+                    type="button"
+                    data-car-paint="stealth_matte"
+                    aria-pressed="false"
+                    title="Matte Black · Matte Carbon"
+                    class="h-9 rounded-xl border border-white/25 bg-[#475569] cursor-pointer transition-transform hover:scale-105"
+                  ></button>
+                  <button
+                    type="button"
+                    data-car-paint="pearl_ceramic"
+                    aria-pressed="false"
+                    title="Glacier White · Ceramic Gloss"
+                    class="h-9 rounded-xl border border-white/25 bg-[#f8fafc] cursor-pointer transition-transform hover:scale-105"
+                  ></button>
+                  <button
+                    type="button"
+                    data-car-paint="ultraviolet_chrome"
+                    aria-pressed="false"
+                    title="Ultraviolet · Mirror Chrome"
+                    class="h-9 rounded-xl border border-white/25 bg-[#9d4edd] cursor-pointer transition-transform hover:scale-105"
+                  ></button>
+                  <button
+                    type="button"
+                    data-car-paint="rosegold_pearl"
+                    aria-pressed="false"
+                    title="Candy Pink · Arcade Gloss"
+                    class="h-9 rounded-xl border border-white/25 bg-[#ff2eb6] cursor-pointer transition-transform hover:scale-105"
+                  ></button>
+                </div>
               </div>
             </div>
 
-            <!-- Primary & Secondary Play Actions (Phone + Laptop Ergonomic) -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 mb-2.5">
+            <!-- Page 1 Primary CTA -> Navigate to Page 2 (Race Track) -->
+            <div class="pt-4 border-t border-white/15 space-y-2.5">
+              <button
+                type="button"
+                id="btn-go-race-page"
+                class="w-full min-h-[50px] px-5 py-3 btn-drive font-display text-sm sm:text-base tracking-wide rounded-xl cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap"
+              >
+                <span>CONTINUE TO PAGE 2 · RACE TRACK →</span>
+              </button>
+              <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-300">
+                <span>Or launch directly:</span>
+                <div class="flex items-center gap-3 font-semibold">
+                  <button
+                    type="button"
+                    data-action="quick-camera-race"
+                    class="text-[#22e4ff] hover:text-white underline underline-offset-4 cursor-pointer whitespace-nowrap"
+                  >
+                    Quick Hand Steer
+                  </button>
+                  <span aria-hidden="true">·</span>
+                  <button
+                    type="button"
+                    data-action="quick-keyboard-race"
+                    class="text-[#a3ff2e] hover:text-white underline underline-offset-4 cursor-pointer whitespace-nowrap"
+                  >
+                    Quick Keys / Touch
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column on Desktop: Open 3D Showroom Window + Camera Angle Bar -->
+          <div class="hidden md:flex flex-1 flex-col justify-end items-end pb-2 pointer-events-none">
+            <div class="pointer-events-auto arcade-hud-card rounded-xl p-1.5 flex items-center gap-1.5 text-xs font-semibold">
+              <span class="px-2 text-slate-400">Showroom Angle:</span>
+              <button
+                type="button"
+                data-showroom-cam="orbit"
+                aria-pressed="true"
+                class="px-3 py-1.5 rounded-lg bg-[#21194a] text-[#22e4ff] cursor-pointer transition-colors whitespace-nowrap"
+              >
+                Auto Orbit
+              </button>
+              <button
+                type="button"
+                data-showroom-cam="front"
+                aria-pressed="false"
+                class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white cursor-pointer transition-colors whitespace-nowrap"
+              >
+                Front 3/4
+              </button>
+              <button
+                type="button"
+                data-showroom-cam="side"
+                aria-pressed="false"
+                class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white cursor-pointer transition-colors whitespace-nowrap"
+              >
+                Side Profile
+              </button>
+              <button
+                type="button"
+                data-showroom-cam="rear"
+                aria-pressed="false"
+                class="px-3 py-1.5 rounded-lg text-slate-300 hover:text-white cursor-pointer transition-colors whitespace-nowrap"
+              >
+                Rear Aero
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quiet Footer on Page 1 -->
+        <footer class="hidden md:flex px-6 lg:px-10 py-2.5 border-t border-white/15 bg-[#0c0a1d]/82 items-center justify-between gap-4 text-xs text-slate-300 shrink-0">
+          <div class="flex items-center gap-2">
+            <span>Credits: <strong class="text-[#ffe224]">T56</strong></span>
+            <span aria-hidden="true">·</span>
+            <span id="title-best-readout" class="font-mono font-bold text-[#a3ff2e] tabular-nums">Personal Best: 0 pts</span>
+          </div>
+          <div class="flex items-center gap-5 shrink-0">
+            <button
+              type="button"
+              data-action="toggle-quality-quick"
+              id="nav-quality-btn"
+              class="text-slate-300 hover:text-white transition-colors cursor-pointer whitespace-nowrap"
+            >
+              Graphics: High
+            </button>
+            <button
+              type="button"
+              data-action="toggle-mute"
+              id="nav-mute-btn"
+              class="text-slate-300 hover:text-white transition-colors cursor-pointer whitespace-nowrap"
+            >
+              Audio: On
+            </button>
+            <button
+              type="button"
+              data-action="open-help"
+              class="text-[#22e4ff] hover:text-white underline underline-offset-4 cursor-pointer whitespace-nowrap"
+            >
+              Driving Guide
+            </button>
+          </div>
+        </footer>
+      </section>
+
+      <!-- ===================================================================== -->
+      <!-- PAGE 2: LIVE 3D RACE TRACK & SPEED COCKPIT (#race)                    -->
+      <!-- ===================================================================== -->
+      <section
+        id="page-race"
+        data-page-section="race"
+        class="hidden flex-1 min-h-0 relative flex flex-col justify-between pointer-events-none"
+      >
+        <!-- PAGE 2 STARTING GRID LAUNCH DECK (Shown on Page 2 before green flag) -->
+        <div
+          id="race-lobby-card"
+          class="pointer-events-none flex-1 flex flex-col justify-between p-3.5 sm:p-6"
+        >
+          <!-- Top Track Banner -->
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="arcade-hud-card rounded-xl px-3.5 py-2 text-xs">
+              <span class="text-[#22e4ff] font-bold">Page 02 of 02 · Live Highway Starting Grid</span>
+              <span aria-hidden="true" class="mx-1.5 text-slate-500">·</span>
+              <span id="lobby-setup-summary" class="font-mono text-slate-200 tabular-nums">
+                T56 · Apex GT-R · Target 75 km/h
+              </span>
+            </div>
+            <span id="title-best-mobile" class="arcade-hud-card rounded-xl px-3 py-2 font-mono text-xs font-bold text-[#a3ff2e] tabular-nums">
+              Best: 0 pts
+            </span>
+          </div>
+
+          <!-- Bottom-Center Starting Grid Speed & Launch Console (Leaves center 3D car 100% clear!) -->
+          <div class="pointer-events-auto w-full max-w-2xl mx-auto arcade-panel border-rainbow rounded-2xl p-4 sm:p-5 space-y-3.5">
+            <!-- Quick Speed Check / Adjustment right on Starting Grid -->
+            <div>
+              <div class="flex flex-wrap items-center justify-between gap-2 text-xs mb-2">
+                <span class="font-bold text-[#ffe224]">Starting Speed &amp; Gear Control</span>
+                <span id="lobby-speed-readout" class="font-mono font-bold text-[#22e4ff] tabular-nums">
+                  75 km/h · Gear 2 (Speed Dial)
+                </span>
+              </div>
+              <div class="grid grid-cols-6 gap-1.5 mb-2.5">
+                <button type="button" data-gear="0" aria-pressed="false" class="gear-btn py-1.5 px-1 rounded-lg text-center text-xs font-display cursor-pointer">STOP</button>
+                <button type="button" data-gear="1" aria-pressed="false" class="gear-btn py-1.5 px-1 rounded-lg text-center text-xs font-display cursor-pointer">G1 · 45</button>
+                <button type="button" data-gear="2" aria-pressed="true" class="gear-btn py-1.5 px-1 rounded-lg text-center text-xs font-display cursor-pointer">G2 · 75</button>
+                <button type="button" data-gear="3" aria-pressed="false" class="gear-btn py-1.5 px-1 rounded-lg text-center text-xs font-display cursor-pointer">G3 · 105</button>
+                <button type="button" data-gear="4" aria-pressed="false" class="gear-btn py-1.5 px-1 rounded-lg text-center text-xs font-display cursor-pointer">G4 · 140</button>
+                <button type="button" data-gear="5" aria-pressed="false" class="gear-btn py-1.5 px-1 rounded-lg text-center text-xs font-display cursor-pointer">G5 · 180</button>
+              </div>
+              <input
+                id="lobby-target-speed"
+                type="range"
+                min="0"
+                max="180"
+                step="5"
+                value="75"
+                aria-label="Starting Target Speed KM/H"
+                class="w-full cursor-pointer"
+              />
+            </div>
+
+            <!-- Choose Control Method to Start Driving -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <button
                 type="button"
                 id="btn-play-camera"
@@ -695,51 +689,415 @@
                   <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14v-4z" />
                   <rect x="3" y="6" width="12" height="12" rx="2" />
                 </svg>
-                <span id="btn-play-camera-label">HAND STEER DRIVE</span>
+                <span id="btn-play-camera-label">START · HAND STEERING</span>
               </button>
 
               <button
                 type="button"
                 id="btn-play-keyboard"
-                class="min-h-[48px] px-4 py-2.5 bg-[#181236] hover:bg-[#241b4f] text-white border border-[#22e4ff]/45 font-display text-xs sm:text-sm tracking-wide rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap"
+                class="min-h-[48px] px-4 py-2.5 bg-[#181236] hover:bg-[#241b4f] text-white border border-[#22e4ff]/50 font-display text-xs sm:text-sm tracking-wide rounded-xl transition-colors cursor-pointer flex items-center justify-center gap-2 whitespace-nowrap"
               >
                 <svg class="w-4 h-4 text-[#ffe224] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
                   <rect x="2" y="6" width="20" height="12" rx="2" />
                   <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8" />
                 </svg>
-                <span class="sm:hidden">TOUCH DRIVE</span>
-                <span class="hidden sm:inline">KEYS / TOUCH</span>
+                <span>START · KEYS / TOUCH</span>
               </button>
             </div>
 
-            <!-- Quiet Unboxed Metadata -->
-            <div class="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-300">
-              <span>Phone &amp; Laptop ready · Space / Tap = Nitro ⚡</span>
-              <span id="title-best-mobile" class="font-mono font-bold tabular-nums text-[#a3ff2e]">Best: 0 pts</span>
+            <div class="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-300">
+              <a
+                href="#garage"
+                data-nav-page="garage"
+                class="text-[#22e4ff] hover:text-white underline underline-offset-4 cursor-pointer whitespace-nowrap"
+              >
+                ← Back to Page 1: Garage &amp; Car Customizer
+              </a>
+              <span>Scroll wheel, keys 0–5, or slider adjusts speed live!</span>
             </div>
           </div>
         </div>
 
-        <!-- Quiet Laptop Footer (Hidden on small mobile screens to maximize 3D viewport) -->
-        <footer class="hidden md:flex px-6 lg:px-10 py-2.5 border-t border-white/15 bg-[#0c0a1d]/75 items-center justify-between gap-4 text-xs text-slate-300 shrink-0">
-          <span>Credits: <strong class="text-[#ffe224]">T56</strong> · Steer with Hand Wheel, Keys, or Touch &amp; tune vehicle speed anytime with [-] / [+].</span>
-          <div class="flex items-center gap-5 shrink-0">
-            <button
-              type="button"
-              data-action="open-settings"
-              class="text-[#22e4ff] hover:text-white underline underline-offset-4 cursor-pointer whitespace-nowrap"
-            >
-              Speed &amp; Settings
-            </button>
-            <button
-              type="button"
-              data-action="open-help"
-              class="text-[#ff85d8] hover:text-white underline underline-offset-4 cursor-pointer whitespace-nowrap"
-            >
-              Driving Guide
-            </button>
+        <!-- ACTIVE RACE HUD COCKPIT (Shown while racing on Page 2) -->
+        <div
+          id="race-hud"
+          class="hidden flex-1 min-h-0 pointer-events-none flex flex-col justify-between p-2.5 sm:p-4"
+        >
+          <!-- Top HUD Telemetry Row -->
+          <div class="flex items-start justify-between gap-2 sm:gap-4">
+            <!-- Top-Left: Score, Combo, Best, Distance -->
+            <div class="arcade-hud-card rounded-xl px-2.5 py-2 sm:px-4 sm:py-2.5 min-w-[126px] sm:min-w-[196px]">
+              <div class="flex items-baseline justify-between gap-2">
+                <div class="flex items-center gap-1.5">
+                  <span class="text-[11px] text-[#22e4ff] font-bold">Score</span>
+                  <span
+                    id="hud-combo-badge"
+                    class="hidden font-display text-[10px] text-[#ffe224]"
+                  >
+                    · x2
+                  </span>
+                </div>
+                <span id="hud-score" class="font-display text-lg sm:text-2xl text-white tabular-nums">0</span>
+              </div>
+              <div class="mt-1 pt-1 border-t border-white/12 flex items-center justify-between gap-2 text-[10px] sm:text-xs text-slate-200 font-mono tabular-nums">
+                <span id="hud-distance" class="text-[#a3ff2e] font-bold">0.00 km</span>
+                <span id="hud-best" class="hidden sm:inline text-[#ffe224]">Best 0</span>
+              </div>
+            </div>
+
+            <!-- Top-Center: T56 Credit + Live Gesture Status + Bonus Toast -->
+            <div class="flex flex-col items-center gap-1 min-w-0">
+              <span class="text-[10px] sm:text-[11px] font-bold text-[#ffe224] tracking-wide whitespace-nowrap drop-shadow">
+                T56
+              </span>
+              <div
+                id="hud-gesture-banner"
+                class="arcade-hud-card rounded-xl px-2.5 py-1 sm:px-4 sm:py-1.5 text-center transition-colors max-w-[185px] sm:max-w-none"
+              >
+                <span id="hud-gesture-status" class="font-display text-[10px] sm:text-xs tracking-wide text-[#22e4ff] block truncate">
+                  SPEED DIAL · 75 KM/H
+                </span>
+              </div>
+              <div
+                id="hud-bonus-toast"
+                class="opacity-0 transform -translate-y-1 transition-all duration-200 bg-[#1f1135]/95 border border-[#ff2eb6]/60 rounded-lg px-3 py-1 text-[10px] sm:text-xs font-display text-[#ffe224] whitespace-nowrap shadow-lg"
+              >
+                NEAR MISS +50
+              </div>
+            </div>
+
+            <!-- Top-Right: Shield + Quick Actions -->
+            <div class="pointer-events-auto flex flex-col items-end gap-1.5">
+              <div class="arcade-hud-card rounded-xl px-2.5 py-1.5 sm:px-3.5 sm:py-2 flex items-center gap-2 sm:gap-3">
+                <div class="flex items-center gap-1" aria-label="Vehicle integrity">
+                  <span class="hidden sm:inline text-[11px] font-bold text-slate-300 mr-1">Shield</span>
+                  <span id="hull-bar-1" class="w-3 sm:w-4 h-2.5 rounded-xs bg-[#a3ff2e]"></span>
+                  <span id="hull-bar-2" class="w-3 sm:w-4 h-2.5 rounded-xs bg-[#a3ff2e]"></span>
+                  <span id="hull-bar-3" class="w-3 sm:w-4 h-2.5 rounded-xs bg-[#a3ff2e]"></span>
+                  <span id="hud-hull-text" class="font-mono text-[10px] sm:text-xs font-bold text-white tabular-nums ml-0.5">3/3</span>
+                </div>
+                <span class="hidden sm:inline-block h-3.5 w-px bg-white/15"></span>
+                <span id="hud-control-mode" class="hidden sm:inline text-xs font-bold text-[#22e4ff] whitespace-nowrap">
+                  Keys
+                </span>
+              </div>
+
+              <div class="flex flex-wrap items-center justify-end gap-1 sm:gap-1.5">
+                <button
+                  type="button"
+                  id="btn-hud-camera-view"
+                  class="min-h-[32px] px-2 sm:px-2.5 py-1 arcade-hud-card hover:bg-[#231b4d] rounded-lg text-[11px] sm:text-xs font-semibold text-white transition-colors cursor-pointer whitespace-nowrap"
+                  title="Switch Camera Perspective [C]"
+                >
+                  Cam: Chase
+                </button>
+                <button
+                  type="button"
+                  id="btn-hud-recenter"
+                  class="hidden min-h-[32px] px-2 sm:px-2.5 py-1 arcade-hud-card hover:bg-[#231b4d] border-[#a3ff2e]/45 rounded-lg text-[11px] sm:text-xs font-bold text-[#a3ff2e] transition-colors cursor-pointer whitespace-nowrap"
+                >
+                  Recenter
+                </button>
+                <button
+                  type="button"
+                  id="btn-hud-recalibrate"
+                  class="hidden min-h-[32px] px-2 sm:px-2.5 py-1 arcade-hud-card hover:bg-[#231b4d] border-[#22e4ff]/45 rounded-lg text-[11px] sm:text-xs font-bold text-[#22e4ff] transition-colors cursor-pointer whitespace-nowrap"
+                >
+                  Tune
+                </button>
+                <button
+                  type="button"
+                  id="btn-hud-mute"
+                  class="min-h-[32px] px-2 sm:px-2.5 py-1 arcade-hud-card hover:bg-[#231b4d] rounded-lg text-[11px] sm:text-xs font-semibold text-slate-200 transition-colors cursor-pointer whitespace-nowrap"
+                >
+                  Sound: On
+                </button>
+                <button
+                  type="button"
+                  id="btn-hud-pause"
+                  class="min-h-[32px] px-2.5 sm:px-3 py-1 arcade-hud-card hover:bg-[#231b4d] rounded-lg text-[11px] sm:text-xs font-bold text-[#ffe224] transition-colors cursor-pointer whitespace-nowrap"
+                >
+                  Pause
+                </button>
+              </div>
+            </div>
           </div>
-        </footer>
+
+          <!-- Bottom Section: Mobile Touch Pads + Live Speed Control Cockpit / Wheel / PiP -->
+          <div class="flex flex-col gap-2.5">
+            <!-- Dedicated Mobile Touch Steering & Pedal Controls -->
+            <div
+              id="hud-touch-controls"
+              class="hidden pointer-events-auto flex items-end justify-between gap-3 px-0.5"
+            >
+              <div
+                id="touch-steer-zone"
+                class="flex items-center gap-2 touch-control-btn"
+                aria-label="Touch Steering Controls"
+              >
+                <button
+                  type="button"
+                  id="btn-touch-left"
+                  class="touch-control-btn w-16 h-14 sm:w-20 sm:h-16 rounded-2xl arcade-hud-card active:bg-[#2b1f5e] border-[#22e4ff]/45 text-[#22e4ff] font-display text-xl flex items-center justify-center shadow-lg"
+                  aria-label="Steer Left"
+                >
+                  ◀
+                </button>
+                <button
+                  type="button"
+                  id="btn-touch-right"
+                  class="touch-control-btn w-16 h-14 sm:w-20 sm:h-16 rounded-2xl arcade-hud-card active:bg-[#2b1f5e] border-[#22e4ff]/45 text-[#22e4ff] font-display text-xl flex items-center justify-center shadow-lg"
+                  aria-label="Steer Right"
+                >
+                  ▶
+                </button>
+              </div>
+
+              <div class="flex items-center gap-1.5 sm:gap-2">
+                <button
+                  type="button"
+                  id="btn-touch-brake"
+                  class="touch-control-btn h-14 sm:h-16 px-3 sm:px-4 rounded-2xl bg-[#26131c]/92 active:bg-[#451a2b] border border-[#ff8c1a]/65 text-[#ffe224] font-display text-xs tracking-wider flex items-center justify-center shadow-lg"
+                >
+                  BRAKE
+                </button>
+                <button
+                  type="button"
+                  id="btn-touch-gas"
+                  class="touch-control-btn h-14 sm:h-16 px-3.5 sm:px-4 rounded-2xl bg-[#132920]/92 active:bg-[#1d4031] border border-[#a3ff2e]/65 text-[#a3ff2e] font-display text-xs tracking-wider flex items-center justify-center shadow-lg"
+                >
+                  GAS
+                </button>
+                <button
+                  type="button"
+                  id="btn-touch-nitro"
+                  class="touch-control-btn h-14 sm:h-16 px-3 sm:px-4 rounded-2xl btn-rainbow font-display text-xs tracking-wider flex items-center justify-center shadow-lg"
+                >
+                  NITRO ⚡
+                </button>
+              </div>
+            </div>
+
+            <!-- Bottom Telemetry Row -->
+            <div class="flex items-end justify-between gap-2 sm:gap-4">
+              <!-- Bottom-Left: LIVE SPEED & GEAR CONTROL COCKPIT -->
+              <div
+                id="hud-speed-panel"
+                class="pointer-events-auto arcade-hud-card border-rainbow rounded-2xl px-3 py-2.5 sm:px-4 sm:py-3 w-[220px] sm:w-[292px]"
+              >
+                <!-- Digital Speedometer + Target KM/H Readout -->
+                <div class="flex items-baseline justify-between gap-2">
+                  <div class="flex items-baseline gap-1">
+                    <span id="hud-speed" class="font-display text-2xl sm:text-4xl text-rainbow tabular-nums leading-none">
+                      0
+                    </span>
+                    <span class="font-display text-[10px] sm:text-xs text-slate-300">KM/H</span>
+                  </div>
+                  <span id="hud-speed-cap" class="font-mono text-[11px] font-bold text-[#ffe224] tabular-nums">
+                    Set: 75 km/h
+                  </span>
+                </div>
+                <div class="w-full h-2 bg-white/12 rounded-full overflow-hidden mt-1.5">
+                  <div id="hud-speed-bar" class="h-full bg-[#22e4ff] w-0 transition-none"></div>
+                </div>
+
+                <!-- 6-Button Instant Gearbox Shifter [0..5] -->
+                <div class="mt-2 pt-2 border-t border-white/12">
+                  <div class="flex items-center justify-between text-[10px] mb-1">
+                    <span class="font-bold text-slate-300">Speed Gear [Keys 0–5]</span>
+                    <button
+                      type="button"
+                      id="btn-hud-accel-mode"
+                      class="font-semibold text-[#22e4ff] hover:text-white underline underline-offset-2 cursor-pointer whitespace-nowrap"
+                      title="Switch Throttle Mode [M]"
+                    >
+                      Speed Dial
+                    </button>
+                  </div>
+                  <div class="grid grid-cols-6 gap-1" role="group" aria-label="Live Speed Gears">
+                    <button type="button" data-gear="0" aria-pressed="false" class="gear-btn py-1 rounded-lg text-[10px] font-display cursor-pointer" title="Full Stop (0 km/h) [0]">0</button>
+                    <button type="button" data-gear="1" aria-pressed="false" class="gear-btn py-1 rounded-lg text-[10px] font-display cursor-pointer" title="45 km/h [1]">G1</button>
+                    <button type="button" data-gear="2" aria-pressed="true" class="gear-btn py-1 rounded-lg text-[10px] font-display cursor-pointer" title="75 km/h [2]">G2</button>
+                    <button type="button" data-gear="3" aria-pressed="false" class="gear-btn py-1 rounded-lg text-[10px] font-display cursor-pointer" title="105 km/h [3]">G3</button>
+                    <button type="button" data-gear="4" aria-pressed="false" class="gear-btn py-1 rounded-lg text-[10px] font-display cursor-pointer" title="140 km/h [4]">G4</button>
+                    <button type="button" data-gear="5" aria-pressed="false" class="gear-btn py-1 rounded-lg text-[10px] font-display cursor-pointer" title="180 km/h [5]">G5</button>
+                  </div>
+                </div>
+
+                <!-- Direct Live Speed Slider (0 - 180 km/h) + Stepper -->
+                <div class="mt-2 pt-2 border-t border-white/12">
+                  <div class="flex items-center justify-between text-[10px] mb-1">
+                    <label for="hud-target-speed-slider" class="font-bold text-[#ffe224] cursor-pointer">
+                      Control Speed
+                    </label>
+                    <span id="hud-throttle-val" class="font-mono font-bold text-[#a3ff2e] tabular-nums">
+                      75 km/h
+                    </span>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      id="btn-hud-speed-down"
+                      class="w-6 h-6 rounded-md bg-white/12 hover:bg-white/22 text-white font-mono text-xs font-bold flex items-center justify-center cursor-pointer shrink-0"
+                      title="Slower -10 km/h [- / Q]"
+                      aria-label="Decrease Speed"
+                    >
+                      −
+                    </button>
+                    <input
+                      id="hud-target-speed-slider"
+                      type="range"
+                      min="0"
+                      max="180"
+                      step="5"
+                      value="75"
+                      aria-label="Live Speed Control in KM/H"
+                      class="w-full cursor-pointer"
+                    />
+                    <button
+                      type="button"
+                      id="btn-hud-speed-up"
+                      class="w-6 h-6 rounded-md bg-white/12 hover:bg-white/22 text-white font-mono text-xs font-bold flex items-center justify-center cursor-pointer shrink-0"
+                      title="Faster +10 km/h [+ / E]"
+                      aria-label="Increase Speed"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Pedal State + Nitro + Desktop On-Screen Pedals -->
+                <div class="mt-2 pt-2 border-t border-white/12">
+                  <div class="flex items-center justify-between text-[10px] mb-1">
+                    <span id="hud-pedal-state" class="font-bold text-[#a3ff2e] truncate">Cruise 75 km/h</span>
+                    <span id="hud-nitro-pct" class="font-mono font-bold text-[#22e4ff] tabular-nums">N2O 100%</span>
+                  </div>
+                  <div class="w-full h-1.5 bg-white/12 rounded-full overflow-hidden mb-1.5">
+                    <div id="hud-nitro-bar" class="h-full bg-[#ff2eb6] w-full transition-none"></div>
+                  </div>
+                  <div class="hidden sm:grid grid-cols-3 gap-1">
+                    <button
+                      type="button"
+                      id="btn-hud-brake"
+                      class="py-1.5 px-1.5 bg-[#26131c] hover:bg-[#3a1927] border border-[#ff8c1a]/55 text-[#ffe224] rounded-lg text-[10px] font-display tracking-wider cursor-pointer whitespace-nowrap"
+                      title="Hold to Brake to 0 km/h [S / Down]"
+                    >
+                      BRAKE
+                    </button>
+                    <button
+                      type="button"
+                      id="btn-hud-gas"
+                      class="py-1.5 px-1.5 bg-[#132920] hover:bg-[#1a382c] border border-[#a3ff2e]/55 text-[#a3ff2e] rounded-lg text-[10px] font-display tracking-wider cursor-pointer whitespace-nowrap"
+                      title="Hold to Accelerate [W / Up]"
+                    >
+                      GAS [W]
+                    </button>
+                    <button
+                      type="button"
+                      id="btn-hud-nitro"
+                      class="py-1.5 px-1.5 btn-rainbow rounded-lg text-[10px] font-display tracking-wider cursor-pointer whitespace-nowrap"
+                      title="Hold for Hyper Nitro [Space]"
+                    >
+                      NITRO
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bottom-Center: Collapsible Virtual Steering Wheel Dock (Laptop/Tablet) -->
+              <div class="hidden md:flex pointer-events-auto flex-col items-center">
+                <button
+                  type="button"
+                  id="btn-toggle-hud-dock"
+                  class="mb-1.5 px-2.5 py-1 arcade-hud-card hover:bg-[#22194a] rounded-lg text-[11px] font-semibold text-slate-200 cursor-pointer whitespace-nowrap"
+                >
+                  ▾ Hide Wheel [H]
+                </button>
+                <div
+                  id="hud-steering-dock"
+                  class="arcade-hud-card border-rainbow rounded-2xl px-5 py-2.5 flex items-center gap-4 transition-all duration-200"
+                >
+                  <span id="hud-dir-left" class="font-display text-xs text-slate-400 w-12 text-right">
+                    ◀ LEFT
+                  </span>
+
+                  <div class="relative flex items-center justify-center w-14 h-14 rounded-full bg-[#161133] border border-white/20 shadow-inner">
+                    <svg
+                      id="hud-wheel-svg"
+                      class="w-11 h-11"
+                      viewBox="0 0 100 100"
+                      fill="none"
+                    >
+                      <defs>
+                        <linearGradient id="hud-wg" x1="0" y1="0" x2="1" y2="1">
+                          <stop offset="0%" stop-color="#ff8c1a" />
+                          <stop offset="50%" stop-color="#ff2eb6" />
+                          <stop offset="100%" stop-color="#22e4ff" />
+                        </linearGradient>
+                      </defs>
+                      <circle cx="50" cy="50" r="42" stroke="url(#hud-wg)" stroke-width="8" />
+                      <circle cx="50" cy="50" r="12" stroke="url(#hud-wg)" stroke-width="5" />
+                      <line x1="8" y1="50" x2="38" y2="50" stroke="#ffffff" stroke-width="5" stroke-linecap="round" />
+                      <line x1="62" y1="50" x2="92" y2="50" stroke="#ffffff" stroke-width="5" stroke-linecap="round" />
+                      <line x1="50" y1="62" x2="50" y2="92" stroke="#ffffff" stroke-width="5" stroke-linecap="round" />
+                      <circle cx="50" cy="8" r="5.5" fill="#ffe224" />
+                    </svg>
+                  </div>
+
+                  <span id="hud-dir-right" class="font-display text-xs text-slate-400 w-12 text-left">
+                    RIGHT ▶
+                  </span>
+
+                  <div class="flex flex-col gap-1 w-28">
+                    <div class="relative w-full h-2.5 bg-white/12 rounded-full overflow-hidden">
+                      <div class="absolute left-1/2 top-0 bottom-0 w-0.5 bg-white/50 -translate-x-1/2"></div>
+                      <div
+                        id="hud-steer-fill"
+                        class="absolute top-0 bottom-0 bg-[#22e4ff]"
+                        style="left: 50%; width: 0%"
+                      ></div>
+                    </div>
+                    <span id="hud-steer-text" class="font-mono text-[10px] font-bold text-slate-200 text-center tabular-nums">
+                      CENTER · 0°
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Bottom-Right: Compact Mirrored Webcam Preview Panel -->
+              <div
+                id="hud-camera-pip"
+                class="hidden pointer-events-auto arcade-hud-card border-rainbow rounded-2xl p-1.5 sm:p-2 w-[136px] sm:w-[216px] shadow-2xl"
+              >
+                <div class="flex items-center justify-between gap-1.5 mb-1 px-1 text-[10px] sm:text-[11px]">
+                  <span id="pip-tracking-label" class="font-bold text-[#a3ff2e] truncate">
+                    Hand Wheel Active
+                  </span>
+                  <button
+                    type="button"
+                    id="btn-toggle-pip-size"
+                    class="text-slate-300 hover:text-white font-semibold cursor-pointer whitespace-nowrap shrink-0"
+                  >
+                    Hide
+                  </button>
+                </div>
+                <div id="pip-video-wrapper" class="relative w-full aspect-[4/3] bg-[#070512] rounded-xl overflow-hidden border border-white/15">
+                  <video
+                    id="hud-video-preview"
+                    class="w-full h-full object-cover scale-x-[-1]"
+                    autoplay
+                    playsinline
+                    muted
+                  ></video>
+                  <canvas
+                    id="hud-landmark-canvas"
+                    class="absolute inset-0 w-full h-full pointer-events-none"
+                  ></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </section>
 
       <!-- CAMERA CONSENT & PERMISSION FALLBACK MODAL -->
@@ -771,10 +1129,9 @@
 
           <div class="bg-[#120e28] border border-white/12 rounded-xl p-3.5 mb-4 space-y-2 text-xs text-slate-300">
             <p><strong class="text-[#22e4ff]">100% On-Device Privacy:</strong> Camera frames run locally in your browser via MediaPipe and are never uploaded anywhere.</p>
-            <p><strong class="text-[#a3ff2e]">2-Hand or 1-Hand Ready:</strong> Works smoothly on both Laptop webcams and Phone selfie cameras.</p>
+            <p><strong class="text-[#a3ff2e]">Full Speed Control:</strong> Your car respects your chosen Gear / Speed Slider, and opening your palm(s) brakes smoothly to 0 km/h.</p>
           </div>
 
-          <!-- Error / Status Box inside consent modal -->
           <div
             id="camera-error-box"
             class="hidden bg-[#2b1020] border border-pink-500/50 rounded-xl p-3.5 mb-4 text-xs text-pink-100 leading-relaxed"
@@ -784,7 +1141,6 @@
             <p id="camera-error-detail">Permission was denied or no camera device was detected.</p>
           </div>
 
-          <!-- Loading indicator while MediaPipe initializes -->
           <div
             id="camera-loading-box"
             class="hidden bg-[#131936] border border-[#22e4ff]/45 rounded-xl p-3.5 mb-4 text-xs text-[#22e4ff] font-semibold"
@@ -811,7 +1167,7 @@
         </div>
       </section>
 
-      <!-- STEERING CALIBRATION & TUNING STUDIO (Accessible anytime via Tune / Recalibrate) -->
+      <!-- STEERING CALIBRATION & TUNING STUDIO -->
       <section
         id="calibration-screen"
         class="hidden pointer-events-auto fixed inset-0 z-40 bg-[#090717]/92 flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
@@ -826,7 +1182,7 @@
                 Hand Wheel Tuning Studio
               </h2>
               <p class="text-xs text-slate-300 mt-0.5">
-                Hold hands level to lock straight center, or fine-tune steering sensitivity &amp; pedals.
+                Hold hands level to lock straight center, or fine-tune steering sensitivity &amp; speed.
               </p>
             </div>
             <button
@@ -839,7 +1195,7 @@
           </div>
 
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5 items-stretch">
-            <!-- Left Column: Live Mirrored Camera + Rainbow Hand Skeleton -->
+            <!-- Left Column: Live Mirrored Camera + Hand Skeleton -->
             <div class="lg:col-span-7 flex flex-col justify-between bg-[#100c24] border border-white/15 rounded-xl p-3.5 sm:p-4">
               <div class="flex items-center justify-between gap-2 mb-2.5 text-xs">
                 <span id="cal-status-badge" class="font-display text-[#22e4ff] tracking-wide truncate">
@@ -850,7 +1206,6 @@
                 </span>
               </div>
 
-              <!-- Mirrored Video + Skeleton Canvas Container -->
               <div class="relative w-full aspect-[4/3] max-h-[260px] sm:max-h-[320px] bg-[#070512] rounded-xl overflow-hidden border border-white/15 mx-auto">
                 <video
                   id="cal-video-preview"
@@ -864,7 +1219,6 @@
                   class="absolute inset-0 w-full h-full pointer-events-none"
                 ></canvas>
 
-                <!-- Calibration Hold Progress Overlay -->
                 <div
                   id="cal-progress-banner"
                   class="absolute bottom-2.5 inset-x-2.5 bg-[#0e0b22]/92 border border-white/18 rounded-xl px-3 py-2 flex items-center justify-between gap-2"
@@ -878,7 +1232,6 @@
                 </div>
               </div>
 
-              <!-- Rainbow Virtual Wheel & L / CENTER / R Gauge -->
               <div class="mt-3 pt-3 border-t border-white/12 flex flex-wrap items-center justify-between gap-3">
                 <div class="flex items-center gap-3">
                   <div class="w-12 h-12 rounded-full bg-[#161132] border border-white/20 flex items-center justify-center shrink-0">
@@ -923,14 +1276,13 @@
               </div>
             </div>
 
-            <!-- Right Column: Tuning Controls & Gesture Pedal Config -->
+            <!-- Right Column: Tuning Controls & Speed Config -->
             <div class="lg:col-span-5 flex flex-col justify-between bg-[#100c24] border border-white/15 rounded-xl p-4 space-y-4">
               <div class="space-y-3.5">
                 <h3 class="font-display text-sm sm:text-base text-white">
                   Steering Response &amp; Gestures
                 </h3>
 
-                <!-- Sensitivity -->
                 <div>
                   <div class="flex justify-between text-xs mb-1">
                     <label for="input-sensitivity" class="text-slate-200 font-semibold">Steering Sensitivity</label>
@@ -943,11 +1295,10 @@
                     max="2.0"
                     step="0.05"
                     value="1.25"
-                    class="w-full accent-[#ff2eb6] cursor-pointer"
+                    class="w-full cursor-pointer"
                   />
                 </div>
 
-                <!-- Dead Zone -->
                 <div>
                   <div class="flex justify-between text-xs mb-1">
                     <label for="input-deadzone" class="text-slate-200 font-semibold">Center Dead Zone</label>
@@ -960,11 +1311,10 @@
                     max="10"
                     step="0.5"
                     value="2.0"
-                    class="w-full accent-[#22e4ff] cursor-pointer"
+                    class="w-full cursor-pointer"
                   />
                 </div>
 
-                <!-- Smoothing -->
                 <div>
                   <div class="flex justify-between text-xs mb-1">
                     <label for="input-smoothing" class="text-slate-200 font-semibold">Responsiveness</label>
@@ -977,11 +1327,10 @@
                     max="24"
                     step="1"
                     value="16"
-                    class="w-full accent-[#ff8c1a] cursor-pointer"
+                    class="w-full cursor-pointer"
                   />
                 </div>
 
-                <!-- Max Steering Angle -->
                 <div>
                   <div class="flex justify-between text-xs mb-1">
                     <label for="input-maxangle" class="text-slate-200 font-semibold">Full Lock Tilt Angle</label>
@@ -994,14 +1343,13 @@
                     max="50"
                     step="1"
                     value="32"
-                    class="w-full accent-[#a3ff2e] cursor-pointer"
+                    class="w-full cursor-pointer"
                   />
                 </div>
 
-                <!-- Gesture Throttle / Brake Mode -->
                 <div>
                   <label for="select-pedal-mode" class="block text-xs text-slate-200 font-semibold mb-1">
-                    Acceleration &amp; Braking Gesture Mode
+                    Hand Gesture Pedal Mode
                   </label>
                   <select
                     id="select-pedal-mode"
@@ -1014,37 +1362,36 @@
                       Open Palms = Accelerate · Closed Fists = Brake
                     </option>
                     <option value="auto_palm_brake">
-                      Hands Up = Cruise · Open Palms = Brake
+                      Cruise Speed + Open Palms = Brake
                     </option>
                     <option value="auto_only">
-                      Hands Steer Only (Use Keys / Slider for Gas)
+                      Hands Steer Only (Use Slider / Keys for Speed)
                     </option>
                   </select>
                   <p id="pedal-mode-hint" class="text-[11px] text-slate-300 mt-1 leading-snug">
-                    Grip your imaginary wheel (1 or 2 hands) to accelerate. Spread palm(s) open to brake.
+                    Grip your imaginary wheel to drive at your chosen speed; spread palm(s) open to brake to 0 km/h.
                   </p>
                 </div>
 
-                <!-- Vehicle Speed & Acceleration Smoothness inside Calibration Studio -->
                 <div class="pt-2.5 border-t border-white/12 space-y-2.5">
                   <div>
                     <div class="flex justify-between text-xs mb-1">
-                      <label for="cal-speed-scale" class="text-slate-200 font-semibold">Max Speed Limit</label>
-                      <span id="cal-speed-val" class="font-mono text-[#22e4ff] tabular-nums">90% (Max 113 km/h)</span>
+                      <label for="cal-target-speed" class="text-slate-200 font-semibold">Target Vehicle Speed</label>
+                      <span id="cal-speed-val" class="font-mono text-[#22e4ff] tabular-nums">75 km/h</span>
                     </div>
                     <input
-                      id="cal-speed-scale"
+                      id="cal-target-speed"
                       type="range"
-                      min="0.45"
-                      max="1.4"
-                      step="0.05"
-                      value="0.9"
-                      class="w-full accent-[#22e4ff] cursor-pointer"
+                      min="0"
+                      max="180"
+                      step="5"
+                      value="75"
+                      class="w-full cursor-pointer"
                     />
                   </div>
                   <div>
                     <div class="flex justify-between text-xs mb-1">
-                      <label for="cal-accel-rate" class="text-slate-200 font-semibold">Acceleration Power</label>
+                      <label for="cal-accel-rate" class="text-slate-200 font-semibold">Acceleration Smoothness</label>
                       <span id="cal-accel-val" class="font-mono text-[#a3ff2e] tabular-nums">85% · Smooth</span>
                     </div>
                     <input
@@ -1054,7 +1401,7 @@
                       max="1.5"
                       step="0.05"
                       value="0.85"
-                      class="w-full accent-[#a3ff2e] cursor-pointer"
+                      class="w-full cursor-pointer"
                     />
                   </div>
                 </div>
@@ -1081,375 +1428,6 @@
         </div>
       </section>
 
-      <!-- ACTIVE RACE HUD (Chroma Confetti Arcade Layout · Phone + Laptop Ergonomic) -->
-      <div id="race-hud" class="hidden fixed inset-0 z-20 pointer-events-none flex flex-col justify-between p-2.5 sm:p-5">
-        <!-- Top HUD Row -->
-        <div class="flex items-start justify-between gap-2 sm:gap-4">
-          <!-- Top-Left: Score, Combo, Best, Distance -->
-          <div class="arcade-hud-card rounded-xl px-2.5 py-2 sm:px-4 sm:py-2.5 min-w-[126px] sm:min-w-[196px]">
-            <div class="flex items-baseline justify-between gap-2">
-              <div class="flex items-center gap-1.5">
-                <span class="text-[10px] sm:text-[11px] text-[#22e4ff] font-bold uppercase tracking-wider">Score</span>
-                <span
-                  id="hud-combo-badge"
-                  class="hidden px-1.5 py-0.5 rounded-md bg-[#ff2eb6]/25 border border-[#ff2eb6]/60 font-display text-[9px] sm:text-[10px] text-[#ffe224]"
-                >
-                  COMBO x2
-                </span>
-              </div>
-              <span id="hud-score" class="font-display text-lg sm:text-2xl text-white tabular-nums">0</span>
-            </div>
-            <div class="mt-1 pt-1 border-t border-white/12 flex items-center justify-between gap-2 text-[10px] sm:text-xs text-slate-200 font-mono tabular-nums">
-              <span id="hud-distance" class="text-[#a3ff2e] font-bold">0.00 km</span>
-              <span id="hud-best" class="hidden sm:inline text-[#ffe224]">Best 0</span>
-            </div>
-          </div>
-
-          <!-- Top-Center: T56 Credit + Live Gesture Status + Bonus Toast -->
-          <div class="flex flex-col items-center gap-1 min-w-0">
-            <span class="text-[10px] sm:text-[11px] font-bold text-[#ffe224] tracking-wide whitespace-nowrap drop-shadow">
-              T56
-            </span>
-            <div
-              id="hud-gesture-banner"
-              class="arcade-hud-card rounded-xl px-2.5 py-1 sm:px-4 sm:py-1.5 text-center transition-colors max-w-[180px] sm:max-w-none"
-            >
-              <span id="hud-gesture-status" class="font-display text-[10px] sm:text-xs tracking-wide text-[#22e4ff] block truncate">
-                KEYBOARD MODE
-              </span>
-            </div>
-            <div
-              id="hud-bonus-toast"
-              class="opacity-0 transform -translate-y-1 transition-all duration-200 bg-[#1f1135]/95 border border-[#ff2eb6]/60 rounded-lg px-3 py-1 text-[10px] sm:text-xs font-display text-[#ffe224] whitespace-nowrap shadow-lg"
-            >
-              NEAR MISS +50
-            </div>
-          </div>
-
-          <!-- Top-Right: Integrity Shield + Quick Actions (Recenter, Tune, Cam, Mute, Pause) -->
-          <div class="pointer-events-auto flex flex-col items-end gap-1.5">
-            <div class="arcade-hud-card rounded-xl px-2.5 py-1.5 sm:px-3.5 sm:py-2 flex items-center gap-2 sm:gap-3">
-              <div class="flex items-center gap-1" aria-label="Vehicle integrity">
-                <span class="hidden sm:inline text-[11px] font-bold text-slate-300 mr-1">Shield</span>
-                <span id="hull-bar-1" class="w-3 sm:w-4 h-2.5 rounded-xs bg-[#a3ff2e]"></span>
-                <span id="hull-bar-2" class="w-3 sm:w-4 h-2.5 rounded-xs bg-[#a3ff2e]"></span>
-                <span id="hull-bar-3" class="w-3 sm:w-4 h-2.5 rounded-xs bg-[#a3ff2e]"></span>
-                <span id="hud-hull-text" class="font-mono text-[10px] sm:text-xs font-bold text-white tabular-nums ml-0.5">3/3</span>
-              </div>
-              <span class="hidden sm:inline-block h-3.5 w-px bg-white/15"></span>
-              <span id="hud-control-mode" class="hidden sm:inline text-xs font-bold text-[#22e4ff] whitespace-nowrap">
-                Camera
-              </span>
-            </div>
-
-            <div class="flex flex-wrap items-center justify-end gap-1 sm:gap-1.5">
-              <button
-                type="button"
-                id="btn-hud-camera-view"
-                class="min-h-[32px] px-2 sm:px-2.5 py-1 arcade-hud-card hover:bg-[#231b4d] rounded-lg text-[11px] sm:text-xs font-semibold text-white transition-colors cursor-pointer whitespace-nowrap"
-                title="Switch Camera Perspective [C]"
-              >
-                Cam: Chase
-              </button>
-              <button
-                type="button"
-                id="btn-hud-recenter"
-                class="hidden min-h-[32px] px-2 sm:px-2.5 py-1 arcade-hud-card hover:bg-[#231b4d] border-[#a3ff2e]/45 rounded-lg text-[11px] sm:text-xs font-bold text-[#a3ff2e] transition-colors cursor-pointer whitespace-nowrap"
-                title="Set current hand position as straight ahead"
-              >
-                Recenter
-              </button>
-              <button
-                type="button"
-                id="btn-hud-recalibrate"
-                class="hidden min-h-[32px] px-2 sm:px-2.5 py-1 arcade-hud-card hover:bg-[#231b4d] border-[#22e4ff]/45 rounded-lg text-[11px] sm:text-xs font-bold text-[#22e4ff] transition-colors cursor-pointer whitespace-nowrap"
-              >
-                Tune
-              </button>
-              <button
-                type="button"
-                id="btn-hud-mute"
-                class="min-h-[32px] px-2 sm:px-2.5 py-1 arcade-hud-card hover:bg-[#231b4d] rounded-lg text-[11px] sm:text-xs font-semibold text-slate-200 transition-colors cursor-pointer whitespace-nowrap"
-                title="Toggle Sound"
-              >
-                Sound: On
-              </button>
-              <button
-                type="button"
-                id="btn-hud-pause"
-                class="min-h-[32px] px-2.5 sm:px-3 py-1 arcade-hud-card hover:bg-[#231b4d] rounded-lg text-[11px] sm:text-xs font-bold text-[#ffe224] transition-colors cursor-pointer whitespace-nowrap"
-              >
-                Pause
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Bottom Section: Mobile Touch Driving Controls + Speed/Wheel/PiP -->
-        <div class="flex flex-col gap-2.5">
-          <!-- Dedicated Mobile Touch Steering & Pedal Controls -->
-          <div
-            id="hud-touch-controls"
-            class="hidden pointer-events-auto flex items-end justify-between gap-3 px-0.5"
-          >
-            <!-- Left Thumb: Smooth Multi-Touch Steer Pad -->
-            <div
-              id="touch-steer-zone"
-              class="flex items-center gap-2 touch-control-btn"
-              aria-label="Touch Steering Controls"
-            >
-              <button
-                type="button"
-                id="btn-touch-left"
-                class="touch-control-btn w-16 h-14 sm:w-20 sm:h-16 rounded-2xl arcade-hud-card active:bg-[#2b1f5e] border-[#22e4ff]/45 text-[#22e4ff] font-display text-xl flex items-center justify-center shadow-lg"
-                aria-label="Steer Left"
-              >
-                ◀
-              </button>
-              <button
-                type="button"
-                id="btn-touch-right"
-                class="touch-control-btn w-16 h-14 sm:w-20 sm:h-16 rounded-2xl arcade-hud-card active:bg-[#2b1f5e] border-[#22e4ff]/45 text-[#22e4ff] font-display text-xl flex items-center justify-center shadow-lg"
-                aria-label="Steer Right"
-              >
-                ▶
-              </button>
-            </div>
-
-            <!-- Right Thumb: Tactile Brake, Gas & Hyper Nitro Pedals -->
-            <div class="flex items-center gap-1.5 sm:gap-2">
-              <button
-                type="button"
-                id="btn-touch-brake"
-                class="touch-control-btn h-14 sm:h-16 px-3 sm:px-4 rounded-2xl bg-[#26131c]/92 active:bg-[#451a2b] border border-[#ff8c1a]/65 text-[#ffe224] font-display text-xs tracking-wider flex items-center justify-center shadow-lg"
-              >
-                BRAKE
-              </button>
-              <button
-                type="button"
-                id="btn-touch-gas"
-                class="touch-control-btn h-14 sm:h-16 px-3.5 sm:px-4 rounded-2xl bg-[#132920]/92 active:bg-[#1d4031] border border-[#a3ff2e]/65 text-[#a3ff2e] font-display text-xs tracking-wider flex items-center justify-center shadow-lg"
-              >
-                GAS
-              </button>
-              <button
-                type="button"
-                id="btn-touch-nitro"
-                class="touch-control-btn h-14 sm:h-16 px-3 sm:px-4 rounded-2xl btn-rainbow font-display text-xs tracking-wider flex items-center justify-center shadow-lg"
-              >
-                NITRO ⚡
-              </button>
-            </div>
-          </div>
-
-          <!-- Bottom Telemetry Row (Rainbow Speed + Acceleration Control + Nitro, Rainbow Virtual Steering Wheel, Camera PiP) -->
-          <div class="flex items-end justify-between gap-2 sm:gap-4">
-            <!-- Bottom-Left: Rainbow Speedometer + Live Throttle Lever + Pedals + Hyper Nitro Gauge -->
-            <div id="hud-speed-panel" class="pointer-events-auto arcade-hud-card border-rainbow rounded-2xl px-3 py-2 sm:px-4 sm:py-3 min-w-[168px] sm:min-w-[236px] transition-transform duration-200">
-              <div class="flex items-baseline justify-between gap-2">
-                <div class="flex items-baseline gap-1">
-                  <span id="hud-speed" class="font-display text-2xl sm:text-4xl text-rainbow tabular-nums leading-none">
-                    0
-                  </span>
-                  <span class="font-display text-[10px] sm:text-xs text-slate-300">KM/H</span>
-                </div>
-                <span id="hud-difficulty-tier" class="font-mono text-[10px] sm:text-[11px] font-bold text-[#ffe224] tabular-nums">Tier 1</span>
-              </div>
-              <div class="w-full h-2 bg-white/12 rounded-full overflow-hidden mt-1.5">
-                <div id="hud-speed-bar" class="h-full bg-[#22e4ff] w-0 transition-none"></div>
-              </div>
-
-              <!-- Live On-HUD Acceleration Mode & Max Speed Stepper -->
-              <div class="mt-1.5 pt-1.5 border-t border-white/12 flex items-center justify-between gap-1.5 text-[10px]">
-                <button
-                  type="button"
-                  id="btn-hud-accel-mode"
-                  class="px-1.5 py-0.5 rounded-md bg-[#1d163d] hover:bg-[#2a2057] border border-[#22e4ff]/40 font-semibold text-[#22e4ff] cursor-pointer truncate"
-                  title="Switch Acceleration Mode [M]"
-                >
-                  Manual Gas
-                </button>
-                <div class="flex items-center gap-1 shrink-0 font-mono tabular-nums">
-                  <button
-                    type="button"
-                    id="btn-hud-speed-down"
-                    class="w-5 h-5 rounded bg-white/10 hover:bg-white/20 text-white font-bold flex items-center justify-center cursor-pointer"
-                    title="Decrease Max Speed Limit [-]"
-                    aria-label="Decrease Max Speed Limit"
-                  >
-                    −
-                  </button>
-                  <span id="hud-speed-cap" class="text-[10px] font-bold text-[#ffe224] min-w-[32px] text-center">
-                    90%
-                  </span>
-                  <button
-                    type="button"
-                    id="btn-hud-speed-up"
-                    class="w-5 h-5 rounded bg-white/10 hover:bg-white/20 text-white font-bold flex items-center justify-center cursor-pointer"
-                    title="Increase Max Speed Limit [+]"
-                    aria-label="Increase Max Speed Limit"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              <!-- Direct Live Throttle / Acceleration Control Slider -->
-              <div class="mt-1.5 pt-1.5 border-t border-white/12">
-                <div class="flex items-center justify-between text-[10px] mb-1">
-                  <label for="hud-throttle-slider" class="font-bold text-[#ffe224] cursor-pointer">
-                    Throttle
-                  </label>
-                  <span id="hud-throttle-val" class="font-mono font-bold text-[#a3ff2e] tabular-nums">
-                    0%
-                  </span>
-                </div>
-                <input
-                  id="hud-throttle-slider"
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value="0"
-                  aria-label="Live Throttle Control"
-                  title="Drag to set steady throttle [Q / E], or leave at 0% for manual pedal control"
-                  class="w-full accent-[#a3ff2e] cursor-pointer"
-                />
-              </div>
-
-              <div class="mt-1.5 pt-1.5 border-t border-white/12">
-                <div class="flex items-center justify-between text-[10px] mb-1">
-                  <span id="hud-pedal-state" class="font-bold text-[#a3ff2e] truncate">Hold GAS [W]</span>
-                  <span id="hud-nitro-pct" class="font-mono font-bold text-[#22e4ff] tabular-nums">100%</span>
-                </div>
-                <div class="w-full h-1.5 bg-white/12 rounded-full overflow-hidden mb-1.5">
-                  <div id="hud-nitro-bar" class="h-full bg-[#ff2eb6] w-full transition-none"></div>
-                </div>
-                <div class="hidden sm:grid grid-cols-3 gap-1">
-                  <button
-                    type="button"
-                    id="btn-hud-brake"
-                    class="py-1.5 px-1.5 bg-[#26131c] hover:bg-[#3a1927] border border-[#ff8c1a]/55 text-[#ffe224] rounded-lg text-[10px] font-display tracking-wider cursor-pointer whitespace-nowrap"
-                    title="Hold to Brake [S / Down]"
-                  >
-                    BRAKE
-                  </button>
-                  <button
-                    type="button"
-                    id="btn-hud-gas"
-                    class="py-1.5 px-1.5 bg-[#132920] hover:bg-[#1a382c] border border-[#a3ff2e]/55 text-[#a3ff2e] rounded-lg text-[10px] font-display tracking-wider cursor-pointer whitespace-nowrap"
-                    title="Hold to Accelerate [W / Up]"
-                  >
-                    GAS [W]
-                  </button>
-                  <button
-                    type="button"
-                    id="btn-hud-nitro"
-                    class="py-1.5 px-1.5 btn-rainbow rounded-lg text-[10px] font-display tracking-wider cursor-pointer whitespace-nowrap"
-                    title="Hold for Hyper Nitro [Space]"
-                  >
-                    NITRO
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <!-- Bottom-Center: Collapsible Rainbow Virtual Steering Wheel Dock (Laptop/Tablet) -->
-            <div class="hidden md:flex pointer-events-auto flex-col items-center">
-              <button
-                type="button"
-                id="btn-toggle-hud-dock"
-                class="mb-1.5 px-2.5 py-1 arcade-hud-card hover:bg-[#22194a] rounded-lg text-[11px] font-semibold text-slate-200 cursor-pointer whitespace-nowrap"
-              >
-                ▾ Hide Wheel [H]
-              </button>
-              <div
-                id="hud-steering-dock"
-                class="arcade-hud-card border-rainbow rounded-2xl px-5 py-2.5 flex items-center gap-4 transition-all duration-200"
-              >
-                <span id="hud-dir-left" class="font-display text-xs text-slate-400 w-12 text-right">
-                  ◀ LEFT
-                </span>
-
-                <div class="relative flex items-center justify-center w-14 h-14 rounded-full bg-[#161133] border border-white/20 shadow-inner">
-                  <svg
-                    id="hud-wheel-svg"
-                    class="w-11 h-11"
-                    viewBox="0 0 100 100"
-                    fill="none"
-                  >
-                    <defs>
-                      <linearGradient id="hud-wg" x1="0" y1="0" x2="1" y2="1">
-                        <stop offset="0%" stop-color="#ff8c1a" />
-                        <stop offset="50%" stop-color="#ff2eb6" />
-                        <stop offset="100%" stop-color="#22e4ff" />
-                      </linearGradient>
-                    </defs>
-                    <circle cx="50" cy="50" r="42" stroke="url(#hud-wg)" stroke-width="8" />
-                    <circle cx="50" cy="50" r="12" stroke="url(#hud-wg)" stroke-width="5" />
-                    <line x1="8" y1="50" x2="38" y2="50" stroke="#ffffff" stroke-width="5" stroke-linecap="round" />
-                    <line x1="62" y1="50" x2="92" y2="50" stroke="#ffffff" stroke-width="5" stroke-linecap="round" />
-                    <line x1="50" y1="62" x2="50" y2="92" stroke="#ffffff" stroke-width="5" stroke-linecap="round" />
-                    <circle cx="50" cy="8" r="5.5" fill="#ffe224" />
-                  </svg>
-                </div>
-
-                <span id="hud-dir-right" class="font-display text-xs text-slate-400 w-12 text-left">
-                  RIGHT ▶
-                </span>
-
-                <div class="flex flex-col gap-1 w-28">
-                  <div class="relative w-full h-2.5 bg-white/12 rounded-full overflow-hidden">
-                    <div class="absolute left-1/2 top-0 bottom-0 w-0.5 bg-white/50 -translate-x-1/2"></div>
-                    <div
-                      id="hud-steer-fill"
-                      class="absolute top-0 bottom-0 bg-[#22e4ff]"
-                      style="left: 50%; width: 0%"
-                    ></div>
-                  </div>
-                  <span id="hud-steer-text" class="font-mono text-[10px] font-bold text-slate-200 text-center tabular-nums">
-                    CENTER · 0°
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <!-- Bottom-Right: Compact Mirrored Webcam Preview Panel (Rainbow Hand Skeleton + Wheel Axle) -->
-            <div
-              id="hud-camera-pip"
-              class="hidden pointer-events-auto arcade-hud-card border-rainbow rounded-2xl p-1.5 sm:p-2 w-[136px] sm:w-[216px] shadow-2xl"
-            >
-              <div class="flex items-center justify-between gap-1.5 mb-1 px-1 text-[10px] sm:text-[11px]">
-                <span id="pip-tracking-label" class="font-bold text-[#a3ff2e] truncate">
-                  Hand Wheel Active
-                </span>
-                <button
-                  type="button"
-                  id="btn-toggle-pip-size"
-                  class="text-slate-300 hover:text-white font-semibold cursor-pointer whitespace-nowrap shrink-0"
-                  title="Minimize or restore camera preview"
-                >
-                  Hide
-                </button>
-              </div>
-              <div id="pip-video-wrapper" class="relative w-full aspect-[4/3] bg-[#070512] rounded-xl overflow-hidden border border-white/15">
-                <video
-                  id="hud-video-preview"
-                  class="w-full h-full object-cover scale-x-[-1]"
-                  autoplay
-                  playsinline
-                  muted
-                ></video>
-                <canvas
-                  id="hud-landmark-canvas"
-                  class="absolute inset-0 w-full h-full pointer-events-none"
-                ></canvas>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- RACE COUNTDOWN OVERLAY -->
       <div
         id="countdown-overlay"
@@ -1463,12 +1441,12 @@
             3
           </div>
           <p id="countdown-sub" class="font-display text-xs sm:text-sm tracking-widest text-[#ffe224] mt-2 drop-shadow">
-            HOLD YOUR IMAGINARY WHEEL
+            CONTROL YOUR SPEED · GEARS 0–5 OR SLIDER
           </p>
         </div>
       </div>
 
-      <!-- PAUSE & SETTINGS MODAL (Scroll-Safe on Phone & Laptop) -->
+      <!-- PAUSE & SETTINGS MODAL -->
       <section
         id="pause-modal"
         class="hidden pointer-events-auto fixed inset-0 z-40 bg-[#090717]/88 flex items-center justify-center p-3.5 sm:p-4"
@@ -1482,11 +1460,10 @@
               Race Paused
             </h2>
             <span id="pause-mode-label" class="text-xs text-[#22e4ff] font-mono font-bold">
-              Mode: Keyboard
+              Mode: Keys
             </span>
           </div>
 
-          <!-- Clean Dropdown Settings inside Pause / Settings -->
           <div class="space-y-3 text-xs">
             <div class="flex items-center justify-between gap-3">
               <label for="pause-driver-name" class="text-slate-200 font-semibold whitespace-nowrap">Driver Name</label>
@@ -1557,52 +1534,36 @@
 
             <div class="pt-2 border-t border-white/12 space-y-2.5">
               <div class="flex items-center justify-between gap-3">
-                <label for="pause-accel-mode" class="text-[#ffe224] font-bold whitespace-nowrap">Acceleration Mode</label>
+                <label for="pause-accel-mode" class="text-[#ffe224] font-bold whitespace-nowrap">Throttle Style</label>
                 <select
                   id="pause-accel-mode"
                   class="w-44 sm:w-52 bg-[#14102b] border border-[#ffe224]/35 rounded-xl px-2.5 py-1.5 text-white"
                 >
-                  <option value="manual_throttle">Manual Gas Control</option>
-                  <option value="smooth_auto">Auto Cruise + Pedals</option>
-                  <option value="constant_cruise">Steady Speed Lock</option>
+                  <option value="smooth_auto">Speed Dial + Pedals</option>
+                  <option value="manual_throttle">Manual Gas Pedal</option>
+                  <option value="constant_cruise">Locked Cruise Speed</option>
                 </select>
               </div>
 
               <div>
                 <div class="flex justify-between mb-1">
-                  <label for="pause-throttle-level" class="text-slate-200 font-semibold">Base Throttle Lever</label>
-                  <span id="pause-throttle-val" class="font-mono text-[#ffe224] tabular-nums">0% (Pedal Control)</span>
+                  <label for="pause-target-speed" class="text-slate-200 font-semibold">Vehicle Speed (KM/H)</label>
+                  <span id="pause-speed-val" class="font-mono text-[#22e4ff] tabular-nums">75 km/h</span>
                 </div>
                 <input
-                  id="pause-throttle-level"
+                  id="pause-target-speed"
                   type="range"
                   min="0"
-                  max="1"
-                  step="0.05"
-                  value="0"
-                  class="w-full accent-[#ffe224] cursor-pointer"
+                  max="180"
+                  step="5"
+                  value="75"
+                  class="w-full cursor-pointer"
                 />
               </div>
 
               <div>
                 <div class="flex justify-between mb-1">
-                  <label for="pause-speed-scale" class="text-slate-200 font-semibold">Max Speed Limit</label>
-                  <span id="pause-speed-val" class="font-mono text-[#22e4ff] tabular-nums">90% (Max 113 km/h)</span>
-                </div>
-                <input
-                  id="pause-speed-scale"
-                  type="range"
-                  min="0.45"
-                  max="1.4"
-                  step="0.05"
-                  value="0.9"
-                  class="w-full accent-[#22e4ff] cursor-pointer"
-                />
-              </div>
-
-              <div>
-                <div class="flex justify-between mb-1">
-                  <label for="pause-accel-rate" class="text-slate-200 font-semibold">Acceleration Power</label>
+                  <label for="pause-accel-rate" class="text-slate-200 font-semibold">Acceleration Smoothness</label>
                   <span id="pause-accel-val" class="font-mono text-[#a3ff2e] tabular-nums">85% · Smooth</span>
                 </div>
                 <input
@@ -1612,7 +1573,7 @@
                   max="1.5"
                   step="0.05"
                   value="0.85"
-                  class="w-full accent-[#a3ff2e] cursor-pointer"
+                  class="w-full cursor-pointer"
                 />
               </div>
             </div>
@@ -1629,7 +1590,7 @@
                 max="2.0"
                 step="0.05"
                 value="1.25"
-                class="w-full accent-[#ff2eb6] cursor-pointer"
+                class="w-full cursor-pointer"
               />
             </div>
 
@@ -1681,7 +1642,7 @@
               id="btn-pause-quit"
               class="w-full py-2 text-slate-300 hover:text-white text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap"
             >
-              Exit to Title Screen
+              ← Back to Page 1: Garage &amp; Speed Lab
             </button>
           </div>
         </div>
@@ -1696,7 +1657,7 @@
         aria-labelledby="gameover-title"
       >
         <div class="max-w-md w-full max-h-[92dvh] overflow-y-auto clean-scroll arcade-panel border-rainbow rounded-2xl p-5 sm:p-7">
-          <p id="gameover-kicker" class="text-xs font-bold uppercase tracking-wider text-[#ff8c1a] mb-1">
+          <p id="gameover-kicker" class="text-xs font-bold text-[#ff8c1a] mb-1">
             Shield Depleted · Great Run!
           </p>
           <div class="flex items-baseline justify-between gap-3 mb-4">
@@ -1763,14 +1724,14 @@
                 id="btn-gameover-menu"
                 class="min-h-[40px] py-2 bg-white/10 hover:bg-white/18 text-slate-200 hover:text-white text-xs font-bold rounded-xl transition-colors cursor-pointer whitespace-nowrap"
               >
-                Title Screen
+                ← Page 1: Garage
               </button>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- CONTROLS HELP MODAL (Laptop + Phone Guide) -->
+      <!-- CONTROLS & SPEED GUIDE MODAL -->
       <section
         id="help-modal"
         class="hidden pointer-events-auto fixed inset-0 z-50 bg-[#090717]/90 flex items-center justify-center p-3.5 sm:p-4"
@@ -1781,7 +1742,7 @@
         <div class="max-w-2xl w-full max-h-[92dvh] overflow-y-auto clean-scroll arcade-panel border-rainbow rounded-2xl p-5 sm:p-7">
           <div class="flex items-center justify-between pb-3.5 mb-5 border-b border-white/15">
             <h2 id="help-title" class="font-display text-xl sm:text-2xl text-rainbow">
-              Controls &amp; Driving Guide
+              Speed &amp; Driving Controls
             </h2>
             <button
               type="button"
@@ -1796,32 +1757,32 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 text-xs leading-relaxed">
             <div class="bg-[#120d29] border border-white/12 rounded-xl p-4 space-y-2">
               <h3 class="font-display text-sm text-[#22e4ff]">
-                Hand Wheel Mode (Laptop &amp; Phone)
+                Instant Speed &amp; Gearbox Control
               </h3>
-              <p class="text-slate-200">
-                1. Hold 2 hands (or 1 hand) in view like gripping a steering wheel — rotate Left/Right to steer.
-              </p>
-              <p class="text-slate-200">
-                2. <strong class="text-[#a3ff2e]">Closed Wheel Grip = Accelerate</strong> · <strong class="text-[#ffe224]">Open Palm(s) = Brake to a Stop</strong>.
-              </p>
-              <p class="text-slate-200">
-                3. Tap <strong class="text-[#22e4ff]">Recenter</strong> anytime to lock your current hand posture as straight ahead.
-              </p>
+              <div class="space-y-1.5 font-mono text-slate-200">
+                <div class="flex justify-between gap-2"><span>Keys 0 – 5</span><span class="text-[#ffe224]">Stop (0) or Gears 1–5</span></div>
+                <div class="flex justify-between gap-2"><span>Speed Slider / Scroll</span><span class="text-[#22e4ff]">Dial 0–180 km/h Live</span></div>
+                <div class="flex justify-between gap-2"><span>[-] / [+] or [Q] / [E]</span><span class="text-[#a3ff2e]">Step Speed -10 / +10 km/h</span></div>
+                <div class="flex justify-between gap-2"><span>W / Up or GAS</span><span class="text-[#a3ff2e]">Accelerate / Pass</span></div>
+                <div class="flex justify-between gap-2"><span>S / Down or BRAKE</span><span class="text-[#ffe224]">Brake Down to 0 km/h</span></div>
+                <div class="flex justify-between gap-2"><span>[M] Key</span><span class="text-[#ff85d8]">Dial / Manual / Locked</span></div>
+                <div class="flex justify-between gap-2"><span>Space / Shift</span><span class="text-[#ff2eb6]">Hyper Nitro ⚡</span></div>
+              </div>
             </div>
 
             <div class="bg-[#120d29] border border-white/12 rounded-xl p-4 space-y-2">
-              <h3 class="font-display text-sm text-[#ffe224]">
-                Touch, Keyboard &amp; Throttle Control
+              <h3 class="font-display text-sm text-[#a3ff2e]">
+                Hand Steering &amp; Two-Page Layout
               </h3>
-              <div class="space-y-1.5 font-mono text-slate-200">
-                <div class="flex justify-between gap-2"><span>W / Up or GAS</span><span class="text-[#a3ff2e]">Hold to Accelerate</span></div>
-                <div class="flex justify-between gap-2"><span>S / Down or BRAKE</span><span class="text-[#ffe224]">Brake Down to 0 km/h</span></div>
-                <div class="flex justify-between gap-2"><span>HUD Throttle Slider</span><span class="text-[#a3ff2e]">0%–100% Live Cruise [Q/E]</span></div>
-                <div class="flex justify-between gap-2"><span>[-] / [+] Keys</span><span class="text-[#22e4ff]">Adjust Max Speed Limit</span></div>
-                <div class="flex justify-between gap-2"><span>[M] Key</span><span class="text-[#ffe224]">Cycle Accel Mode</span></div>
-                <div class="flex justify-between gap-2"><span>Space / Shift</span><span class="text-[#ff2eb6]">Hyper Nitro ⚡</span></div>
-                <div class="flex justify-between gap-2"><span>C / Esc / R</span><span class="text-slate-300">Cam / Pause / Restart</span></div>
-              </div>
+              <p class="text-slate-200">
+                1. <strong class="text-[#22e4ff]">Page 01 (Garage &amp; Speed Lab):</strong> Customize your car model, paint finish, driver nameplate, and exact target speed.
+              </p>
+              <p class="text-slate-200">
+                2. <strong class="text-[#ffe224]">Page 02 (Race Track):</strong> Launch with Hand Steering or Keys/Touch, and adjust speed live anytime with Gears 0–5 or the Speed Slider.
+              </p>
+              <p class="text-slate-200">
+                3. <strong class="text-[#a3ff2e]">Hand Gestures:</strong> Rotate 1 or 2 hands to steer; spread palm(s) open to brake smoothly to a stop.
+              </p>
             </div>
           </div>
 
